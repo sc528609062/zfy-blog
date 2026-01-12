@@ -168,7 +168,7 @@
 </template>
 
 <script>
-import { getArticle, addArticle, updateArticle } from '@/api/blog'
+import { getArticle, addArticle, updateArticle, upload } from '@/api/blog'
 import { mavonEditor } from 'mavon-editor'
 import 'mavon-editor/dist/css/index.css'
 
@@ -228,6 +228,7 @@ export default {
         ul: true, // 无序列表
         link: true, // 链接
         imagelink: true, // 图片链接
+        image: true, // 图片上传
         code: true, // code
         table: true, // 表格
         fullscreen: true, // 全屏编辑
@@ -314,14 +315,29 @@ export default {
     },
     // Markdown 编辑器图片上传
     handleImgAdd(pos, $file) {
-      // TODO: 实现图片上传
-      // 第一步.将图片上传到服务器.
-      const formdata = new FormData()
-      formdata.append('file', $file)
-      // 这里应该调用上传接口
-      // uploadApi(formdata).then(url => {
-      //   this.$refs.mdEditor.$img2Url(pos, url)
-      // })
+      // 第一步：将图片上传到服务器
+      this.$modal.loading('正在上传图片，请稍候...')
+      upload($file).then(response => {
+        // 第二步：将返回的url替换到文本原位置
+        if (response.code === 200) {
+          const url = response.url
+          // 后端返回的是完整 URL，但前端需要使用 /dev-api 前缀的路径
+          // 提取路径部分并添加 /dev-api 前缀
+          const pathUrl = url.replace(/.*\/profile/, '/dev-api/profile')
+          console.log('上传成功, URL:', pathUrl, ', pos:', pos)
+          // 使用 $img2Url 替换占位符为图片 URL
+          // pos 参数是编辑器生成的临时文件名（如：0），需要替换为实际的图片 URL
+          this.$refs.mdEditor.$img2Url(pos, pathUrl)
+          this.$modal.closeLoading()
+          this.$message.success('图片上传成功')
+        } else {
+          this.$modal.closeLoading()
+          this.$message.error('图片上传失败：' + response.msg)
+        }
+      }).catch(error => {
+        this.$modal.closeLoading()
+        this.$message.error('图片上传失败：' + error.message)
+      })
     },
     // 编辑器切换
     handleEditorChange(type) {
@@ -390,8 +406,12 @@ export default {
     // 处理文章内容中的图片路径，添加 /dev-api 前缀
     processImageUrls(content) {
       if (!content) return content
-      // 匹配 /profile/upload/ 开头的路径，替换为 /dev-api/profile/upload/
-      return content.replace(/src="\/profile\/upload\//g, 'src="/dev-api/profile/upload/')
+      // 匹配 Markdown 中的图片语法
+![alt](/profile/)
+      let processed = content.replace(/!\[([^\]]*)\]\(\/profile\//g, '![$1](/dev-api/profile/')
+      // 匹配 HTML 中的图片标签
+      processed = processed.replace(/src="\/profile\//g, 'src="/dev-api/profile/')
+      return processed
     }
   }
 }

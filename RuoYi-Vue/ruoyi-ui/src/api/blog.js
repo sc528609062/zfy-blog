@@ -1,5 +1,20 @@
 import request from '@/utils/request'
 
+// ==================== 通用上传 ====================
+// 通用上传请求
+export function upload(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/common/upload',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
 // ==================== 文章相关 ====================
 // 查询博客文章列表
 export function listArticle(query) {

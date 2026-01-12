@@ -39,11 +39,22 @@
 
             <!-- 文章封面 -->
             <div v-if="article.articleCover" class="article-cover">
-              <img :src="article.articleCover" :alt="article.articleTitle">
+              <img :src="processImageUrl(article.articleCover)" :alt="article.articleTitle">
             </div>
 
             <!-- 文章内容 -->
-            <div class="article-content" v-html="article.articleContent"></div>
+            <mavon-editor
+              class="article-content"
+              :value="article.articleContent"
+              :toolbars="{}"
+              :subfield="false"
+              :boxShadow="false"
+              :preview="true"
+              defaultOpen="preview"
+              :editable="false"
+              :scrollStyle="true"
+              :ishljs="true"
+            />
 
             <!-- 文章底部 -->
             <footer class="article-footer">
@@ -164,8 +175,13 @@
 
 <script>
 import { getArticle, listArticle, listCategory, incrementView } from '@/api/blog'
+import { mavonEditor } from 'mavon-editor'
+import 'mavon-editor/dist/css/index.css'
 
 export default {
+  components: {
+    mavonEditor
+  },
   name: 'BlogArticle',
   data() {
     return {
@@ -286,8 +302,21 @@ export default {
     // 处理文章内容中的图片路径，添加 /dev-api 前缀
     processImageUrls(content) {
       if (!content) return content
-      // 匹配 /profile/upload/ 开头的路径，替换为 /dev-api/profile/upload/
-      return content.replace(/src="\/profile\/upload\//g, 'src="/dev-api/profile/upload/')
+      // 匹配 Markdown 中的图片语法
+![alt](/profile/)
+      let processed = content.replace(/!\[([^\]]*)\]\(\/profile\//g, '![$1](/dev-api/profile/')
+      // 匹配 HTML 中的图片标签
+      processed = processed.replace(/src="\/profile\//g, 'src="/dev-api/profile/')
+      return processed
+    },
+    // 处理图片URL，添加 /dev-api 前缀
+    processImageUrl(url) {
+      if (!url) return url
+      // 如果路径以 /profile/ 开头，添加 /dev-api 前缀
+      if (url.startsWith('/profile/')) {
+        return '/dev-api' + url
+      }
+      return url
     }
   }
 }
@@ -305,7 +334,7 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
 }
 
 .header-inner {
@@ -400,6 +429,38 @@ export default {
   font-size: 16px;
   color: #333;
   margin: 30px 0;
+  border: none;
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+}
+
+.article-content >>> .v-note-wrapper {
+  box-shadow: none !important;
+  border: none !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.article-content >>> .v-note-edit {
+  display: none;
+}
+
+.article-content >>> .v-note-show {
+  width: 100%;
+  background: transparent;
+  padding: 0;
+  position: relative;
+}
+
+.article-content >>> .v-note-show .v-show-content {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* 确保编辑器内部没有固定定位的元素 */
+.article-content >>> * {
+  position: relative !important;
 }
 
 .article-content >>> img {

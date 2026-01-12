@@ -114,8 +114,8 @@
         <template slot-scope="scope">
           <el-image
             v-if="scope.row.articleCover"
-            :src="scope.row.articleCover"
-            :preview-src-list="[scope.row.articleCover]"
+            :src="processImageUrl(scope.row.articleCover)"
+            :preview-src-list="[processImageUrl(scope.row.articleCover)]"
             fit="cover"
             style="width: 60px; height: 40px; border-radius: 4px;"
           >
@@ -307,6 +307,15 @@ export default {
         this.getList()
         this.$modal.msgSuccess('删除成功')
       }).catch(() => {})
+    },
+    // 处理图片URL，添加 /dev-api 前缀
+    processImageUrl(url) {
+      if (!url) return url
+      // 如果路径以 /profile/ 开头，添加 /dev-api 前缀
+      if (url.startsWith('/profile/')) {
+        return '/dev-api' + url
+      }
+      return url
     }
   }
 }

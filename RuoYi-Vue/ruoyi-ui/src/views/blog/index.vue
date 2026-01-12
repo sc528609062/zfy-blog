@@ -59,7 +59,7 @@
           <!-- 置顶文章 -->
           <div v-for="article in topArticles" :key="article.articleId" class="article-item top-article">
             <div class="article-cover" v-if="article.articleCover">
-              <img :src="article.articleCover" :alt="article.articleTitle">
+              <img :src="processImageUrl(article.articleCover)" :alt="article.articleTitle">
             </div>
             <div class="article-info">
               <div class="article-meta">
@@ -83,7 +83,7 @@
           <!-- 普通文章 -->
           <div v-for="article in articles" :key="article.articleId" class="article-item">
             <div class="article-cover" v-if="article.articleCover">
-              <img :src="article.articleCover" :alt="article.articleTitle">
+              <img :src="processImageUrl(article.articleCover)" :alt="article.articleTitle">
             </div>
             <div class="article-info">
               <div class="article-meta">
@@ -310,6 +310,15 @@ export default {
     formatDate(date) {
       if (!date) return ''
       return this.parseTime(date, '{y}-{m}-{d}')
+    },
+    // 处理图片URL，添加 /dev-api 前缀
+    processImageUrl(url) {
+      if (!url) return url
+      // 如果路径以 /profile/ 开头，添加 /dev-api 前缀
+      if (url.startsWith('/profile/')) {
+        return '/dev-api' + url
+      }
+      return url
     }
   }
 }
