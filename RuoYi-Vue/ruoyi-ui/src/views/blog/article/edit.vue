@@ -320,14 +320,16 @@ export default {
       upload($file).then(response => {
         // 第二步：将返回的url替换到文本原位置
         if (response.code === 200) {
+          const fileName = response.fileName
           const url = response.url
           // 后端返回的是完整 URL，但前端需要使用 /dev-api 前缀的路径
           // 提取路径部分并添加 /dev-api 前缀
           const pathUrl = url.replace(/.*\/profile/, '/dev-api/profile')
-          console.log('上传成功, URL:', pathUrl, ', pos:', pos)
+          console.log('上传成功, fileName:', fileName, ', url:', url, ', pathUrl:', pathUrl, ', pos:', pos)
           // 使用 $img2Url 替换占位符为图片 URL
-          // pos 参数是编辑器生成的临时文件名（如：0），需要替换为实际的图片 URL
-          this.$refs.mdEditor.$img2Url(pos, pathUrl)
+          // pos 参数是编辑器生成的临时文件名（如：bbaa25c333445578107c4a51720f8a43.jpg）
+          // 需要替换为实际的图片 URL
+          this.$refs.mdEditor.$img2UrlByFilename(pos, pathUrl)
           this.$modal.closeLoading()
           this.$message.success('图片上传成功')
         } else {
