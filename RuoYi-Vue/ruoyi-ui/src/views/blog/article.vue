@@ -61,12 +61,14 @@
               <div class="article-tags">
                 <span>标签：</span>
                 <el-tag
-                  v-for="tag in article.tags"
+                  v-for="tag in (article.tags || [])"
                   :key="tag.tagId"
                   size="small"
-                  @click="goToTag(tag.tagId)">
+                  @click="goToTag(tag.tagId)"
+                  v-if="tag">
                   {{ tag.tagName }}
                 </el-tag>
+                <span v-if="!article.tags || article.tags.length === 0 || !article.tags.find(t => t)">暂无标签</span>
               </div>
               <div class="article-actions">
                 <el-button type="primary" icon="el-icon-star-off" @click="likeArticle">

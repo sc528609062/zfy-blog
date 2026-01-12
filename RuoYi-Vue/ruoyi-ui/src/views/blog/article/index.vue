@@ -79,6 +79,7 @@
           icon="el-icon-upload2"
           size="mini"
           :disabled="multiple"
+          :loading="publishLoading"
           @click="handlePublish"
           v-hasPermi="['blog:article:edit']"
         >发布</el-button>
@@ -90,6 +91,7 @@
           icon="el-icon-download"
           size="mini"
           :disabled="multiple"
+          :loading="offlineLoading"
           @click="handleUnPublish"
           v-hasPermi="['blog:article:edit']"
         >下架</el-button>
@@ -101,6 +103,7 @@
           icon="el-icon-delete"
           size="mini"
           :disabled="multiple"
+          :loading="deleteLoading"
           @click="handleDelete"
           v-hasPermi="['blog:article:remove']"
         >删除</el-button>
@@ -125,6 +128,13 @@
       </el-table-column>
       <el-table-column label="文章标题" align="left" prop="articleTitle" min-width="200" :show-overflow-tooltip="true" />
       <el-table-column label="作者" align="center" prop="authorName" width="100" />
+      <el-table-column label="状态" align="center" prop="articleStatus" width="100">
+        <template slot-scope="scope">
+          <el-tag :type="getStatusType(scope.row.articleStatus)" size="mini">
+            {{ getStatusText(scope.row.articleStatus) }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="阅读 · 点赞 · 收藏" align="center" width="150">
         <template slot-scope="scope">
           <el-tag size="mini" type="info" style="margin-right: 5px;">{{ scope.row.viewCount || 0 }}</el-tag>
@@ -136,12 +146,13 @@
       <el-table-column label="标签" align="center" width="150">
         <template slot-scope="scope">
           <el-tag
-            v-for="tag in scope.row.tags"
+            v-for="tag in (scope.row.tags || [])"
             :key="tag.tagId"
             size="mini"
             style="margin-right: 5px; margin-bottom: 5px;"
+            v-if="tag"
           >{{ tag.tagName }}</el-tag>
-          <span v-if="!scope.row.tags || scope.row.tags.length === 0">-</span>
+          <span v-if="!scope.row.tags || scope.row.tags.length === 0 || !scope.row.tags.find(t => t)">-</span>
         </template>
       </el-table-column>
       <el-table-column label="专题" align="center" prop="topicName" width="120">
@@ -199,13 +210,16 @@
 </template>
 
 <script>
-import { listArticle, delArticle, listCategory, listTag } from '@/api/blog'
+import { listArticle, delArticle, listCategory, listTag, updateArticleStatus } from '@/api/blog'
 
 export default {
   name: 'BlogArticleList',
   data() {
     return {
       loading: true,
+      publishLoading: false,
+      offlineLoading: false,
+      deleteLoading: false,
       ids: [],
       single: true,
       multiple: true,
@@ -286,27 +300,51 @@ export default {
     handlePublish() {
       const articleIds = this.ids
       this.$modal.confirm('确认要发布选中的 ' + articleIds.length + ' 篇文章吗？').then(() => {
-        // TODO: 调用批量发布接口
+        this.publishLoading = true
+        return updateArticleStatus(articleIds, '1')
+      }).then(() => {
         this.$modal.msgSuccess('发布成功')
         this.getList()
-      }).catch(() => {})
+      }).catch(() => {
+        if (this.publishLoading) {
+          this.$modal.msgError('发布失败')
+        }
+      }).finally(() => {
+        this.publishLoading = false
+      })
     },
     handleUnPublish() {
       const articleIds = this.ids
       this.$modal.confirm('确认要下架选中的 ' + articleIds.length + ' 篇文章吗？').then(() => {
-        // TODO: 调用批量下架接口
+        this.offlineLoading = true
+        return updateArticleStatus(articleIds, '2')
+      }).then(() => {
         this.$modal.msgSuccess('下架成功')
         this.getList()
-      }).catch(() => {})
+      }).catch(() => {
+        if (this.offlineLoading) {
+          this.$modal.msgError('下架失败')
+        }
+      }).finally(() => {
+        this.offlineLoading = false
+      })
     },
     handleDelete(row) {
       const articleIds = row.articleId || this.ids
-      this.$modal.confirm('是否确认删除文章编号为"' + articleIds + '"的数据项？').then(function() {
+      const title = row.articleTitle || '选中的文章'
+      this.$modal.confirm('确认要删除"' + title + '"吗？删除后将无法恢复！').then(() => {
+        this.deleteLoading = true
         return delArticle(articleIds)
       }).then(() => {
-        this.getList()
         this.$modal.msgSuccess('删除成功')
-      }).catch(() => {})
+        this.getList()
+      }).catch(() => {
+        if (this.deleteLoading) {
+          this.$modal.msgError('删除失败')
+        }
+      }).finally(() => {
+        this.deleteLoading = false
+      })
     },
     // 处理图片URL，添加 /dev-api 前缀
     processImageUrl(url) {
@@ -316,6 +354,24 @@ export default {
         return '/dev-api' + url
       }
       return url
+    },
+    // 获取状态文本
+    getStatusText(status) {
+      const statusMap = {
+        '0': '草稿',
+        '1': '已发布',
+        '2': '已下架'
+      }
+      return statusMap[status] || '未知'
+    },
+    // 获取状态标签类型
+    getStatusType(status) {
+      const typeMap = {
+        '0': 'info',
+        '1': 'success',
+        '2': 'danger'
+      }
+      return typeMap[status] || 'info'
     }
   }
 }

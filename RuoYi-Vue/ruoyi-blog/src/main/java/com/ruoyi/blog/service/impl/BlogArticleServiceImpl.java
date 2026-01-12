@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.blog.mapper.BlogArticleMapper;
 import com.ruoyi.blog.mapper.BlogArticleTagMapper;
+import com.ruoyi.blog.mapper.BlogCategoryMapper;
 import com.ruoyi.blog.domain.BlogArticle;
 import com.ruoyi.blog.domain.BlogArticleTag;
 import com.ruoyi.blog.service.IBlogArticleService;
@@ -26,6 +27,9 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Autowired
     private BlogArticleTagMapper blogArticleTagMapper;
 
+    @Autowired
+    private BlogCategoryMapper blogCategoryMapper;
+
     /**
      * 查询博客文章
      *
@@ -38,6 +42,8 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
         if (article != null) {
             List<Long> tagIds = blogArticleMapper.selectTagIdsByArticleId(articleId);
             article.setTagIds(tagIds.toArray(new Long[0]));
+            // 加载标签详细信息
+            article.setTags(blogArticleMapper.selectTagsByArticleId(articleId));
         }
         return article;
     }
@@ -50,7 +56,16 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
      */
     @Override
     public List<BlogArticle> selectBlogArticleList(BlogArticle blogArticle) {
-        return blogArticleMapper.selectBlogArticleList(blogArticle);
+        List<BlogArticle> articleList = blogArticleMapper.selectBlogArticleList(blogArticle);
+        // 为每篇文章加载标签信息
+        if (articleList != null && !articleList.isEmpty()) {
+            for (BlogArticle article : articleList) {
+                if (article.getArticleId() != null) {
+                    article.setTags(blogArticleMapper.selectTagsByArticleId(article.getArticleId()));
+                }
+            }
+        }
+        return articleList;
     }
 
     /**
@@ -62,9 +77,19 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Override
     @Transactional
     public int insertBlogArticle(BlogArticle blogArticle) {
+        // 设置发布时间
+        if (blogArticle.getPublishTime() == null) {
+            blogArticle.setPublishTime(DateUtils.getNowDate());
+        }
         int rows = blogArticleMapper.insertBlogArticle(blogArticle);
-        if (rows > 0 && blogArticle.getTagIds() != null && blogArticle.getTagIds().length > 0) {
-            insertArticleTags(blogArticle.getArticleId(), blogArticle.getTagIds());
+        if (rows > 0) {
+            if (blogArticle.getTagIds() != null && blogArticle.getTagIds().length > 0) {
+                insertArticleTags(blogArticle.getArticleId(), blogArticle.getTagIds());
+            }
+            // 如果是发布状态，更新分类文章数量
+            if ("1".equals(blogArticle.getArticleStatus()) && blogArticle.getCategoryId() != null) {
+                blogCategoryMapper.updateCategoryArticleCount(blogArticle.getCategoryId());
+            }
         }
         return rows;
     }
@@ -78,12 +103,38 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Override
     @Transactional
     public int updateBlogArticle(BlogArticle blogArticle) {
+        // 获取更新前的文章信息
+        BlogArticle oldArticle = blogArticleMapper.selectBlogArticleByArticleId(blogArticle.getArticleId());
+
         blogArticle.setUpdateTime(DateUtils.getNowDate());
+        // 如果文章状态是已发布且没有设置发布时间,则设置为当前时间
+        if ("1".equals(blogArticle.getArticleStatus()) && blogArticle.getPublishTime() == null) {
+            blogArticle.setPublishTime(DateUtils.getNowDate());
+        }
         int rows = blogArticleMapper.updateBlogArticle(blogArticle);
         if (rows > 0) {
             blogArticleTagMapper.deleteBlogArticleTagByArticleId(blogArticle.getArticleId());
             if (blogArticle.getTagIds() != null && blogArticle.getTagIds().length > 0) {
                 insertArticleTags(blogArticle.getArticleId(), blogArticle.getTagIds());
+            }
+
+            // 如果分类发生变化，需要更新旧分类和新分类的文章数量
+            if (oldArticle != null) {
+                Long oldCategoryId = oldArticle.getCategoryId();
+                Long newCategoryId = blogArticle.getCategoryId();
+
+                // 如果分类变了，更新旧分类和新分类
+                if (!java.util.Objects.equals(oldCategoryId, newCategoryId)) {
+                    if (oldCategoryId != null) {
+                        blogCategoryMapper.updateCategoryArticleCount(oldCategoryId);
+                    }
+                    if (newCategoryId != null) {
+                        blogCategoryMapper.updateCategoryArticleCount(newCategoryId);
+                    }
+                } else if (newCategoryId != null) {
+                    // 如果分类没变，更新该分类的文章数量（可能是状态变了）
+                    blogCategoryMapper.updateCategoryArticleCount(newCategoryId);
+                }
             }
         }
         return rows;
@@ -96,8 +147,14 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
      * @return 结果
      */
     @Override
+    @Transactional
     public int deleteBlogArticleByArticleIds(Long[] articleIds) {
-        return blogArticleMapper.deleteBlogArticleByArticleIds(articleIds);
+        int rows = blogArticleMapper.deleteBlogArticleByArticleIds(articleIds);
+        // 批量更新所有分类的文章数量
+        if (rows > 0) {
+            blogCategoryMapper.updateAllCategoryArticleCount();
+        }
+        return rows;
     }
 
     /**
@@ -120,6 +177,34 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Override
     public int incrementViewCount(Long articleId) {
         return blogArticleMapper.incrementViewCount(articleId);
+    }
+
+    /**
+     * 批量更新文章状态
+     *
+     * @param articleIds 文章ID数组
+     * @param status 状态（0草稿 1发布 2下架）
+     * @return 结果
+     */
+    @Override
+    @Transactional
+    public int updateArticleStatus(Long[] articleIds, String status) {
+        int rows = blogArticleMapper.updateArticleStatus(articleIds, status);
+        // 更新所有分类的文章数量
+        if (rows > 0) {
+            blogCategoryMapper.updateAllCategoryArticleCount();
+        }
+        return rows;
+    }
+
+    /**
+     * 获取统计数据
+     *
+     * @return 统计信息Map
+     */
+    @Override
+    public java.util.Map<String, Object> getStatistics() {
+        return blogArticleMapper.getStatistics();
     }
 
     /**

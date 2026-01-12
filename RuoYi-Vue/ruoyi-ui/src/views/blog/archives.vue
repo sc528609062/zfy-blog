@@ -76,6 +76,9 @@
                         </router-link>
                       </h4>
                       <div class="article-meta">
+                        <el-tag :type="getStatusType(item.articleStatus)" size="mini" class="article-status">
+                          {{ getStatusText(item.articleStatus) }}
+                        </el-tag>
                         <span><i class="el-icon-view"></i> {{ item.viewCount }}</span>
                         <span><i class="el-icon-chat-dot-round"></i> {{ item.commentCount }}</span>
                         <span><i class="el-icon-folder"></i> {{ item.categoryName }}</span>
@@ -231,6 +234,24 @@ export default {
     formatDate(date, format) {
       if (!date) return ''
       return this.parseTime(date, format)
+    },
+    // 获取状态文本
+    getStatusText(status) {
+      const statusMap = {
+        '0': '草稿',
+        '1': '已发布',
+        '2': '已下架'
+      }
+      return statusMap[status] || '未知'
+    },
+    // 获取状态标签类型
+    getStatusType(status) {
+      const typeMap = {
+        '0': 'info',
+        '1': 'success',
+        '2': 'danger'
+      }
+      return typeMap[status] || 'info'
     }
   }
 }
@@ -424,6 +445,10 @@ export default {
   gap: 15px;
   font-size: 13px;
   color: #999;
+}
+
+.article-meta .article-status {
+  margin-right: 10px;
 }
 
 .article-meta i {

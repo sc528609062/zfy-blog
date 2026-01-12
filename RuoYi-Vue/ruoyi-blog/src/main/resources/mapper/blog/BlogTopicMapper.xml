@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.blog.mapper.BlogTopicMapper">
+
+    <resultMap type="BlogTopic" id="BlogTopicResult">
+        <result property="topicId"    column="topic_id"    />
+        <result property="topicTitle"    column="topic_title"    />
+        <result property="topicCover"    column="topic_cover"    />
+        <result property="topicSummary"    column="topic_summary"    />
+        <result property="topicDesc"    column="topic_desc"    />
+        <result property="articleCount"    column="article_count"    />
+        <result property="sortOrder"    column="sort_order"    />
+        <result property="status"    column="status"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="delFlag"    column="del_flag"    />
+    </resultMap>
+
+    <sql id="selectBlogTopicVo">
+        select topic_id, topic_title, topic_cover, topic_summary, topic_desc, article_count, sort_order, status, create_by, create_time, update_by, update_time, del_flag from blog_topic
+    </sql>
+
+    <select id="selectBlogTopicList" parameterType="BlogTopic" resultMap="BlogTopicResult">
+        <include refid="selectBlogTopicVo"/>
+        <where>
+            del_flag = '0'
+            <if test="topicTitle != null and topicTitle != ''">
+                AND topic_title like concat('%', #{topicTitle}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                AND date_format(create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND date_format(create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        order by sort_order, create_time desc
+    </select>
+
+    <select id="selectBlogTopicByTopicId" parameterType="Long" resultMap="BlogTopicResult">
+        <include refid="selectBlogTopicVo"/>
+        where topic_id = #{topicId} and del_flag = '0'
+    </select>
+
+    <insert id="insertBlogTopic" parameterType="BlogTopic" useGeneratedKeys="true" keyProperty="topicId">
+        insert into blog_topic
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="topicTitle != null and topicTitle != ''">topic_title,</if>
+            <if test="topicCover != null">topic_cover,</if>
+            <if test="topicSummary != null">topic_summary,</if>
+            <if test="topicDesc != null">topic_desc,</if>
+            <if test="articleCount != null">article_count,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="status != null">status,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time,
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            del_flag
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="topicTitle != null and topicTitle != ''">#{topicTitle},</if>
+            <if test="topicCover != null">#{topicCover},</if>
+            <if test="topicSummary != null">#{topicSummary},</if>
+            <if test="topicDesc != null">#{topicDesc},</if>
+            <if test="articleCount != null">#{articleCount},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate(),
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            '0'
+        </trim>
+    </insert>
+
+    <update id="updateBlogTopic" parameterType="BlogTopic">
+        update blog_topic
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="topicTitle != null and topicTitle != ''">topic_title = #{topicTitle},</if>
+            <if test="topicCover != null">topic_cover = #{topicCover},</if>
+            <if test="topicSummary != null">topic_summary = #{topicSummary},</if>
+            <if test="topicDesc != null">topic_desc = #{topicDesc},</if>
+            <if test="articleCount != null">article_count = #{articleCount},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where topic_id = #{topicId}
+    </update>
+
+    <delete id="deleteBlogTopicByTopicId" parameterType="Long">
+        update blog_topic set del_flag = '2' where topic_id = #{topicId}
+    </delete>
+
+    <delete id="deleteBlogTopicByTopicIds" parameterType="String">
+        update blog_topic set del_flag = '2' where topic_id in
+        <foreach item="topicId" collection="array" open="(" separator="," close=")">
+            #{topicId}
+        </foreach>
+    </delete>
+
+</mapper>

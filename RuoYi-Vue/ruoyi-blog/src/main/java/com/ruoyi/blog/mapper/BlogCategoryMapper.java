@@ -57,4 +57,19 @@ public interface BlogCategoryMapper {
      * @return 结果
      */
     public int deleteBlogCategoryByCategoryIds(Long[] categoryIds);
+
+    /**
+     * 更新分类文章数量
+     *
+     * @param categoryId 分类ID
+     * @return 结果
+     */
+    public int updateCategoryArticleCount(Long categoryId);
+
+    /**
+     * 批量更新所有分类的文章数量
+     *
+     * @return 结果
+     */
+    public int updateAllCategoryArticleCount();
 }

@@ -4,6 +4,7 @@ import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import java.util.List;
 
 /**
  * 博客文章对象 blog_article
@@ -34,6 +35,10 @@ public class BlogArticle extends BaseEntity {
     /** 分类ID */
     @Excel(name = "分类ID")
     private Long categoryId;
+
+    /** 专题ID */
+    @Excel(name = "专题ID")
+    private Long topicId;
 
     /** 作者ID */
     private Long authorId;
@@ -77,6 +82,9 @@ public class BlogArticle extends BaseEntity {
     /** 标签ID列表 */
     private Long[] tagIds;
 
+    /** 标签列表 */
+    private List<BlogTag> tags;
+
     /** 发布时间 */
     private java.util.Date publishTime;
 
@@ -86,6 +94,14 @@ public class BlogArticle extends BaseEntity {
     /** 分类名称 */
     @Excel(name = "分类名称")
     private String categoryName;
+
+    /** 专题名称 */
+    @Excel(name = "专题名称")
+    private String topicName;
+
+    /** 编辑器类型（markdown 富文本） */
+    @Excel(name = "编辑器类型")
+    private String editorType;
 
     public void setArticleId(Long articleId) {
         this.articleId = articleId;
@@ -133,6 +149,14 @@ public class BlogArticle extends BaseEntity {
 
     public Long getCategoryId() {
         return categoryId;
+    }
+
+    public void setTopicId(Long topicId) {
+        this.topicId = topicId;
+    }
+
+    public Long getTopicId() {
+        return topicId;
     }
 
     public void setAuthorId(Long authorId) {
@@ -223,6 +247,14 @@ public class BlogArticle extends BaseEntity {
         this.tagIds = tagIds;
     }
 
+    public List<BlogTag> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<BlogTag> tags) {
+        this.tags = tags;
+    }
+
     public void setPublishTime(java.util.Date publishTime) {
         this.publishTime = publishTime;
     }
@@ -245,6 +277,22 @@ public class BlogArticle extends BaseEntity {
 
     public String getCategoryName() {
         return categoryName;
+    }
+
+    public void setTopicName(String topicName) {
+        this.topicName = topicName;
+    }
+
+    public String getTopicName() {
+        return topicName;
+    }
+
+    public void setEditorType(String editorType) {
+        this.editorType = editorType;
+    }
+
+    public String getEditorType() {
+        return editorType;
     }
 
     @Override

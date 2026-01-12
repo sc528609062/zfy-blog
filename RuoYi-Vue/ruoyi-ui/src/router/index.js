@@ -71,11 +71,23 @@ export const constantRoutes = [
   },
   // 博客相关路由（隐藏在侧边栏）
   {
-    path: '/blog/article/write',
-    component: () => import('@/views/blog/article/edit'),
-    name: 'BlogArticleWrite',
+    path: '/blog',
+    component: Layout,
     hidden: true,
-    meta: { title: '写文章' }
+    children: [
+      {
+        path: 'article/write',
+        component: () => import('@/views/blog/article/edit'),
+        name: 'BlogArticleWrite',
+        meta: { title: '写文章' }
+      },
+      {
+        path: 'topic/edit',
+        component: () => import('@/views/blog/topic/edit'),
+        name: 'BlogTopicEdit',
+        meta: { title: '编辑专题' }
+      }
+    ]
   },
   {
     path: '/blog/article/:id',

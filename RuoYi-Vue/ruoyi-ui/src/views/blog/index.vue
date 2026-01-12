@@ -73,6 +73,9 @@
               </h2>
               <p class="article-summary">{{ article.articleSummary }}</p>
               <div class="article-footer">
+                <el-tag :type="getStatusType(article.articleStatus)" size="mini" class="article-status">
+                  {{ getStatusText(article.articleStatus) }}
+                </el-tag>
                 <span class="meta-views"><i class="el-icon-view"></i> {{ article.viewCount }}</span>
                 <span class="meta-comments"><i class="el-icon-chat-dot-round"></i> {{ article.commentCount }}</span>
                 <span class="meta-likes"><i class="el-icon-star-off"></i> {{ article.likeCount }}</span>
@@ -95,6 +98,9 @@
               </h2>
               <p class="article-summary">{{ article.articleSummary }}</p>
               <div class="article-footer">
+                <el-tag :type="getStatusType(article.articleStatus)" size="mini" class="article-status">
+                  {{ getStatusText(article.articleStatus) }}
+                </el-tag>
                 <span class="meta-views"><i class="el-icon-view"></i> {{ article.viewCount }}</span>
                 <span class="meta-comments"><i class="el-icon-chat-dot-round"></i> {{ article.commentCount }}</span>
                 <span class="meta-likes"><i class="el-icon-star-off"></i> {{ article.likeCount }}</span>
@@ -143,10 +149,11 @@
           <h3 class="widget-title">标签云</h3>
           <div class="tag-cloud">
             <el-tag
-              v-for="tag in tags"
+              v-for="tag in (tags || [])"
               :key="tag.tagId"
               size="small"
-              @click="goToTag(tag.tagId)">
+              @click="goToTag(tag.tagId)"
+              v-if="tag">
               {{ tag.tagName }}
             </el-tag>
           </div>
@@ -310,6 +317,24 @@ export default {
     formatDate(date) {
       if (!date) return ''
       return this.parseTime(date, '{y}-{m}-{d}')
+    },
+    // 获取状态文本
+    getStatusText(status) {
+      const statusMap = {
+        '0': '草稿',
+        '1': '已发布',
+        '2': '已下架'
+      }
+      return statusMap[status] || '未知'
+    },
+    // 获取状态标签类型
+    getStatusType(status) {
+      const typeMap = {
+        '0': 'info',
+        '1': 'success',
+        '2': 'danger'
+      }
+      return typeMap[status] || 'info'
     },
     // 处理图片URL，添加 /dev-api 前缀
     processImageUrl(url) {
@@ -498,6 +523,10 @@ export default {
 .article-footer {
   color: #999;
   font-size: 13px;
+}
+
+.article-footer .article-status {
+  margin-right: 15px;
 }
 
 .article-footer span {

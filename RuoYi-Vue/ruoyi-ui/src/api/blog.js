@@ -67,6 +67,24 @@ export function incrementView(articleId) {
   })
 }
 
+// 批量发布文章
+export function updateArticleStatus(articleIds, status) {
+  const url = status === '1' ? '/blog/article/publish' : '/blog/article/offline'
+  return request({
+    url: url,
+    method: 'put',
+    data: articleIds
+  })
+}
+
+// 获取统计数据
+export function getStatistics() {
+  return request({
+    url: '/blog/article/statistics',
+    method: 'get'
+  })
+}
+
 // ==================== 分类相关 ====================
 // 查询分类列表
 export function listCategory(query) {
@@ -151,6 +169,50 @@ export function updateTag(data) {
 export function delTag(tagId) {
   return request({
     url: '/blog/tag/' + tagId,
+    method: 'delete'
+  })
+}
+
+// ==================== 专题相关 ====================
+// 查询专题列表
+export function listTopic(query) {
+  return request({
+    url: '/blog/topic/list',
+    method: 'get',
+    params: query
+  })
+}
+
+// 查询专题详细
+export function getTopic(topicId) {
+  return request({
+    url: '/blog/topic/' + topicId,
+    method: 'get'
+  })
+}
+
+// 新增专题
+export function addTopic(data) {
+  return request({
+    url: '/blog/topic',
+    method: 'post',
+    data: data
+  })
+}
+
+// 修改专题
+export function updateTopic(data) {
+  return request({
+    url: '/blog/topic',
+    method: 'put',
+    data: data
+  })
+}
+
+// 删除专题
+export function delTopic(topicId) {
+  return request({
+    url: '/blog/topic/' + topicId,
     method: 'delete'
   })
 }

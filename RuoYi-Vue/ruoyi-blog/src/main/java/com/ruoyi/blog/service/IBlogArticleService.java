@@ -65,4 +65,20 @@ public interface IBlogArticleService {
      * @return 结果
      */
     public int incrementViewCount(Long articleId);
+
+    /**
+     * 批量更新文章状态
+     *
+     * @param articleIds 文章ID数组
+     * @param status 状态（0草稿 1发布 2下架）
+     * @return 结果
+     */
+    public int updateArticleStatus(Long[] articleIds, String status);
+
+    /**
+     * 获取统计数据
+     *
+     * @return 统计信息Map
+     */
+    public java.util.Map<String, Object> getStatistics();
 }

@@ -124,4 +124,33 @@ public class BlogArticleController extends BaseController {
         blogArticleService.incrementViewCount(articleId);
         return success();
     }
+
+    /**
+     * 批量发布文章
+     */
+    @PreAuthorize("@ss.hasPermi('blog:article:edit')")
+    @Log(title = "批量发布文章", businessType = BusinessType.UPDATE)
+    @PutMapping("/publish")
+    public AjaxResult publish(@RequestBody Long[] articleIds) {
+        return toAjax(blogArticleService.updateArticleStatus(articleIds, "1"));
+    }
+
+    /**
+     * 批量下架文章
+     */
+    @PreAuthorize("@ss.hasPermi('blog:article:edit')")
+    @Log(title = "批量下架文章", businessType = BusinessType.UPDATE)
+    @PutMapping("/offline")
+    public AjaxResult offline(@RequestBody Long[] articleIds) {
+        return toAjax(blogArticleService.updateArticleStatus(articleIds, "2"));
+    }
+
+    /**
+     * 获取统计数据
+     */
+    @PreAuthorize("@ss.hasPermi('blog:article:list')")
+    @GetMapping("/statistics")
+    public AjaxResult statistics() {
+        return success(blogArticleService.getStatistics());
+    }
 }

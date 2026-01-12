@@ -60,17 +60,18 @@
             <h2 class="page-title">文章标签</h2>
             <div class="tag-cloud">
               <el-tag
-                v-for="tag in tags"
+                v-for="tag in (tags || [])"
                 :key="tag.tagId"
                 :size="getTagSize(tag.articleCount)"
                 :type="getTagType(tag.articleCount)"
                 @click="goToArticles(tag.tagId)"
-                class="tag-item">
+                class="tag-item"
+                v-if="tag">
                 {{ tag.tagName }}
                 <span class="tag-count">({{ tag.articleCount }})</span>
               </el-tag>
             </div>
-            <el-empty v-if="tags.length === 0" description="暂无标签"></el-empty>
+            <el-empty v-if="!tags || tags.length === 0" description="暂无标签"></el-empty>
           </el-card>
         </div>
       </div>

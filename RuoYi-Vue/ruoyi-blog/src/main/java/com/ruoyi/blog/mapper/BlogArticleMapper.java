@@ -2,6 +2,7 @@ package com.ruoyi.blog.mapper;
 
 import java.util.List;
 import com.ruoyi.blog.domain.BlogArticle;
+import com.ruoyi.blog.domain.BlogTag;
 
 /**
  * 博客文章Mapper接口
@@ -73,4 +74,28 @@ public interface BlogArticleMapper {
      * @return 标签ID列表
      */
     public List<Long> selectTagIdsByArticleId(Long articleId);
+
+    /**
+     * 查询文章关联的标签详细信息
+     *
+     * @param articleId 文章ID
+     * @return 标签列表
+     */
+    public List<BlogTag> selectTagsByArticleId(Long articleId);
+
+    /**
+     * 批量更新文章状态
+     *
+     * @param articleIds 文章ID数组
+     * @param articleStatus 状态
+     * @return 结果
+     */
+    public int updateArticleStatus(Long[] articleIds, String articleStatus);
+
+    /**
+     * 获取文章统计信息
+     *
+     * @return 统计信息
+     */
+    public java.util.Map<String, Object> getStatistics();
 }
