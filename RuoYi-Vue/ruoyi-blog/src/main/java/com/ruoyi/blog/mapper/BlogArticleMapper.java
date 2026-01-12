@@ -65,4 +65,12 @@ public interface BlogArticleMapper {
      * @return 结果
      */
     public int incrementViewCount(Long articleId);
+
+    /**
+     * 查询文章关联的标签ID列表
+     *
+     * @param articleId 文章ID
+     * @return 标签ID列表
+     */
+    public List<Long> selectTagIdsByArticleId(Long articleId);
 }

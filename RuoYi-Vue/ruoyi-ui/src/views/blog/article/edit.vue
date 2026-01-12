@@ -139,8 +139,8 @@
 
       <el-row>
         <el-col :span="24">
-          <el-form-item label="封面图片" prop="coverImage">
-            <image-upload v-model="form.coverImage" :limit="1" />
+          <el-form-item label="封面图片" prop="articleCover">
+            <image-upload v-model="form.articleCover" :limit="1" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -195,7 +195,7 @@ export default {
         isOriginal: '1',
         sourceUrl: null,
         articleStatus: '1',
-        coverImage: null,
+        articleCover: null,
         editorType: 'markdown', // 保存编辑器类型
         authorId: null, // 作者ID
         authorName: null // 作者名称
@@ -286,6 +286,10 @@ export default {
     getArticleDetail(articleId) {
       getArticle(articleId).then(response => {
         this.form = response.data
+        // 处理标签数据
+        if (response.data.tagIds && response.data.tagIds.length > 0) {
+          this.form.tagIds = response.data.tagIds
+        }
         // 根据保存的编辑器类型设置当前编辑器
         this.editorType = response.data.editorType || 'markdown'
       })
@@ -340,10 +344,15 @@ export default {
     preview() {
       if (this.editorType === 'markdown') {
         // 渲染 Markdown 为 HTML
-        this.renderedHtml = this.$refs.mdEditor.render(this.form.articleContent)
+        let html = this.$refs.mdEditor.render(this.form.articleContent)
+        // 处理图片路径
+        html = this.processImageUrls(html)
+        this.renderedHtml = html
       } else {
-        // 富文本直接显示
-        this.renderedHtml = this.form.articleContent
+        // 富文本直接显示，处理图片路径
+        let html = this.form.articleContent
+        html = this.processImageUrls(html)
+        this.renderedHtml = html
       }
       this.previewVisible = true
     },
@@ -377,6 +386,12 @@ export default {
     },
     cancel() {
       this.$router.back()
+    },
+    // 处理文章内容中的图片路径，添加 /dev-api 前缀
+    processImageUrls(content) {
+      if (!content) return content
+      // 匹配 /profile/upload/ 开头的路径，替换为 /dev-api/profile/upload/
+      return content.replace(/src="\/profile\/upload\//g, 'src="/dev-api/profile/upload/')
     }
   }
 }

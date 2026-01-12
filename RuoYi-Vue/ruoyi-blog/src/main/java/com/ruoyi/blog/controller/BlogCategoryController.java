@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.ruoyi.common.annotation.Anonymous;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
@@ -36,6 +37,7 @@ public class BlogCategoryController extends BaseController {
     /**
      * 查询博客分类列表（无需权限）
      */
+    @Anonymous
     @GetMapping("/list")
     public TableDataInfo list(BlogCategory blogCategory) {
         startPage();
@@ -44,9 +46,9 @@ public class BlogCategoryController extends BaseController {
     }
 
     /**
-     * 获取博客分类详细信息
+     * 获取博客分类详细信息（前台匿名访问）
      */
-    @PreAuthorize("@ss.hasPermi('blog:category:query')")
+    @Anonymous
     @GetMapping(value = "/{categoryId}")
     public AjaxResult getInfo(@PathVariable("categoryId") Long categoryId) {
         return success(blogCategoryService.selectBlogCategoryByCategoryId(categoryId));

@@ -206,6 +206,10 @@ export default {
       this.loading = true
       getArticle(articleId).then(response => {
         this.article = response.data
+        // 处理文章内容中的图片路径，添加 /dev-api 前缀
+        if (this.article.articleContent) {
+          this.article.articleContent = this.processImageUrls(this.article.articleContent)
+        }
         this.loading = false
         // 增加浏览量
         incrementView(articleId)
@@ -278,6 +282,12 @@ export default {
     formatDate(date) {
       if (!date) return ''
       return this.parseTime(date, '{y}-{m}-{d} {h}:{i}')
+    },
+    // 处理文章内容中的图片路径，添加 /dev-api 前缀
+    processImageUrls(content) {
+      if (!content) return content
+      // 匹配 /profile/upload/ 开头的路径，替换为 /dev-api/profile/upload/
+      return content.replace(/src="\/profile\/upload\//g, 'src="/dev-api/profile/upload/')
     }
   }
 }

@@ -110,6 +110,19 @@
 
     <el-table v-loading="loading" :data="articleList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
+      <el-table-column label="封面" align="center" width="100">
+        <template slot-scope="scope">
+          <el-image
+            v-if="scope.row.articleCover"
+            :src="scope.row.articleCover"
+            :preview-src-list="[scope.row.articleCover]"
+            fit="cover"
+            style="width: 60px; height: 40px; border-radius: 4px;"
+          >
+          </el-image>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="文章标题" align="left" prop="articleTitle" min-width="200" :show-overflow-tooltip="true" />
       <el-table-column label="作者" align="center" prop="authorName" width="100" />
       <el-table-column label="阅读 · 点赞 · 收藏" align="center" width="150">

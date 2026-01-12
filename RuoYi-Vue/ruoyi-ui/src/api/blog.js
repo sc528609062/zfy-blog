@@ -10,10 +10,10 @@ export function listArticle(query) {
   })
 }
 
-// 查询博客文章详细
+// 查询博客文章详细（前台）
 export function getArticle(articleId) {
   return request({
-    url: '/blog/article/detail/' + articleId,
+    url: '/blog/article/' + articleId,
     method: 'get'
   })
 }

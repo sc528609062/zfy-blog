@@ -34,6 +34,7 @@ module.exports = {
     port: port,
     open: true,
     disableHostCheck: true,
+    historyApiFallback: true,
     proxy: {
       // detail: https://cli.vuejs.org/config/#devserver-proxy
       // 代理 /dev-api 请求到后端 8080 端口
@@ -42,14 +43,6 @@ module.exports = {
         changeOrigin: true,
         pathRewrite: {
           '^/dev-api': ''
-        }
-      },
-      // 代理 /blog 请求到后端 8080 端口
-      '/blog': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        pathRewrite: {
-          '^/blog': '/blog'
         }
       },
       // springdoc proxy

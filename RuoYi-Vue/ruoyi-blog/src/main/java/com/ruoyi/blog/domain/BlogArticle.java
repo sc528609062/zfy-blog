@@ -74,6 +74,9 @@ public class BlogArticle extends BaseEntity {
     @Excel(name = "文章状态", readConverterExp = "0=草稿,1=发布,2=下架")
     private String articleStatus;
 
+    /** 标签ID列表 */
+    private Long[] tagIds;
+
     /** 发布时间 */
     private java.util.Date publishTime;
 
@@ -212,6 +215,14 @@ public class BlogArticle extends BaseEntity {
         return articleStatus;
     }
 
+    public Long[] getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(Long[] tagIds) {
+        this.tagIds = tagIds;
+    }
+
     public void setPublishTime(java.util.Date publishTime) {
         this.publishTime = publishTime;
     }
@@ -255,6 +266,7 @@ public class BlogArticle extends BaseEntity {
                 .append("isOriginal", getIsOriginal())
                 .append("sourceUrl", getSourceUrl())
                 .append("articleStatus", getArticleStatus())
+                .append("tagIds", getTagIds())
                 .append("publishTime", getPublishTime())
                 .append("createBy", getCreateBy())
                 .append("createTime", getCreateTime())

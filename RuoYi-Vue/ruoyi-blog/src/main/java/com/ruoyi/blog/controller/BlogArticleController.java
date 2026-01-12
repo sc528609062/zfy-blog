@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.ruoyi.common.annotation.Anonymous;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
@@ -32,6 +33,26 @@ import com.ruoyi.common.core.page.TableDataInfo;
 public class BlogArticleController extends BaseController {
     @Autowired
     private IBlogArticleService blogArticleService;
+
+    /**
+     * 前台获取博客文章详细信息（匿名访问）
+     */
+    @Anonymous
+    @GetMapping(value = "/{articleId}")
+    public AjaxResult getArticleInfo(@PathVariable("articleId") Long articleId) {
+        return success(blogArticleService.selectBlogArticleByArticleId(articleId));
+    }
+
+    /**
+     * 前台获取博客文章列表（匿名访问）
+     */
+    @Anonymous
+    @GetMapping("/public/list")
+    public TableDataInfo publicList(BlogArticle blogArticle) {
+        startPage();
+        List<BlogArticle> list = blogArticleService.selectBlogArticleList(blogArticle);
+        return getDataTable(list);
+    }
 
     /**
      * 查询博客文章列表

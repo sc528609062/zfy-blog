@@ -1,11 +1,15 @@
 package com.ruoyi.blog.service.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import com.ruoyi.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.blog.mapper.BlogArticleMapper;
+import com.ruoyi.blog.mapper.BlogArticleTagMapper;
 import com.ruoyi.blog.domain.BlogArticle;
+import com.ruoyi.blog.domain.BlogArticleTag;
 import com.ruoyi.blog.service.IBlogArticleService;
 
 /**
@@ -19,6 +23,9 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Autowired
     private BlogArticleMapper blogArticleMapper;
 
+    @Autowired
+    private BlogArticleTagMapper blogArticleTagMapper;
+
     /**
      * 查询博客文章
      *
@@ -27,7 +34,12 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
      */
     @Override
     public BlogArticle selectBlogArticleByArticleId(Long articleId) {
-        return blogArticleMapper.selectBlogArticleByArticleId(articleId);
+        BlogArticle article = blogArticleMapper.selectBlogArticleByArticleId(articleId);
+        if (article != null) {
+            List<Long> tagIds = blogArticleMapper.selectTagIdsByArticleId(articleId);
+            article.setTagIds(tagIds.toArray(new Long[0]));
+        }
+        return article;
     }
 
     /**
@@ -48,8 +60,13 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
      * @return 结果
      */
     @Override
+    @Transactional
     public int insertBlogArticle(BlogArticle blogArticle) {
-        return blogArticleMapper.insertBlogArticle(blogArticle);
+        int rows = blogArticleMapper.insertBlogArticle(blogArticle);
+        if (rows > 0 && blogArticle.getTagIds() != null && blogArticle.getTagIds().length > 0) {
+            insertArticleTags(blogArticle.getArticleId(), blogArticle.getTagIds());
+        }
+        return rows;
     }
 
     /**
@@ -59,9 +76,17 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
      * @return 结果
      */
     @Override
+    @Transactional
     public int updateBlogArticle(BlogArticle blogArticle) {
         blogArticle.setUpdateTime(DateUtils.getNowDate());
-        return blogArticleMapper.updateBlogArticle(blogArticle);
+        int rows = blogArticleMapper.updateBlogArticle(blogArticle);
+        if (rows > 0) {
+            blogArticleTagMapper.deleteBlogArticleTagByArticleId(blogArticle.getArticleId());
+            if (blogArticle.getTagIds() != null && blogArticle.getTagIds().length > 0) {
+                insertArticleTags(blogArticle.getArticleId(), blogArticle.getTagIds());
+            }
+        }
+        return rows;
     }
 
     /**
@@ -95,5 +120,22 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Override
     public int incrementViewCount(Long articleId) {
         return blogArticleMapper.incrementViewCount(articleId);
+    }
+
+    /**
+     * 批量插入文章标签关联
+     *
+     * @param articleId 文章ID
+     * @param tagIds 标签ID数组
+     */
+    private void insertArticleTags(Long articleId, Long[] tagIds) {
+        List<BlogArticleTag> articleTagList = new ArrayList<>();
+        for (Long tagId : tagIds) {
+            BlogArticleTag articleTag = new BlogArticleTag();
+            articleTag.setArticleId(articleId);
+            articleTag.setTagId(tagId);
+            articleTagList.add(articleTag);
+        }
+        blogArticleTagMapper.batchBlogArticleTag(articleTagList);
     }
 }

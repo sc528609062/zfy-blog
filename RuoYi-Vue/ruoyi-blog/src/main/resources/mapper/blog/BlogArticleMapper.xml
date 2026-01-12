@@ -76,6 +76,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where a.article_id = #{articleId} and a.del_flag = '0'
     </select>
 
+    <!-- 查询文章关联的标签ID列表 -->
+    <select id="selectTagIdsByArticleId" parameterType="Long" resultType="Long">
+        select tag_id from blog_article_tag where article_id = #{articleId}
+    </select>
+
     <insert id="insertBlogArticle" parameterType="BlogArticle" useGeneratedKeys="true" keyProperty="articleId">
         insert into blog_article
         <trim prefix="(" suffix=")" suffixOverrides=",">
