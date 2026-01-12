@@ -13,7 +13,7 @@ export function listArticle(query) {
 // 查询博客文章详细
 export function getArticle(articleId) {
   return request({
-    url: '/blog/article/' + articleId,
+    url: '/blog/article/detail/' + articleId,
     method: 'get'
   })
 }

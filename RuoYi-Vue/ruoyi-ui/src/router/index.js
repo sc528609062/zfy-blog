@@ -72,7 +72,7 @@ export const constantRoutes = [
   // 博客相关路由（隐藏在侧边栏）
   {
     path: '/blog/article/write',
-    component: () => import('@/views/blog/article/write'),
+    component: () => import('@/views/blog/article/edit'),
     name: 'BlogArticleWrite',
     hidden: true,
     meta: { title: '写文章' }

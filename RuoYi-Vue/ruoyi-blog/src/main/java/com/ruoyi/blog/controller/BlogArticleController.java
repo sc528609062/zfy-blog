@@ -60,7 +60,7 @@ public class BlogArticleController extends BaseController {
      * 获取博客文章详细信息
      */
     @PreAuthorize("@ss.hasPermi('blog:article:query')")
-    @GetMapping(value = "/{articleId}")
+    @GetMapping(value = "/detail/{articleId}")
     public AjaxResult getInfo(@PathVariable("articleId") Long articleId) {
         return success(blogArticleService.selectBlogArticleByArticleId(articleId));
     }

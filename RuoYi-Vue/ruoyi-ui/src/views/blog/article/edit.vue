@@ -196,7 +196,9 @@ export default {
         sourceUrl: null,
         articleStatus: '1',
         coverImage: null,
-        editorType: 'markdown' // 保存编辑器类型
+        editorType: 'markdown', // 保存编辑器类型
+        authorId: null, // 作者ID
+        authorName: null // 作者名称
       },
       categoryList: [],
       tagList: [],
@@ -349,6 +351,12 @@ export default {
       this.$refs.form.validate(valid => {
         if (valid) {
           this.form.editorType = this.editorType
+          // 设置作者信息
+          const userName = this.$store.getters.name
+          const userId = this.$store.getters.id
+          this.form.authorName = userName
+          this.form.authorId = userId
+
           if (this.form.articleId) {
             updateArticle(this.form).then(response => {
               this.$modal.msgSuccess('修改成功')
