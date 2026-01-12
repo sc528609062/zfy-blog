@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.blog.mapper.BlogCategoryMapper">
+
+    <resultMap type="BlogCategory" id="BlogCategoryResult">
+        <result property="categoryId"    column="category_id"    />
+        <result property="categoryName"    column="category_name"    />
+        <result property="categoryDesc"    column="category_desc"    />
+        <result property="parentId"    column="parent_id"    />
+        <result property="articleCount"    column="article_count"    />
+        <result property="sortOrder"    column="sort_order"    />
+        <result property="status"    column="status"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="delFlag"    column="del_flag"    />
+    </resultMap>
+
+    <sql id="selectBlogCategoryVo">
+        select category_id, category_name, category_desc, parent_id, article_count, sort_order, status, create_by, create_time, update_by, update_time, del_flag from blog_category
+    </sql>
+
+    <select id="selectBlogCategoryList" parameterType="BlogCategory" resultMap="BlogCategoryResult">
+        <include refid="selectBlogCategoryVo"/>
+        <where>
+            del_flag = '0'
+            <if test="categoryName != null and categoryName != ''">
+                AND category_name like concat('%', #{categoryName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                AND date_format(create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND date_format(create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        order by sort_order, create_time desc
+    </select>
+
+    <select id="selectBlogCategoryByCategoryId" parameterType="Long" resultMap="BlogCategoryResult">
+        <include refid="selectBlogCategoryVo"/>
+        where category_id = #{categoryId} and del_flag = '0'
+    </select>
+
+    <insert id="insertBlogCategory" parameterType="BlogCategory" useGeneratedKeys="true" keyProperty="categoryId">
+        insert into blog_category
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="categoryName != null and categoryName != ''">category_name,</if>
+            <if test="categoryDesc != null">category_desc,</if>
+            <if test="parentId != null">parent_id,</if>
+            <if test="articleCount != null">article_count,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="status != null">status,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time,
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            del_flag
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="categoryName != null and categoryName != ''">#{categoryName},</if>
+            <if test="categoryDesc != null">#{categoryDesc},</if>
+            <if test="parentId != null">#{parentId},</if>
+            <if test="articleCount != null">#{articleCount},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate(),
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            '0'
+        </trim>
+    </insert>
+
+    <update id="updateBlogCategory" parameterType="BlogCategory">
+        update blog_category
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="categoryName != null and categoryName != ''">category_name = #{categoryName},</if>
+            <if test="categoryDesc != null">category_desc = #{categoryDesc},</if>
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="articleCount != null">article_count = #{articleCount},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where category_id = #{categoryId}
+    </update>
+
+    <delete id="deleteBlogCategoryByCategoryId" parameterType="Long">
+        update blog_category set del_flag = '2' where category_id = #{categoryId}
+    </delete>
+
+    <delete id="deleteBlogCategoryByCategoryIds" parameterType="String">
+        update blog_category set del_flag = '2' where category_id in
+        <foreach item="categoryId" collection="array" open="(" separator="," close=")">
+            #{categoryId}
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.blog.mapper.BlogConfigMapper">
+
+    <resultMap type="BlogConfig" id="BlogConfigResult">
+        <result property="configId"    column="config_id"    />
+        <result property="configKey"    column="config_key"    />
+        <result property="configValue"    column="config_value"    />
+        <result property="configDesc"    column="config_desc"    />
+        <result property="configGroup"    column="config_group"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectBlogConfigVo">
+        select config_id, config_key, config_value, config_desc, config_group, create_by, create_time, update_by, update_time from blog_config
+    </sql>
+
+    <select id="selectBlogConfigList" parameterType="BlogConfig" resultMap="BlogConfigResult">
+        <include refid="selectBlogConfigVo"/>
+        <where>
+            <if test="configKey != null and configKey != ''">
+                AND config_key like concat('%', #{configKey}, '%')
+            </if>
+            <if test="configGroup != null and configGroup != ''">
+                AND config_group = #{configGroup}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                AND date_format(create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND date_format(create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        order by config_group, config_id
+    </select>
+
+    <select id="selectBlogConfigByConfigId" parameterType="Long" resultMap="BlogConfigResult">
+        <include refid="selectBlogConfigVo"/>
+        where config_id = #{configId}
+    </select>
+
+    <select id="selectBlogConfigByKey" parameterType="String" resultMap="BlogConfigResult">
+        <include refid="selectBlogConfigVo"/>
+        where config_key = #{configKey}
+    </select>
+
+    <insert id="insertBlogConfig" parameterType="BlogConfig" useGeneratedKeys="true" keyProperty="configId">
+        insert into blog_config
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="configKey != null and configKey != ''">config_key,</if>
+            <if test="configValue != null">config_value,</if>
+            <if test="configDesc != null">config_desc,</if>
+            <if test="configGroup != null">config_group,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time,
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="configKey != null and configKey != ''">#{configKey},</if>
+            <if test="configValue != null">#{configValue},</if>
+            <if test="configDesc != null">#{configDesc},</if>
+            <if test="configGroup != null">#{configGroup},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate(),
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateBlogConfig" parameterType="BlogConfig">
+        update blog_config
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="configKey != null and configKey != ''">config_key = #{configKey},</if>
+            <if test="configValue != null">config_value = #{configValue},</if>
+            <if test="configDesc != null">config_desc = #{configDesc},</if>
+            <if test="configGroup != null">config_group = #{configGroup},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where config_id = #{configId}
+    </update>
+
+    <delete id="deleteBlogConfigByConfigId" parameterType="Long">
+        delete from blog_config where config_id = #{configId}
+    </delete>
+
+    <delete id="deleteBlogConfigByConfigIds" parameterType="Long">
+        delete from blog_config where config_id in
+        <foreach item="configId" collection="array" open="(" separator="," close=")">
+            #{configId}
+        </foreach>
+    </delete>
+
+</mapper>

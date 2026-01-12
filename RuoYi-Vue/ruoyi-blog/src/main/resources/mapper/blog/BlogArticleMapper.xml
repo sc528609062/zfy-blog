@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.blog.mapper.BlogArticleMapper">
+
+    <resultMap type="BlogArticle" id="BlogArticleResult">
+        <result property="articleId"    column="article_id"    />
+        <result property="articleTitle"    column="article_title"    />
+        <result property="articleContent"    column="article_content"    />
+        <result property="articleSummary"    column="article_summary"    />
+        <result property="articleCover"    column="article_cover"    />
+        <result property="categoryId"    column="category_id"    />
+        <result property="categoryName"    column="category_name"    />
+        <result property="authorId"    column="author_id"    />
+        <result property="authorName"    column="author_name"    />
+        <result property="viewCount"    column="view_count"    />
+        <result property="likeCount"    column="like_count"    />
+        <result property="commentCount"    column="comment_count"    />
+        <result property="isTop"    column="is_top"    />
+        <result property="isRecommend"    column="is_recommend"    />
+        <result property="isOriginal"    column="is_original"    />
+        <result property="sourceUrl"    column="source_url"    />
+        <result property="articleStatus"    column="article_status"    />
+        <result property="publishTime"    column="publish_time"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="delFlag"    column="del_flag"    />
+    </resultMap>
+
+    <sql id="selectBlogArticleVo">
+        select a.article_id, a.article_title, a.article_content, a.article_summary, a.article_cover, a.category_id,
+               c.category_name, a.author_id, a.author_name, a.view_count, a.like_count, a.comment_count,
+               a.is_top, a.is_recommend, a.is_original, a.source_url, a.article_status, a.publish_time,
+               a.create_by, a.create_time, a.update_by, a.update_time, a.del_flag
+        from blog_article a
+        left join blog_category c on a.category_id = c.category_id
+    </sql>
+
+    <select id="selectBlogArticleList" parameterType="BlogArticle" resultMap="BlogArticleResult">
+        <include refid="selectBlogArticleVo"/>
+        <where>
+            a.del_flag = '0'
+            <if test="articleTitle != null and articleTitle != ''">
+                AND a.article_title like concat('%', #{articleTitle}, '%')
+            </if>
+            <if test="categoryId != null">
+                AND a.category_id = #{categoryId}
+            </if>
+            <if test="authorName != null and authorName != ''">
+                AND a.author_name like concat('%', #{authorName}, '%')
+            </if>
+            <if test="articleStatus != null and articleStatus != ''">
+                AND a.article_status = #{articleStatus}
+            </if>
+            <if test="isTop != null and isTop != ''">
+                AND a.is_top = #{isTop}
+            </if>
+            <if test="isRecommend != null and isRecommend != ''">
+                AND a.is_recommend = #{isRecommend}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                AND date_format(a.publish_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                AND date_format(a.publish_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        order by a.is_top desc, a.publish_time desc
+    </select>
+
+    <select id="selectBlogArticleByArticleId" parameterType="Long" resultMap="BlogArticleResult">
+        <include refid="selectBlogArticleVo"/>
+        where a.article_id = #{articleId} and a.del_flag = '0'
+    </select>
+
+    <insert id="insertBlogArticle" parameterType="BlogArticle" useGeneratedKeys="true" keyProperty="articleId">
+        insert into blog_article
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="articleTitle != null and articleTitle != ''">article_title,</if>
+            <if test="articleContent != null">article_content,</if>
+            <if test="articleSummary != null">article_summary,</if>
+            <if test="articleCover != null">article_cover,</if>
+            <if test="categoryId != null">category_id,</if>
+            <if test="authorId != null">author_id,</if>
+            <if test="authorName != null and authorName != ''">author_name,</if>
+            <if test="viewCount != null">view_count,</if>
+            <if test="likeCount != null">like_count,</if>
+            <if test="commentCount != null">comment_count,</if>
+            <if test="isTop != null">is_top,</if>
+            <if test="isRecommend != null">is_recommend,</if>
+            <if test="isOriginal != null">is_original,</if>
+            <if test="sourceUrl != null">source_url,</if>
+            <if test="articleStatus != null">article_status,</if>
+            <if test="publishTime != null">publish_time,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time,
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            del_flag
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="articleTitle != null and articleTitle != ''">#{articleTitle},</if>
+            <if test="articleContent != null">#{articleContent},</if>
+            <if test="articleSummary != null">#{articleSummary},</if>
+            <if test="articleCover != null">#{articleCover},</if>
+            <if test="categoryId != null">#{categoryId},</if>
+            <if test="authorId != null">#{authorId},</if>
+            <if test="authorName != null and authorName != ''">#{authorName},</if>
+            <if test="viewCount != null">#{viewCount},</if>
+            <if test="likeCount != null">#{likeCount},</if>
+            <if test="commentCount != null">#{commentCount},</if>
+            <if test="isTop != null">#{isTop},</if>
+            <if test="isRecommend != null">#{isRecommend},</if>
+            <if test="isOriginal != null">#{isOriginal},</if>
+            <if test="sourceUrl != null">#{sourceUrl},</if>
+            <if test="articleStatus != null">#{articleStatus},</if>
+            <if test="publishTime != null">#{publishTime},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate(),
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            '0'
+        </trim>
+    </insert>
+
+    <update id="updateBlogArticle" parameterType="BlogArticle">
+        update blog_article
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="articleTitle != null and articleTitle != ''">article_title = #{articleTitle},</if>
+            <if test="articleContent != null">article_content = #{articleContent},</if>
+            <if test="articleSummary != null">article_summary = #{articleSummary},</if>
+            <if test="articleCover != null">article_cover = #{articleCover},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="authorId != null">author_id = #{authorId},</if>
+            <if test="authorName != null and authorName != ''">author_name = #{authorName},</if>
+            <if test="viewCount != null">view_count = #{viewCount},</if>
+            <if test="likeCount != null">like_count = #{likeCount},</if>
+            <if test="commentCount != null">comment_count = #{commentCount},</if>
+            <if test="isTop != null">is_top = #{isTop},</if>
+            <if test="isRecommend != null">is_recommend = #{isRecommend},</if>
+            <if test="isOriginal != null">is_original = #{isOriginal},</if>
+            <if test="sourceUrl != null">source_url = #{sourceUrl},</if>
+            <if test="articleStatus != null">article_status = #{articleStatus},</if>
+            <if test="publishTime != null">publish_time = #{publishTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where article_id = #{articleId}
+    </update>
+
+    <update id="incrementViewCount" parameterType="Long">
+        update blog_article set view_count = view_count + 1 where article_id = #{articleId}
+    </update>
+
+    <delete id="deleteBlogArticleByArticleId" parameterType="Long">
+        update blog_article set del_flag = '2' where article_id = #{articleId}
+    </delete>
+
+    <delete id="deleteBlogArticleByArticleIds" parameterType="String">
+        update blog_article set del_flag = '2' where article_id in
+        <foreach item="articleId" collection="array" open="(" separator="," close=")">
+            #{articleId}
+        </foreach>
+    </delete>
+
+</mapper>
