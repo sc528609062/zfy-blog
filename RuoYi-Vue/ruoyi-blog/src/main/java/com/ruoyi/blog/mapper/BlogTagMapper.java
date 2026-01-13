@@ -57,4 +57,19 @@ public interface BlogTagMapper {
      * @return 结果
      */
     public int deleteBlogTagByTagIds(Long[] tagIds);
+
+    /**
+     * 更新标签文章数量
+     *
+     * @param tagId 标签ID
+     * @return 结果
+     */
+    public int updateTagArticleCount(Long tagId);
+
+    /**
+     * 批量更新所有标签的文章数量
+     *
+     * @return 结果
+     */
+    public int updateAllTagArticleCount();
 }

@@ -57,4 +57,19 @@ public interface BlogTopicMapper {
      * @return 结果
      */
     public int deleteBlogTopicByTopicIds(Long[] topicIds);
+
+    /**
+     * 更新专题文章数量
+     *
+     * @param topicId 专题ID
+     * @return 结果
+     */
+    public int updateTopicArticleCount(Long topicId);
+
+    /**
+     * 更新所有专题文章数量
+     *
+     * @return 结果
+     */
+    public int updateAllTopicArticleCount();
 }

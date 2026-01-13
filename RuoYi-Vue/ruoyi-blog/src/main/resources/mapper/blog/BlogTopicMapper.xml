@@ -108,4 +108,30 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </foreach>
     </delete>
 
+    <!-- 更新专题文章数量 -->
+    <update id="updateTopicArticleCount" parameterType="Long">
+        update blog_topic t
+        set t.article_count = (
+            select ifnull(count(a.article_id), 0)
+            from blog_article a
+            where a.topic_id = #{topicId}
+            and a.del_flag = '0'
+            and a.article_status = '1'
+        )
+        where t.topic_id = #{topicId}
+    </update>
+
+    <!-- 更新所有专题文章数量 -->
+    <update id="updateAllTopicArticleCount">
+        update blog_topic t
+        left join (
+            select topic_id, ifnull(count(article_id), 0) as count
+            from blog_article
+            where del_flag = '0' and article_status = '1'
+            group by topic_id
+        ) a on t.topic_id = a.topic_id
+        set t.article_count = ifnull(a.count, 0)
+        where t.del_flag = '0'
+    </update>
+
 </mapper>

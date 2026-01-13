@@ -32,6 +32,16 @@
           v-hasPermi="['blog:category:add']"
         >新增</el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-button
+          type="warning"
+          plain
+          icon="el-icon-refresh"
+          size="mini"
+          @click="handleSyncCount"
+          v-hasPermi="['blog:category:edit']"
+        >同步数量</el-button>
+      </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -97,8 +107,8 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio label="0">正常</el-radio>
-            <el-radio label="1">停用</el-radio>
+            <el-radio :label="'0'">正常</el-radio>
+            <el-radio :label="'1'">停用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -111,7 +121,7 @@
 </template>
 
 <script>
-import { listCategory, getCategory, delCategory, addCategory, updateCategory } from '@/api/blog'
+import { listCategory, getCategory, delCategory, addCategory, updateCategory, syncCategoryCount } from '@/api/blog'
 
 export default {
   name: 'BlogCategoryList',
@@ -216,6 +226,14 @@ export default {
       }).then(() => {
         this.getList()
         this.$modal.msgSuccess('删除成功')
+      }).catch(() => {})
+    },
+    handleSyncCount() {
+      this.$modal.confirm('确定要同步所有分类的文章数量吗？').then(() => {
+        return syncCategoryCount()
+      }).then(() => {
+        this.getList()
+        this.$modal.msgSuccess('同步成功')
       }).catch(() => {})
     }
   }

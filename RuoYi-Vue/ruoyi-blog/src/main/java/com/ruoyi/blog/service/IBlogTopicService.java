@@ -57,4 +57,11 @@ public interface IBlogTopicService {
      * @return 结果
      */
     public int deleteBlogTopicByTopicId(Long topicId);
+
+    /**
+     * 同步专题文章数量
+     *
+     * @return 结果
+     */
+    public void syncTopicArticleCount();
 }

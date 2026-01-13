@@ -86,4 +86,14 @@ public class BlogTagServiceImpl implements IBlogTagService {
     public int deleteBlogTagByTagId(Long tagId) {
         return blogTagMapper.deleteBlogTagByTagId(tagId);
     }
+
+    /**
+     * 更新所有标签的文章数量
+     *
+     * @return 结果
+     */
+    @Override
+    public int updateAllTagArticleCount() {
+        return blogTagMapper.updateAllTagArticleCount();
+    }
 }

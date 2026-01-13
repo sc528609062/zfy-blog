@@ -30,6 +30,12 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Autowired
     private BlogCategoryMapper blogCategoryMapper;
 
+    @Autowired
+    private com.ruoyi.blog.mapper.BlogTagMapper blogTagMapper;
+
+    @Autowired
+    private com.ruoyi.blog.mapper.BlogTopicMapper blogTopicMapper;
+
     /**
      * 查询博客文章
      *
@@ -90,6 +96,14 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
             if ("1".equals(blogArticle.getArticleStatus()) && blogArticle.getCategoryId() != null) {
                 blogCategoryMapper.updateCategoryArticleCount(blogArticle.getCategoryId());
             }
+            // 更新所有标签的文章数量
+            if (blogArticle.getTagIds() != null && blogArticle.getTagIds().length > 0) {
+                blogTagMapper.updateAllTagArticleCount();
+            }
+            // 如果是发布状态，更新专题文章数量
+            if ("1".equals(blogArticle.getArticleStatus()) && blogArticle.getTopicId() != null) {
+                blogTopicMapper.updateTopicArticleCount(blogArticle.getTopicId());
+            }
         }
         return rows;
     }
@@ -135,6 +149,30 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
                     // 如果分类没变，更新该分类的文章数量（可能是状态变了）
                     blogCategoryMapper.updateCategoryArticleCount(newCategoryId);
                 }
+
+                // 如果专题发生变化，需要更新旧专题和新专题的文章数量
+                Long oldTopicId = oldArticle.getTopicId();
+                Long newTopicId = blogArticle.getTopicId();
+
+                // 如果专题变了，更新旧专题和新专题
+                if (!java.util.Objects.equals(oldTopicId, newTopicId)) {
+                    if (oldTopicId != null) {
+                        blogTopicMapper.updateTopicArticleCount(oldTopicId);
+                    }
+                    if (newTopicId != null) {
+                        blogTopicMapper.updateTopicArticleCount(newTopicId);
+                    }
+                } else if (newTopicId != null) {
+                    // 如果专题没变，更新该专题的文章数量（可能是状态变了）
+                    blogTopicMapper.updateTopicArticleCount(newTopicId);
+                }
+            }
+
+            // 如果标签发生变化，更新所有标签的文章数量
+            Long[] oldTagIds = oldArticle != null ? oldArticle.getTagIds() : null;
+            Long[] newTagIds = blogArticle.getTagIds();
+            if (!java.util.Arrays.equals(oldTagIds, newTagIds)) {
+                blogTagMapper.updateAllTagArticleCount();
             }
         }
         return rows;
@@ -150,9 +188,11 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Transactional
     public int deleteBlogArticleByArticleIds(Long[] articleIds) {
         int rows = blogArticleMapper.deleteBlogArticleByArticleIds(articleIds);
-        // 批量更新所有分类的文章数量
+        // 批量更新所有分类、标签和专题的文章数量
         if (rows > 0) {
             blogCategoryMapper.updateAllCategoryArticleCount();
+            blogTagMapper.updateAllTagArticleCount();
+            blogTopicMapper.updateAllTopicArticleCount();
         }
         return rows;
     }
@@ -190,9 +230,11 @@ public class BlogArticleServiceImpl implements IBlogArticleService {
     @Transactional
     public int updateArticleStatus(Long[] articleIds, String status) {
         int rows = blogArticleMapper.updateArticleStatus(articleIds, status);
-        // 更新所有分类的文章数量
+        // 更新所有分类、标签和专题的文章数量
         if (rows > 0) {
             blogCategoryMapper.updateAllCategoryArticleCount();
+            blogTagMapper.updateAllTagArticleCount();
+            blogTopicMapper.updateAllTopicArticleCount();
         }
         return rows;
     }

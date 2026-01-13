@@ -126,10 +126,9 @@ export default {
   methods: {
     loadStatistics() {
       getStatistics().then(response => {
-        console.log('统计数据响应:', response)
         this.statistics = response.data
-      }).catch(error => {
-        console.log('加载统计数据失败:', error)
+      }).catch(() => {
+        console.log('加载统计数据失败')
       })
     }
   }

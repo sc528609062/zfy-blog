@@ -148,7 +148,7 @@ public class BlogArticleController extends BaseController {
     /**
      * 获取统计数据
      */
-    @PreAuthorize("@ss.hasPermi('blog:article:list')")
+    @Anonymous
     @GetMapping("/statistics")
     public AjaxResult statistics() {
         return success(blogArticleService.getStatistics());

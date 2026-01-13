@@ -30,6 +30,10 @@ service.interceptors.request.use(config => {
   const interval = (config.headers || {}).interval || 1000
   if (getToken() && !isToken) {
     config.headers['Authorization'] = 'Bearer ' + getToken() // 让每个请求携带自定义token 请根据实际情况自行修改
+    // 添加 userId 头，用于点赞/收藏功能
+    if (store.getters.id) {
+      config.headers['userId'] = store.getters.id
+    }
   }
   // get请求映射params参数
   if (config.method === 'get' && config.params) {

@@ -71,8 +71,11 @@
                 <span v-if="!article.tags || article.tags.length === 0 || !article.tags.find(t => t)">暂无标签</span>
               </div>
               <div class="article-actions">
-                <el-button type="primary" icon="el-icon-star-off" @click="likeArticle">
-                  点赞 {{ article.likeCount }}
+                <el-button :type="isLiked ? 'success' : 'primary'" :icon="isLiked ? 'el-icon-thumb' : 'el-icon-thumb'" @click="likeArticle">
+                  {{ isLiked ? '已点赞' : '点赞' }} {{ article.likeCount || 0 }}
+                </el-button>
+                <el-button :type="isFavorited ? 'warning' : 'default'" :icon="isFavorited ? 'el-icon-star-on' : 'el-icon-star-off'" @click="favoriteArticle">
+                  {{ isFavorited ? '已收藏' : '收藏' }} {{ article.favoriteCount || 0 }}
                 </el-button>
                 <el-button icon="el-icon-share" @click="shareArticle">分享</el-button>
               </div>
@@ -176,7 +179,7 @@
 </template>
 
 <script>
-import { getArticle, listArticle, listCategory, incrementView } from '@/api/blog'
+import { getArticle, listArticle, listCategory, incrementView, likeArticle, unlikeArticle, checkLiked, favoriteArticle, unfavoriteArticle, checkFavorited } from '@/api/blog'
 import { mavonEditor } from 'mavon-editor'
 import 'mavon-editor/dist/css/index.css'
 
@@ -207,7 +210,9 @@ export default {
           { required: true, message: '请输入评论内容', trigger: 'blur' },
           { min: 5, message: '评论内容至少5个字符', trigger: 'blur' }
         ]
-      }
+      },
+      isLiked: false,
+      isFavorited: false
     }
   },
   created() {
@@ -231,6 +236,8 @@ export default {
         this.loading = false
         // 增加浏览量
         incrementView(articleId)
+        // 检查点赞和收藏状态
+        this.checkLikeAndFavorite(articleId)
         // 加载相关文章
         this.loadRelatedArticles()
       }).catch(() => {
@@ -258,8 +265,45 @@ export default {
     },
     // 点赞文章
     likeArticle() {
-      this.$message.success('点赞成功！')
-      this.article.likeCount++
+      const articleId = this.article.articleId
+      if (this.isLiked) {
+        unlikeArticle(articleId).then(() => {
+          this.isLiked = false
+          this.article.likeCount--
+          this.$message.success('取消点赞成功！')
+        }).catch(() => {
+          this.$message.error('操作失败')
+        })
+      } else {
+        likeArticle(articleId).then(() => {
+          this.isLiked = true
+          this.article.likeCount++
+          this.$message.success('点赞成功！')
+        }).catch(() => {
+          this.$message.error('操作失败')
+        })
+      }
+    },
+    // 收藏文章
+    favoriteArticle() {
+      const articleId = this.article.articleId
+      if (this.isFavorited) {
+        unfavoriteArticle(articleId).then(() => {
+          this.isFavorited = false
+          this.article.favoriteCount--
+          this.$message.success('取消收藏成功！')
+        }).catch(() => {
+          this.$message.error('操作失败')
+        })
+      } else {
+        favoriteArticle(articleId).then(() => {
+          this.isFavorited = true
+          this.article.favoriteCount++
+          this.$message.success('收藏成功！')
+        }).catch(() => {
+          this.$message.error('操作失败')
+        })
+      }
     },
     // 分享文章
     shareArticle() {
@@ -291,6 +335,19 @@ export default {
     likeComment(comment) {
       comment.likeCount++
       this.$message.success('点赞成功！')
+    },
+    // 检查点赞和收藏状态
+    checkLikeAndFavorite(articleId) {
+      checkLiked(articleId).then(response => {
+        this.isLiked = response.data.liked
+      }).catch(() => {
+        this.isLiked = false
+      })
+      checkFavorited(articleId).then(response => {
+        this.isFavorited = response.data.favorited
+      }).catch(() => {
+        this.isFavorited = false
+      })
     },
     // 跳转到标签
     goToTag(tagId) {

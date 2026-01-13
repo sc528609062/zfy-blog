@@ -67,6 +67,54 @@ export function incrementView(articleId) {
   })
 }
 
+// 点赞文章
+export function likeArticle(articleId) {
+  return request({
+    url: '/blog/article/like/' + articleId,
+    method: 'post'
+  })
+}
+
+// 取消点赞
+export function unlikeArticle(articleId) {
+  return request({
+    url: '/blog/article/like/' + articleId,
+    method: 'delete'
+  })
+}
+
+// 检查是否已点赞
+export function checkLiked(articleId) {
+  return request({
+    url: '/blog/article/like/check/' + articleId,
+    method: 'get'
+  })
+}
+
+// 收藏文章
+export function favoriteArticle(articleId) {
+  return request({
+    url: '/blog/article/favorite/' + articleId,
+    method: 'post'
+  })
+}
+
+// 取消收藏
+export function unfavoriteArticle(articleId) {
+  return request({
+    url: '/blog/article/favorite/' + articleId,
+    method: 'delete'
+  })
+}
+
+// 检查是否已收藏
+export function checkFavorited(articleId) {
+  return request({
+    url: '/blog/article/favorite/check/' + articleId,
+    method: 'get'
+  })
+}
+
 // 批量发布文章
 export function updateArticleStatus(articleIds, status) {
   const url = status === '1' ? '/blog/article/publish' : '/blog/article/offline'
@@ -129,6 +177,14 @@ export function delCategory(categoryId) {
   })
 }
 
+// 同步分类文章数量
+export function syncCategoryCount() {
+  return request({
+    url: '/blog/category/syncCount',
+    method: 'get'
+  })
+}
+
 // ==================== 标签相关 ====================
 // 查询标签列表
 export function listTag(query) {
@@ -173,6 +229,14 @@ export function delTag(tagId) {
   })
 }
 
+// 同步标签文章数量
+export function syncTagCount() {
+  return request({
+    url: '/blog/tag/syncCount',
+    method: 'get'
+  })
+}
+
 // ==================== 专题相关 ====================
 // 查询专题列表
 export function listTopic(query) {
@@ -214,6 +278,14 @@ export function delTopic(topicId) {
   return request({
     url: '/blog/topic/' + topicId,
     method: 'delete'
+  })
+}
+
+// 同步专题文章数量
+export function syncTopicCount() {
+  return request({
+    url: '/blog/topic/syncCount',
+    method: 'get'
   })
 }
 

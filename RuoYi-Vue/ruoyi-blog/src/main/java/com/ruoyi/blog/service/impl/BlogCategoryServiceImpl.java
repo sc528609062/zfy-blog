@@ -86,4 +86,14 @@ public class BlogCategoryServiceImpl implements IBlogCategoryService {
     public int deleteBlogCategoryByCategoryId(Long categoryId) {
         return blogCategoryMapper.deleteBlogCategoryByCategoryId(categoryId);
     }
+
+    /**
+     * 更新所有分类的文章数量
+     *
+     * @return 结果
+     */
+    @Override
+    public int updateAllCategoryArticleCount() {
+        return blogCategoryMapper.updateAllCategoryArticleCount();
+    }
 }

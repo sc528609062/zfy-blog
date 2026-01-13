@@ -205,9 +205,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         (select count(*) from blog_category where del_flag = '0') as totalCategories,
         (select count(*) from blog_tag where del_flag = '0') as totalTags,
         (select count(*) from blog_topic where del_flag = '0') as totalTopics,
-        (select sum(view_count) from blog_article where del_flag = '0') as totalViews,
-        (select sum(like_count) from blog_article where del_flag = '0') as totalLikes,
-        (select sum(comment_count) from blog_article where del_flag = '0') as totalComments
+        (select ifnull(sum(view_count), 0) from blog_article where del_flag = '0') as totalViews,
+        (select ifnull(sum(like_count), 0) from blog_article where del_flag = '0') as totalLikes,
+        (select ifnull(sum(comment_count), 0) from blog_article where del_flag = '0') as totalComments
     </select>
 
     <delete id="deleteBlogArticleByArticleId" parameterType="Long">

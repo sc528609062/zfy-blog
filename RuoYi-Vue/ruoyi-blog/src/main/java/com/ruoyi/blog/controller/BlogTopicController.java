@@ -115,4 +115,15 @@ public class BlogTopicController extends BaseController {
     public AjaxResult remove(@PathVariable Long[] topicIds) {
         return toAjax(blogTopicService.deleteBlogTopicByTopicIds(topicIds));
     }
+
+    /**
+     * 同步专题文章数量
+     */
+    @PreAuthorize("@ss.hasPermi('blog:topic:edit')")
+    @Log(title = "博客专题", businessType = BusinessType.UPDATE)
+    @GetMapping("/syncCount")
+    public AjaxResult syncCount() {
+        blogTopicService.syncTopicArticleCount();
+        return success("同步成功");
+    }
 }

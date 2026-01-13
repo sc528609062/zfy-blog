@@ -86,4 +86,14 @@ public class BlogTopicServiceImpl implements IBlogTopicService {
     public int deleteBlogTopicByTopicId(Long topicId) {
         return blogTopicMapper.deleteBlogTopicByTopicId(topicId);
     }
+
+    /**
+     * 同步专题文章数量
+     *
+     * @return 结果
+     */
+    @Override
+    public void syncTopicArticleCount() {
+        blogTopicMapper.updateAllTopicArticleCount();
+    }
 }

@@ -57,4 +57,11 @@ public interface IBlogTagService {
      * @return 结果
      */
     public int deleteBlogTagByTagId(Long tagId);
+
+    /**
+     * 更新所有标签的文章数量
+     *
+     * @return 结果
+     */
+    public int updateAllTagArticleCount();
 }

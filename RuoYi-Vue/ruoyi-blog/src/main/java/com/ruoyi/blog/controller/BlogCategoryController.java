@@ -83,4 +83,14 @@ public class BlogCategoryController extends BaseController {
     public AjaxResult remove(@PathVariable Long[] categoryIds) {
         return toAjax(blogCategoryService.deleteBlogCategoryByCategoryIds(categoryIds));
     }
+
+    /**
+     * 同步所有分类的文章数量
+     */
+    @PreAuthorize("@ss.hasPermi('blog:category:edit')")
+    @GetMapping("/syncCount")
+    public AjaxResult syncCount() {
+        blogCategoryService.updateAllCategoryArticleCount();
+        return success("同步成功");
+    }
 }

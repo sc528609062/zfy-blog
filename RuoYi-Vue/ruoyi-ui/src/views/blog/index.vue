@@ -78,7 +78,7 @@
                 </el-tag>
                 <span class="meta-views"><i class="el-icon-view"></i> {{ article.viewCount }}</span>
                 <span class="meta-comments"><i class="el-icon-chat-dot-round"></i> {{ article.commentCount }}</span>
-                <span class="meta-likes"><i class="el-icon-star-off"></i> {{ article.likeCount }}</span>
+                <span class="meta-likes"><i class="el-icon-thumb"></i> {{ article.likeCount }}</span>
               </div>
             </div>
           </div>
@@ -103,7 +103,7 @@
                 </el-tag>
                 <span class="meta-views"><i class="el-icon-view"></i> {{ article.viewCount }}</span>
                 <span class="meta-comments"><i class="el-icon-chat-dot-round"></i> {{ article.commentCount }}</span>
-                <span class="meta-likes"><i class="el-icon-star-off"></i> {{ article.likeCount }}</span>
+                <span class="meta-likes"><i class="el-icon-thumb"></i> {{ article.likeCount }}</span>
               </div>
             </div>
           </div>

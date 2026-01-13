@@ -57,4 +57,11 @@ public interface IBlogCategoryService {
      * @return 结果
      */
     public int deleteBlogCategoryByCategoryId(Long categoryId);
+
+    /**
+     * 更新所有分类的文章数量
+     *
+     * @return 结果
+     */
+    public int updateAllCategoryArticleCount();
 }

@@ -83,4 +83,14 @@ public class BlogTagController extends BaseController {
     public AjaxResult remove(@PathVariable Long[] tagIds) {
         return toAjax(blogTagService.deleteBlogTagByTagIds(tagIds));
     }
+
+    /**
+     * 同步所有标签的文章数量
+     */
+    @PreAuthorize("@ss.hasPermi('blog:tag:edit')")
+    @GetMapping("/syncCount")
+    public AjaxResult syncCount() {
+        blogTagService.updateAllTagArticleCount();
+        return success("同步成功");
+    }
 }
