@@ -279,6 +279,10 @@ body {
   box-shadow: none !important;
 }
 
+.zfy-article-view .v-note-wrapper {
+  z-index: 1 !important;
+}
+
 .zfy-article-view .v-note-panel {
   min-height: 200px;
 }
