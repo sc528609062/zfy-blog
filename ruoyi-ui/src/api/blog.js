@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
-// ==================== 通用上传 ====================
-// 通用上传请求
+// ==================== 閫氱敤涓婁紶 ====================
+// 閫氱敤涓婁紶璇锋眰
 export function upload(file) {
   const formData = new FormData()
   formData.append('file', file)
@@ -15,8 +15,8 @@ export function upload(file) {
   })
 }
 
-// ==================== 文章相关 ====================
-// 查询博客文章列表
+// ==================== 鏂囩珷鐩稿叧 ====================
+// 鏌ヨ鍗氬鏂囩珷鍒楄〃
 export function listArticle(query) {
   return request({
     url: '/blog/article/list',
@@ -25,7 +25,7 @@ export function listArticle(query) {
   })
 }
 
-// 查询博客文章详细（前台）
+// 鏌ヨ鍗氬鏂囩珷璇︾粏锛堝墠鍙帮級
 export function getArticle(articleId) {
   return request({
     url: '/blog/article/' + articleId,
@@ -33,7 +33,7 @@ export function getArticle(articleId) {
   })
 }
 
-// 新增博客文章
+// 鏂板鍗氬鏂囩珷
 export function addArticle(data) {
   return request({
     url: '/blog/article',
@@ -42,7 +42,7 @@ export function addArticle(data) {
   })
 }
 
-// 修改博客文章
+// 淇敼鍗氬鏂囩珷
 export function updateArticle(data) {
   return request({
     url: '/blog/article',
@@ -51,7 +51,7 @@ export function updateArticle(data) {
   })
 }
 
-// 删除博客文章
+// 鍒犻櫎鍗氬鏂囩珷
 export function delArticle(articleId) {
   return request({
     url: '/blog/article/' + articleId,
@@ -59,7 +59,7 @@ export function delArticle(articleId) {
   })
 }
 
-// 增加浏览量
+// 澧炲姞娴忚閲?
 export function incrementView(articleId) {
   return request({
     url: '/blog/article/view/' + articleId,
@@ -67,7 +67,7 @@ export function incrementView(articleId) {
   })
 }
 
-// 点赞文章
+// 鐐硅禐鏂囩珷
 export function likeArticle(articleId) {
   return request({
     url: '/blog/article/like/' + articleId,
@@ -75,7 +75,7 @@ export function likeArticle(articleId) {
   })
 }
 
-// 取消点赞
+// 鍙栨秷鐐硅禐
 export function unlikeArticle(articleId) {
   return request({
     url: '/blog/article/like/' + articleId,
@@ -83,7 +83,7 @@ export function unlikeArticle(articleId) {
   })
 }
 
-// 检查是否已点赞
+// 妫€鏌ユ槸鍚﹀凡鐐硅禐
 export function checkLiked(articleId) {
   return request({
     url: '/blog/article/like/check/' + articleId,
@@ -91,7 +91,7 @@ export function checkLiked(articleId) {
   })
 }
 
-// 收藏文章
+// 鏀惰棌鏂囩珷
 export function favoriteArticle(articleId) {
   return request({
     url: '/blog/article/favorite/' + articleId,
@@ -99,7 +99,7 @@ export function favoriteArticle(articleId) {
   })
 }
 
-// 取消收藏
+// 鍙栨秷鏀惰棌
 export function unfavoriteArticle(articleId) {
   return request({
     url: '/blog/article/favorite/' + articleId,
@@ -107,7 +107,7 @@ export function unfavoriteArticle(articleId) {
   })
 }
 
-// 检查是否已收藏
+// 妫€鏌ユ槸鍚﹀凡鏀惰棌
 export function checkFavorited(articleId) {
   return request({
     url: '/blog/article/favorite/check/' + articleId,
@@ -115,7 +115,7 @@ export function checkFavorited(articleId) {
   })
 }
 
-// 批量发布文章
+// 鎵归噺鍙戝竷鏂囩珷
 export function updateArticleStatus(articleIds, status) {
   const url = status === '1' ? '/blog/article/publish' : '/blog/article/offline'
   return request({
@@ -125,7 +125,7 @@ export function updateArticleStatus(articleIds, status) {
   })
 }
 
-// 获取统计数据
+// 鑾峰彇缁熻鏁版嵁
 export function getStatistics() {
   return request({
     url: '/blog/article/statistics',
@@ -133,8 +133,8 @@ export function getStatistics() {
   })
 }
 
-// ==================== 分类相关 ====================
-// 查询分类列表
+// ==================== 鍒嗙被鐩稿叧 ====================
+// 鏌ヨ鍒嗙被鍒楄〃
 export function listCategory(query) {
   return request({
     url: '/blog/category/list',
@@ -143,7 +143,7 @@ export function listCategory(query) {
   })
 }
 
-// 查询分类详细
+// 鏌ヨ鍒嗙被璇︾粏
 export function getCategory(categoryId) {
   return request({
     url: '/blog/category/' + categoryId,
@@ -151,7 +151,7 @@ export function getCategory(categoryId) {
   })
 }
 
-// 新增分类
+// 鏂板鍒嗙被
 export function addCategory(data) {
   return request({
     url: '/blog/category',
@@ -160,7 +160,7 @@ export function addCategory(data) {
   })
 }
 
-// 修改分类
+// 淇敼鍒嗙被
 export function updateCategory(data) {
   return request({
     url: '/blog/category',
@@ -169,7 +169,7 @@ export function updateCategory(data) {
   })
 }
 
-// 删除分类
+// 鍒犻櫎鍒嗙被
 export function delCategory(categoryId) {
   return request({
     url: '/blog/category/' + categoryId,
@@ -177,7 +177,7 @@ export function delCategory(categoryId) {
   })
 }
 
-// 同步分类文章数量
+// 鍚屾鍒嗙被鏂囩珷鏁伴噺
 export function syncCategoryCount() {
   return request({
     url: '/blog/category/syncCount',
@@ -185,8 +185,8 @@ export function syncCategoryCount() {
   })
 }
 
-// ==================== 标签相关 ====================
-// 查询标签列表
+// ==================== 鏍囩鐩稿叧 ====================
+// 鏌ヨ鏍囩鍒楄〃
 export function listTag(query) {
   return request({
     url: '/blog/tag/list',
@@ -195,7 +195,7 @@ export function listTag(query) {
   })
 }
 
-// 查询标签详细
+// 鏌ヨ鏍囩璇︾粏
 export function getTag(tagId) {
   return request({
     url: '/blog/tag/' + tagId,
@@ -203,7 +203,7 @@ export function getTag(tagId) {
   })
 }
 
-// 新增标签
+// 鏂板鏍囩
 export function addTag(data) {
   return request({
     url: '/blog/tag',
@@ -212,7 +212,7 @@ export function addTag(data) {
   })
 }
 
-// 修改标签
+// 淇敼鏍囩
 export function updateTag(data) {
   return request({
     url: '/blog/tag',
@@ -221,7 +221,7 @@ export function updateTag(data) {
   })
 }
 
-// 删除标签
+// 鍒犻櫎鏍囩
 export function delTag(tagId) {
   return request({
     url: '/blog/tag/' + tagId,
@@ -229,7 +229,7 @@ export function delTag(tagId) {
   })
 }
 
-// 同步标签文章数量
+// 鍚屾鏍囩鏂囩珷鏁伴噺
 export function syncTagCount() {
   return request({
     url: '/blog/tag/syncCount',
@@ -237,8 +237,8 @@ export function syncTagCount() {
   })
 }
 
-// ==================== 专题相关 ====================
-// 查询专题列表
+// ==================== 涓撻鐩稿叧 ====================
+// 鏌ヨ涓撻鍒楄〃
 export function listTopic(query) {
   return request({
     url: '/blog/topic/list',
@@ -247,7 +247,7 @@ export function listTopic(query) {
   })
 }
 
-// 查询专题详细
+// 鏌ヨ涓撻璇︾粏
 export function getTopic(topicId) {
   return request({
     url: '/blog/topic/' + topicId,
@@ -255,7 +255,7 @@ export function getTopic(topicId) {
   })
 }
 
-// 新增专题
+// 鏂板涓撻
 export function addTopic(data) {
   return request({
     url: '/blog/topic',
@@ -264,7 +264,7 @@ export function addTopic(data) {
   })
 }
 
-// 修改专题
+// 淇敼涓撻
 export function updateTopic(data) {
   return request({
     url: '/blog/topic',
@@ -273,7 +273,7 @@ export function updateTopic(data) {
   })
 }
 
-// 删除专题
+// 鍒犻櫎涓撻
 export function delTopic(topicId) {
   return request({
     url: '/blog/topic/' + topicId,
@@ -281,7 +281,7 @@ export function delTopic(topicId) {
   })
 }
 
-// 同步专题文章数量
+// 鍚屾涓撻鏂囩珷鏁伴噺
 export function syncTopicCount() {
   return request({
     url: '/blog/topic/syncCount',
@@ -289,8 +289,8 @@ export function syncTopicCount() {
   })
 }
 
-// ==================== 配置相关 ====================
-// 查询博客配置（根据configKey）
+// ==================== 閰嶇疆鐩稿叧 ====================
+// 鏌ヨ鍗氬閰嶇疆锛堟牴鎹甤onfigKey锛?
 export function getConfig(configKey) {
   return request({
     url: '/blog/config/key/' + configKey,
@@ -298,7 +298,7 @@ export function getConfig(configKey) {
   })
 }
 
-// 查询所有配置
+// 鏌ヨ鎵€鏈夐厤缃?
 export function listConfig() {
   return request({
     url: '/blog/config/list',
@@ -306,7 +306,7 @@ export function listConfig() {
   })
 }
 
-// 查询配置详细
+// 鏌ヨ閰嶇疆璇︾粏
 export function getConfigById(configId) {
   return request({
     url: '/blog/config/' + configId,
@@ -314,7 +314,7 @@ export function getConfigById(configId) {
   })
 }
 
-// 新增配置
+// 鏂板閰嶇疆
 export function addConfig(data) {
   return request({
     url: '/blog/config',
@@ -323,7 +323,7 @@ export function addConfig(data) {
   })
 }
 
-// 修改配置
+// 淇敼閰嶇疆
 export function updateConfig(data) {
   return request({
     url: '/blog/config',
@@ -332,10 +332,165 @@ export function updateConfig(data) {
   })
 }
 
-// 删除配置
+// 鍒犻櫎閰嶇疆
 export function delConfig(configId) {
   return request({
     url: '/blog/config/' + configId,
     method: 'delete'
   })
 }
+
+// ==================== 璇勮鐩稿叧 ====================
+// 鏌ヨ璇勮鍒楄〃
+export function listComment(query) {
+  return request({
+    url: '/blog/comment/list',
+    method: 'get',
+    params: query
+  })
+}
+
+export function listPublicComment(articleId) {
+  return request({
+    url: '/blog/comment/public/list/' + articleId,
+    method: 'get'
+  })
+}
+
+export function getComment(commentId) {
+  return request({
+    url: '/blog/comment/' + commentId,
+    method: 'get'
+  })
+}
+
+export function addComment(data) {
+  return request({
+    url: '/blog/comment',
+    method: 'post',
+    data: data
+  })
+}
+
+export function addPublicComment(data) {
+  return request({
+    url: '/blog/comment/public',
+    method: 'post',
+    data: data
+  })
+}
+
+export function updateComment(data) {
+  return request({
+    url: '/blog/comment',
+    method: 'put',
+    data: data
+  })
+}
+
+export function updateCommentStatus(commentId, status) {
+  return request({
+    url: '/blog/comment/status',
+    method: 'put',
+    data: {
+      commentId,
+      status
+    }
+  })
+}
+
+export function delComment(commentId) {
+  return request({
+    url: '/blog/comment/' + commentId,
+    method: 'delete'
+  })
+}
+
+// ==================== 鍙嬮摼鐩稿叧 ====================
+// 鏌ヨ鍙嬮摼鍒楄〃
+export function listLink(query) {
+  return request({
+    url: '/blog/link/list',
+    method: 'get',
+    params: query
+  })
+}
+
+// 鏌ヨ鍙嬮摼璇︽儏
+export function getLink(linkId) {
+  return request({
+    url: '/blog/link/' + linkId,
+    method: 'get'
+  })
+}
+
+// 鏂板鍙嬮摼
+export function addLink(data) {
+  return request({
+    url: '/blog/link',
+    method: 'post',
+    data: data
+  })
+}
+
+// 淇敼鍙嬮摼
+export function updateLink(data) {
+  return request({
+    url: '/blog/link',
+    method: 'put',
+    data: data
+  })
+}
+
+// 鍒犻櫎鍙嬮摼
+export function delLink(linkId) {
+  return request({
+    url: '/blog/link/' + linkId,
+    method: 'delete'
+  })
+}
+
+// ==================== 椤甸潰鐩稿叧 ====================
+// 鏌ヨ椤甸潰鍒楄〃
+export function listPage(query) {
+  return request({
+    url: '/blog/page/list',
+    method: 'get',
+    params: query
+  })
+}
+
+// 鏌ヨ椤甸潰璇︽儏
+export function getPage(pageId) {
+  return request({
+    url: '/blog/page/' + pageId,
+    method: 'get'
+  })
+}
+
+// 鏂板椤甸潰
+export function addPage(data) {
+  return request({
+    url: '/blog/page',
+    method: 'post',
+    data: data
+  })
+}
+
+// 淇敼椤甸潰
+export function updatePage(data) {
+  return request({
+    url: '/blog/page',
+    method: 'put',
+    data: data
+  })
+}
+
+// 鍒犻櫎椤甸潰
+export function delPage(pageId) {
+  return request({
+    url: '/blog/page/' + pageId,
+    method: 'delete'
+  })
+}
+

@@ -1,21 +1,26 @@
 package com.ruoyi.blog.controller;
 
+import com.ruoyi.blog.service.IBlogArticleLikeService;
 import com.ruoyi.common.annotation.Anonymous;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.enums.BusinessType;
-import com.ruoyi.blog.service.IBlogArticleLikeService;
+import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.common.utils.ip.IpUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * 文章点赞Controller
- *
- * @author zfy
- * @date 2026-01-13
+ * 文章点赞 Controller。
  */
 @RestController
 @RequestMapping("/blog/article/like")
@@ -24,64 +29,59 @@ public class BlogArticleLikeController extends BaseController {
     private IBlogArticleLikeService blogArticleLikeService;
 
     /**
-     * 点赞文章
+     * 点赞文章。
      */
     @Anonymous
     @Log(title = "文章点赞", businessType = BusinessType.OTHER)
     @PostMapping("/{articleId}")
-    public AjaxResult like(@PathVariable Long articleId,
-                         @RequestHeader(value = "userId", required = false) Long userId,
-                         HttpServletRequest request) {
-        String userIp = getClientIp(request);
+    public AjaxResult like(@PathVariable Long articleId, HttpServletRequest request) {
+        Long userId = resolveUserId(request);
+        String userIp = IpUtils.getIpAddr(request);
         blogArticleLikeService.likeArticle(articleId, userId, userIp);
         return success();
     }
 
     /**
-     * 取消点赞
+     * 取消点赞。
      */
     @Anonymous
     @Log(title = "取消点赞", businessType = BusinessType.OTHER)
     @DeleteMapping("/{articleId}")
-    public AjaxResult unlike(@PathVariable Long articleId,
-                           @RequestHeader(value = "userId", required = false) Long userId,
-                           HttpServletRequest request) {
-        String userIp = getClientIp(request);
+    public AjaxResult unlike(@PathVariable Long articleId, HttpServletRequest request) {
+        Long userId = resolveUserId(request);
+        String userIp = IpUtils.getIpAddr(request);
         blogArticleLikeService.unlikeArticle(articleId, userId, userIp);
         return success();
     }
 
     /**
-     * 检查是否已点赞
+     * 检查是否已点赞。
      */
     @Anonymous
     @GetMapping("/check/{articleId}")
-    public AjaxResult checkLiked(@PathVariable Long articleId,
-                               @RequestHeader(value = "userId", required = false) Long userId,
-                               HttpServletRequest request) {
-        String userIp = getClientIp(request);
+    public AjaxResult checkLiked(@PathVariable Long articleId, HttpServletRequest request) {
+        Long userId = resolveUserId(request);
+        String userIp = IpUtils.getIpAddr(request);
         boolean liked = blogArticleLikeService.isLiked(articleId, userId, userIp);
         return success().put("liked", liked);
     }
 
     /**
-     * 获取客户端IP
+     * 解析用户ID：优先读取当前登录用户；未登录时回退请求头 userId。
      */
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
+    private Long resolveUserId(HttpServletRequest request) {
+        try {
+            return SecurityUtils.getUserId();
+        } catch (Exception ignored) {
+            String userIdHeader = request.getHeader("userId");
+            if (StringUtils.isNotBlank(userIdHeader)) {
+                try {
+                    return Long.valueOf(userIdHeader);
+                } catch (NumberFormatException ex) {
+                    return null;
+                }
+            }
+            return null;
         }
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        // 多个IP时取第一个
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
     }
 }

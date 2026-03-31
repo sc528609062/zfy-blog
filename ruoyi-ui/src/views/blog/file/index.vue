@@ -59,7 +59,7 @@
 <script>
 import { upload } from '@/api/blog'
 
-const FILE_CACHE_KEY = 'zfy_admin_file_records'
+const STORE_KEY = 'zfy_file_records'
 
 function normalizeType(fileName = '') {
   const lowerName = fileName.toLowerCase()
@@ -99,14 +99,16 @@ export default {
     this.loadFiles()
   },
   methods: {
-    loadFiles() {
+    async loadFiles() {
       this.loading = true
-      const raw = this.$cache.local.getJSON(FILE_CACHE_KEY) || []
-      this.fileList = raw
+      this.fileList = await this.$zfyConfigCenter.getJson(STORE_KEY, [])
       this.loading = false
     },
-    persistFiles() {
-      this.$cache.local.setJSON(FILE_CACHE_KEY, this.fileList)
+    async persistFiles() {
+      await this.$zfyConfigCenter.save(STORE_KEY, this.fileList, {
+        group: 'media',
+        desc: '媒体文件记录'
+      })
     },
     beforeUpload(file) {
       const maxSizeMb = 20
@@ -118,7 +120,7 @@ export default {
       return true
     },
     uploadFile(option) {
-      upload(option.file).then(response => {
+      upload(option.file).then(async response => {
         const data = response.data || {}
         const url = data.url || data.fileName || ''
         const row = {
@@ -126,12 +128,14 @@ export default {
           fileName: option.file.name,
           fileType: normalizeType(option.file.name),
           fileSize: option.file.size,
-          fileSizeText: this.$modal && this.$modal.fileSizeFormat ? this.$modal.fileSizeFormat(option.file.size) : `${(option.file.size / 1024).toFixed(1)}KB`,
+          fileSizeText: this.$modal && this.$modal.fileSizeFormat
+            ? this.$modal.fileSizeFormat(option.file.size)
+            : `${(option.file.size / 1024).toFixed(1)}KB`,
           url,
           createTime: new Date()
         }
         this.fileList.unshift(row)
-        this.persistFiles()
+        await this.persistFiles()
         this.$modal.msgSuccess('上传成功')
         option.onSuccess(response)
       }).catch(error => {
@@ -157,9 +161,9 @@ export default {
       window.open(url, '_blank')
     },
     remove(row) {
-      this.$modal.confirm(`确认删除文件 "${row.fileName}" 吗？`).then(() => {
+      this.$modal.confirm(`确认删除文件 "${row.fileName}" 吗？`).then(async () => {
         this.fileList = this.fileList.filter(item => item.id !== row.id)
-        this.persistFiles()
+        await this.persistFiles()
         this.$modal.msgSuccess('删除成功')
       }).catch(() => {})
     },

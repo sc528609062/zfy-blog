@@ -4,239 +4,225 @@ import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+
+import java.util.Date;
 import java.util.List;
 
 /**
- * 博客文章对象 blog_article
- *
- * @author zfy
- * @date 2026-01-12
+ * Blog article entity.
  */
 public class BlogArticle extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
-    /** 文章ID */
     private Long articleId;
 
-    /** 文章标题 */
-    @Excel(name = "文章标题")
+    @Excel(name = "Article Title")
     private String articleTitle;
 
-    /** 文章内容 */
     private String articleContent;
 
-    /** 文章摘要 */
     private String articleSummary;
 
-    /** 封面图片 */
-    @Excel(name = "封面图片")
+    @Excel(name = "Article Cover")
     private String articleCover;
 
-    /** 分类ID */
-    @Excel(name = "分类ID")
+    @Excel(name = "Category ID")
     private Long categoryId;
 
-    /** 专题ID */
-    @Excel(name = "专题ID")
+    @Excel(name = "Topic ID")
     private Long topicId;
 
-    /** 作者ID */
     private Long authorId;
 
-    /** 作者名称 */
-    @Excel(name = "作者名称")
+    @Excel(name = "Author Name")
     private String authorName;
 
-    /** 浏览量 */
-    @Excel(name = "浏览量")
+    @Excel(name = "View Count")
     private Long viewCount;
 
-    /** 点赞数 */
-    @Excel(name = "点赞数")
+    @Excel(name = "Like Count")
     private Integer likeCount;
 
-    /** 评论数 */
-    @Excel(name = "评论数")
+    @Excel(name = "Favorite Count")
+    private Integer favoriteCount;
+
+    @Excel(name = "Comment Count")
     private Integer commentCount;
 
-    /** 是否置顶（0否 1是） */
-    @Excel(name = "是否置顶", readConverterExp = "0=否,1=是")
+    @Excel(name = "Is Top")
     private String isTop;
 
-    /** 是否推荐（0否 1是） */
-    @Excel(name = "是否推荐", readConverterExp = "0=否,1=是")
+    @Excel(name = "Is Recommend")
     private String isRecommend;
 
-    /** 是否原创（0转载 1原创） */
-    @Excel(name = "是否原创", readConverterExp = "0=转载,1=原创")
+    @Excel(name = "Is Original")
     private String isOriginal;
 
-    /** 转载来源URL */
-    @Excel(name = "转载来源URL")
+    @Excel(name = "Source Url")
     private String sourceUrl;
 
-    /** 文章状态（0草稿 1发布 2下架） */
-    @Excel(name = "文章状态", readConverterExp = "0=草稿,1=发布,2=下架")
+    @Excel(name = "Article Status")
     private String articleStatus;
 
-    /** 标签ID列表 */
     private Long[] tagIds;
 
-    /** 标签列表 */
     private List<BlogTag> tags;
 
-    /** 发布时间 */
-    private java.util.Date publishTime;
+    private Date publishTime;
 
-    /** 删除标志（0代表存在 2代表删除） */
     private String delFlag;
 
-    /** 分类名称 */
-    @Excel(name = "分类名称")
+    @Excel(name = "Category Name")
     private String categoryName;
 
-    /** 专题名称 */
-    @Excel(name = "专题名称")
+    @Excel(name = "Topic Name")
     private String topicName;
 
-    /** 编辑器类型（markdown 富文本） */
-    @Excel(name = "编辑器类型")
+    @Excel(name = "Editor Type")
     private String editorType;
-
-    public void setArticleId(Long articleId) {
-        this.articleId = articleId;
-    }
 
     public Long getArticleId() {
         return articleId;
     }
 
-    public void setArticleTitle(String articleTitle) {
-        this.articleTitle = articleTitle;
+    public void setArticleId(Long articleId) {
+        this.articleId = articleId;
     }
 
     public String getArticleTitle() {
         return articleTitle;
     }
 
-    public void setArticleContent(String articleContent) {
-        this.articleContent = articleContent;
+    public void setArticleTitle(String articleTitle) {
+        this.articleTitle = articleTitle;
     }
 
     public String getArticleContent() {
         return articleContent;
     }
 
-    public void setArticleSummary(String articleSummary) {
-        this.articleSummary = articleSummary;
+    public void setArticleContent(String articleContent) {
+        this.articleContent = articleContent;
     }
 
     public String getArticleSummary() {
         return articleSummary;
     }
 
-    public void setArticleCover(String articleCover) {
-        this.articleCover = articleCover;
+    public void setArticleSummary(String articleSummary) {
+        this.articleSummary = articleSummary;
     }
 
     public String getArticleCover() {
         return articleCover;
     }
 
-    public void setCategoryId(Long categoryId) {
-        this.categoryId = categoryId;
+    public void setArticleCover(String articleCover) {
+        this.articleCover = articleCover;
     }
 
     public Long getCategoryId() {
         return categoryId;
     }
 
-    public void setTopicId(Long topicId) {
-        this.topicId = topicId;
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 
     public Long getTopicId() {
         return topicId;
     }
 
-    public void setAuthorId(Long authorId) {
-        this.authorId = authorId;
+    public void setTopicId(Long topicId) {
+        this.topicId = topicId;
     }
 
     public Long getAuthorId() {
         return authorId;
     }
 
-    public void setAuthorName(String authorName) {
-        this.authorName = authorName;
+    public void setAuthorId(Long authorId) {
+        this.authorId = authorId;
     }
 
     public String getAuthorName() {
         return authorName;
     }
 
-    public void setViewCount(Long viewCount) {
-        this.viewCount = viewCount;
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
     }
 
     public Long getViewCount() {
         return viewCount;
     }
 
-    public void setLikeCount(Integer likeCount) {
-        this.likeCount = likeCount;
+    public void setViewCount(Long viewCount) {
+        this.viewCount = viewCount;
     }
 
     public Integer getLikeCount() {
         return likeCount;
     }
 
-    public void setCommentCount(Integer commentCount) {
-        this.commentCount = commentCount;
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
+    }
+
+    public Integer getFavoriteCount() {
+        return favoriteCount;
+    }
+
+    public void setFavoriteCount(Integer favoriteCount) {
+        this.favoriteCount = favoriteCount;
     }
 
     public Integer getCommentCount() {
         return commentCount;
     }
 
-    public void setIsTop(String isTop) {
-        this.isTop = isTop;
+    public void setCommentCount(Integer commentCount) {
+        this.commentCount = commentCount;
     }
 
     public String getIsTop() {
         return isTop;
     }
 
-    public void setIsRecommend(String isRecommend) {
-        this.isRecommend = isRecommend;
+    public void setIsTop(String isTop) {
+        this.isTop = isTop;
     }
 
     public String getIsRecommend() {
         return isRecommend;
     }
 
-    public void setIsOriginal(String isOriginal) {
-        this.isOriginal = isOriginal;
+    public void setIsRecommend(String isRecommend) {
+        this.isRecommend = isRecommend;
     }
 
     public String getIsOriginal() {
         return isOriginal;
     }
 
-    public void setSourceUrl(String sourceUrl) {
-        this.sourceUrl = sourceUrl;
+    public void setIsOriginal(String isOriginal) {
+        this.isOriginal = isOriginal;
     }
 
     public String getSourceUrl() {
         return sourceUrl;
     }
 
-    public void setArticleStatus(String articleStatus) {
-        this.articleStatus = articleStatus;
+    public void setSourceUrl(String sourceUrl) {
+        this.sourceUrl = sourceUrl;
     }
 
     public String getArticleStatus() {
         return articleStatus;
+    }
+
+    public void setArticleStatus(String articleStatus) {
+        this.articleStatus = articleStatus;
     }
 
     public Long[] getTagIds() {
@@ -255,72 +241,74 @@ public class BlogArticle extends BaseEntity {
         this.tags = tags;
     }
 
-    public void setPublishTime(java.util.Date publishTime) {
-        this.publishTime = publishTime;
-    }
-
-    public java.util.Date getPublishTime() {
+    public Date getPublishTime() {
         return publishTime;
     }
 
-    public void setDelFlag(String delFlag) {
-        this.delFlag = delFlag;
+    public void setPublishTime(Date publishTime) {
+        this.publishTime = publishTime;
     }
 
     public String getDelFlag() {
         return delFlag;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
+    public void setDelFlag(String delFlag) {
+        this.delFlag = delFlag;
     }
 
     public String getCategoryName() {
         return categoryName;
     }
 
-    public void setTopicName(String topicName) {
-        this.topicName = topicName;
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 
     public String getTopicName() {
         return topicName;
     }
 
-    public void setEditorType(String editorType) {
-        this.editorType = editorType;
+    public void setTopicName(String topicName) {
+        this.topicName = topicName;
     }
 
     public String getEditorType() {
         return editorType;
     }
 
+    public void setEditorType(String editorType) {
+        this.editorType = editorType;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
-                .append("articleId", getArticleId())
-                .append("articleTitle", getArticleTitle())
-                .append("articleContent", getArticleContent())
-                .append("articleSummary", getArticleSummary())
-                .append("articleCover", getArticleCover())
-                .append("categoryId", getCategoryId())
-                .append("authorId", getAuthorId())
-                .append("authorName", getAuthorName())
-                .append("viewCount", getViewCount())
-                .append("likeCount", getLikeCount())
-                .append("commentCount", getCommentCount())
-                .append("isTop", getIsTop())
-                .append("isRecommend", getIsRecommend())
-                .append("isOriginal", getIsOriginal())
-                .append("sourceUrl", getSourceUrl())
-                .append("articleStatus", getArticleStatus())
-                .append("tagIds", getTagIds())
-                .append("publishTime", getPublishTime())
-                .append("createBy", getCreateBy())
-                .append("createTime", getCreateTime())
-                .append("updateBy", getUpdateBy())
-                .append("updateTime", getUpdateTime())
-                .append("delFlag", getDelFlag())
-                .toString();
+            .append("articleId", articleId)
+            .append("articleTitle", articleTitle)
+            .append("articleContent", articleContent)
+            .append("articleSummary", articleSummary)
+            .append("articleCover", articleCover)
+            .append("categoryId", categoryId)
+            .append("topicId", topicId)
+            .append("authorId", authorId)
+            .append("authorName", authorName)
+            .append("viewCount", viewCount)
+            .append("likeCount", likeCount)
+            .append("favoriteCount", favoriteCount)
+            .append("commentCount", commentCount)
+            .append("isTop", isTop)
+            .append("isRecommend", isRecommend)
+            .append("isOriginal", isOriginal)
+            .append("sourceUrl", sourceUrl)
+            .append("articleStatus", articleStatus)
+            .append("tagIds", tagIds)
+            .append("publishTime", publishTime)
+            .append("createBy", getCreateBy())
+            .append("createTime", getCreateTime())
+            .append("updateBy", getUpdateBy())
+            .append("updateTime", getUpdateTime())
+            .append("delFlag", delFlag)
+            .toString();
     }
 }

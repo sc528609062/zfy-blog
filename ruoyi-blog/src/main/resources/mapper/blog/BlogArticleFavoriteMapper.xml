@@ -5,23 +5,26 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 <mapper namespace="com.ruoyi.blog.mapper.BlogArticleFavoriteMapper">
 
     <resultMap type="BlogArticleFavorite" id="BlogArticleFavoriteResult">
-        <result property="id"    column="id"    />
-        <result property="articleId"    column="article_id"    />
-        <result property="userId"    column="user_id"    />
-        <result property="userIp"    column="user_ip"    />
-        <result property="createTime"    column="create_time"    />
+        <result property="id" column="id" />
+        <result property="articleId" column="article_id" />
+        <result property="userId" column="user_id" />
+        <result property="userIp" column="user_ip" />
+        <result property="createTime" column="create_time" />
     </resultMap>
 
     <select id="checkFavorited" resultType="BlogArticleFavorite">
         select id, article_id, user_id, user_ip, create_time
         from blog_article_favorite
         where article_id = #{articleId}
-        <if test="userId != null">
-            and user_id = #{userId}
-        </if>
-        <if test="userIp != null and userIp != ''">
-            and user_ip = #{userIp}
-        </if>
+        <choose>
+            <when test="userId != null">
+                and user_id = #{userId}
+            </when>
+            <otherwise>
+                and user_id is null
+                and user_ip = #{userIp}
+            </otherwise>
+        </choose>
         limit 1
     </select>
 
@@ -44,18 +47,31 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <delete id="deleteBlogArticleFavorite">
         delete from blog_article_favorite
         where article_id = #{articleId}
-        <if test="userId != null">
-            and user_id = #{userId}
-        </if>
-        <if test="userIp != null and userIp != ''">
-            and user_ip = #{userIp}
-        </if>
+        <choose>
+            <when test="userId != null">
+                and user_id = #{userId}
+            </when>
+            <otherwise>
+                and user_id is null
+                and user_ip = #{userIp}
+            </otherwise>
+        </choose>
     </delete>
 
     <update id="updateArticleFavoriteCount">
         update blog_article
-        set favorite_count = favorite_count + #{increment}
+        set favorite_count = greatest(0, ifnull(favorite_count, 0) + #{increment})
         where article_id = #{articleId}
+    </update>
+
+    <update id="refreshArticleFavoriteCount">
+        update blog_article a
+        set a.favorite_count = (
+            select count(1)
+            from blog_article_favorite f
+            where f.article_id = a.article_id
+        )
+        where a.article_id = #{articleId}
     </update>
 
 </mapper>

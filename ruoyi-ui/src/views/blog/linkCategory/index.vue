@@ -57,7 +57,10 @@
 </template>
 
 <script>
-const CACHE_KEY = 'zfy_admin_link_category_records'
+const STORE_KEY = 'zfy_link_category_records'
+const DEFAULT_LIST = [
+  { categoryId: 1, categoryName: '技术社区', sortOrder: 1, status: '0', remark: '默认分类' }
+]
 
 export default {
   name: 'BlogLinkCategoryList',
@@ -88,21 +91,16 @@ export default {
     this.load()
   },
   methods: {
-    load() {
+    async load() {
       this.loading = true
-      const records = this.$cache.local.getJSON(CACHE_KEY)
-      if (records && records.length) {
-        this.list = records
-      } else {
-        this.list = [
-          { categoryId: 1, categoryName: '技术社区', sortOrder: 1, status: '0', remark: '默认分类' }
-        ]
-        this.persist()
-      }
+      this.list = await this.$zfyConfigCenter.getJson(STORE_KEY, DEFAULT_LIST)
       this.loading = false
     },
-    persist() {
-      this.$cache.local.setJSON(CACHE_KEY, this.list)
+    async persist() {
+      await this.$zfyConfigCenter.save(STORE_KEY, this.list, {
+        group: 'link',
+        desc: '链接分类数据'
+      })
     },
     openEdit(row) {
       if (row) {
@@ -112,7 +110,7 @@ export default {
       }
       this.open = true
     },
-    submit() {
+    async submit() {
       if (!this.form.categoryName) {
         this.$modal.msgWarning('分类名称不能为空')
         return
@@ -123,14 +121,14 @@ export default {
         const maxId = this.list.reduce((max, item) => Math.max(max, Number(item.categoryId || 0)), 0)
         this.list.unshift({ ...this.form, categoryId: maxId + 1 })
       }
-      this.persist()
+      await this.persist()
       this.open = false
       this.$modal.msgSuccess('保存成功')
     },
     remove(row) {
-      this.$modal.confirm(`确认删除分类 "${row.categoryName}" 吗？`).then(() => {
+      this.$modal.confirm(`确认删除分类 "${row.categoryName}" 吗？`).then(async () => {
         this.list = this.list.filter(item => item.categoryId !== row.categoryId)
-        this.persist()
+        await this.persist()
         this.$modal.msgSuccess('删除成功')
       }).catch(() => {})
     }

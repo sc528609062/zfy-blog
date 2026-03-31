@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-alert title="主题安装支持上传 zip 包，当前为本地记录模式。" type="info" :closable="false" style="margin-bottom:14px;" />
+    <el-alert title="主题安装记录已改为后端持久化（blog_config）" type="info" :closable="false" style="margin-bottom:14px;" />
 
     <el-upload
       action=""
@@ -26,7 +26,7 @@
 </template>
 
 <script>
-const CACHE_KEY = 'zfy_theme_install_records'
+const STORE_KEY = 'zfy_theme_install_records'
 
 export default {
   name: 'BlogThemeInstall',
@@ -35,10 +35,16 @@ export default {
       installedList: []
     }
   },
-  created() {
-    this.installedList = this.$cache.local.getJSON(CACHE_KEY) || []
+  async created() {
+    this.installedList = await this.$zfyConfigCenter.getJson(STORE_KEY, [])
   },
   methods: {
+    async persist() {
+      await this.$zfyConfigCenter.save(STORE_KEY, this.installedList, {
+        group: 'theme',
+        desc: '主题安装记录'
+      })
+    },
     beforeUpload(file) {
       const isZip = /\.zip$/i.test(file.name)
       if (!isZip) {
@@ -52,16 +58,15 @@ export default {
       }
       return true
     },
-    installTheme(option) {
+    async installTheme(option) {
       const file = option.file
-      const row = {
+      this.installedList.unshift({
         themeName: file.name.replace(/\.zip$/i, ''),
         packageName: file.name,
         installTime: new Date()
-      }
-      this.installedList.unshift(row)
-      this.$cache.local.setJSON(CACHE_KEY, this.installedList)
-      this.$modal.msgSuccess('主题安装完成（本地模拟）')
+      })
+      await this.persist()
+      this.$modal.msgSuccess('主题安装完成')
       option.onSuccess({ code: 200, msg: 'ok' })
     }
   }

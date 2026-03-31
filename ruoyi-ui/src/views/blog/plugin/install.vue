@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-alert title="插件安装当前为本地模拟模式，后续可接入后端插件市场。" type="warning" :closable="false" style="margin-bottom:14px;" />
+    <el-alert title="插件安装记录已改为后端持久化（blog_config）" type="warning" :closable="false" style="margin-bottom:14px;" />
 
     <el-upload
       action=""
@@ -26,7 +26,7 @@
 </template>
 
 <script>
-const CACHE_KEY = 'zfy_plugin_install_records'
+const STORE_KEY = 'zfy_plugin_install_records'
 
 export default {
   name: 'BlogPluginInstall',
@@ -35,10 +35,16 @@ export default {
       installedList: []
     }
   },
-  created() {
-    this.installedList = this.$cache.local.getJSON(CACHE_KEY) || []
+  async created() {
+    this.installedList = await this.$zfyConfigCenter.getJson(STORE_KEY, [])
   },
   methods: {
+    async persist() {
+      await this.$zfyConfigCenter.save(STORE_KEY, this.installedList, {
+        group: 'plugin',
+        desc: '插件安装记录'
+      })
+    },
     beforeUpload(file) {
       if (!/\.zip$/i.test(file.name)) {
         this.$modal.msgError('仅支持 zip 文件')
@@ -51,16 +57,15 @@ export default {
       }
       return true
     },
-    installPlugin(option) {
+    async installPlugin(option) {
       const file = option.file
-      const row = {
+      this.installedList.unshift({
         pluginName: file.name.replace(/\.zip$/i, ''),
         packageName: file.name,
         installTime: new Date()
-      }
-      this.installedList.unshift(row)
-      this.$cache.local.setJSON(CACHE_KEY, this.installedList)
-      this.$modal.msgSuccess('插件安装完成（本地模拟）')
+      })
+      await this.persist()
+      this.$modal.msgSuccess('插件安装完成')
       option.onSuccess({ code: 200, msg: 'ok' })
     }
   }

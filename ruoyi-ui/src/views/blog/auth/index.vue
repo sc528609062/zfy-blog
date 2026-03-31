@@ -1,11 +1,13 @@
 <template>
   <div class="app-container">
-    <el-alert title="身份认证模块已接入前端页面，当前为待后端 API 对接状态。" type="info" :closable="false" style="margin-bottom: 14px;" />
+    <el-alert title="认证审核数据已改为后端持久化（blog_config）" type="info" :closable="false" style="margin-bottom: 14px;" />
 
     <el-table :data="authList">
       <el-table-column prop="userName" label="用户" min-width="160" />
       <el-table-column prop="authType" label="认证类型" width="140" />
-      <el-table-column prop="submitTime" label="提交时间" width="180" />
+      <el-table-column prop="submitTime" label="提交时间" width="180">
+        <template slot-scope="scope">{{ parseTime(scope.row.submitTime) }}</template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="120">
         <template slot-scope="scope">
           <el-tag size="mini" :type="scope.row.status === 'pending' ? 'warning' : (scope.row.status === 'approved' ? 'success' : 'danger')">
@@ -25,14 +27,20 @@
 </template>
 
 <script>
+const STORE_KEY = 'zfy_auth_records'
+const DEFAULT_LIST = [
+  { id: 1, userName: 'demo_user', authType: '实名认证', submitTime: new Date(), status: 'pending', remark: '待审核' }
+]
+
 export default {
   name: 'BlogAuthList',
   data() {
     return {
-      authList: [
-        { id: 1, userName: 'test_user', authType: '实名认证', submitTime: '2026-03-30 10:20:00', status: 'pending', remark: '待审核' }
-      ]
+      authList: []
     }
+  },
+  async created() {
+    this.authList = await this.$zfyConfigCenter.getJson(STORE_KEY, DEFAULT_LIST)
   },
   methods: {
     statusText(status) {
@@ -40,14 +48,22 @@ export default {
       if (status === 'approved') return '已通过'
       return '已驳回'
     },
-    approve(row) {
+    async persist() {
+      await this.$zfyConfigCenter.save(STORE_KEY, this.authList, {
+        group: 'auth',
+        desc: '认证审核记录'
+      })
+    },
+    async approve(row) {
       row.status = 'approved'
       row.remark = '审核通过'
+      await this.persist()
       this.$modal.msgSuccess('已通过认证')
     },
-    reject(row) {
+    async reject(row) {
       row.status = 'rejected'
       row.remark = '审核驳回'
+      await this.persist()
       this.$modal.msgSuccess('已驳回认证')
     }
   }
