@@ -51,6 +51,9 @@
         @if(session('status'))
             <div class="notice">{{ session('status') }}</div>
         @endif
+        @if($errors->any())
+            <div class="error-list">{{ implode('；', $errors->all()) }}</div>
+        @endif
 
         @if($section === 'themes')
             <section class="admin-grid">
@@ -59,6 +62,11 @@
                         <img src="/{{ $themeItem->preview }}" alt="">
                         <h3>{{ $themeItem->name }}</h3>
                         <p>{{ $themeItem->slug }} · v{{ $themeItem->version }}</p>
+                        @php($manifest = $themeManifests[$themeItem->slug] ?? null)
+                        @if($manifest)
+                            <p>模板：{{ implode(' / ', $manifest['templates'] ?? []) }}</p>
+                            <p>配置：{{ implode(' / ', array_keys($manifest['settings_schema'] ?? [])) }}</p>
+                        @endif
                         <form method="post" action="{{ route('admin.themes.activate') }}">
                             @csrf
                             <input type="hidden" name="slug" value="{{ $themeItem->slug }}">
@@ -83,9 +91,18 @@
                     @endforeach
                 </aside>
                 <div class="builder-canvas">
-                    <div class="builder-block">Hero：优质内容与资源一站聚合</div>
-                    <div class="builder-block">内容流：最新文章 / 图集 / 资源混排</div>
-                    <div class="builder-block">VIP：会员权益与支付入口</div>
+                    @foreach($layouts as $layout)
+                        <form method="post" action="{{ route('admin.page-builder.save', $layout) }}" class="builder-block">
+                            @csrf
+                            <input name="title" value="{{ $layout->title }}">
+                            <select name="status">
+                                <option value="published" @selected($layout->status === 'published')>已发布</option>
+                                <option value="draft" @selected($layout->status === 'draft')>草稿</option>
+                            </select>
+                            <textarea name="schema" rows="12">{{ json_encode($layout->schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</textarea>
+                            <button class="primary-btn">保存布局 JSON</button>
+                        </form>
+                    @endforeach
                 </div>
                 <aside>
                     <h3>配置面板</h3>
@@ -100,8 +117,22 @@
                     <article class="admin-card">
                         <h3>{{ $plugin->name }}</h3>
                         <p>{{ $plugin->slug }} · v{{ $plugin->version }}</p>
+                        @php($manifest = $pluginManifests[$plugin->slug] ?? null)
+                        @if($manifest)
+                            <p>兼容：{{ $manifest['compatible'] ?? '^1.0' }}</p>
+                            <p>事件：{{ implode(', ', $manifest['events'] ?? []) }}</p>
+                        @endif
                         <p>权限：{{ implode(', ', $plugin->permissions ?? []) }}</p>
-                        <button class="primary-btn">{{ $plugin->enabled ? '禁用' : '启用' }}</button>
+                        <form method="post" action="{{ route('admin.plugins.toggle', $plugin) }}">
+                            @csrf
+                            <button class="primary-btn">{{ $plugin->enabled ? '禁用' : '启用' }}</button>
+                        </form>
+                        <form method="post" action="{{ route('admin.plugins.settings', $plugin) }}" class="setting-form">
+                            @csrf
+                            <input name="key" value="sandbox_enabled">
+                            <input name="value" placeholder="true / false">
+                            <button>保存配置</button>
+                        </form>
                     </article>
                 @endforeach
             </section>

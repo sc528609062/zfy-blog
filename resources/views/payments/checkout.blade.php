@@ -17,6 +17,13 @@
         </div>
         <h2>¥{{ $order->total_amount }}</h2>
         <p>当前支付网关：{{ $payment->gateway ?? $order->pay_channel }}。这是沙箱占位支付单，后台可配置真实商户密钥。</p>
+        <p>订单状态：{{ $order->status }} · <a href="/orders/{{ $order->order_no }}/status">查看 JSON 状态</a></p>
+        @if($payment)
+            <form method="post" action="{{ route('payments.query', $payment) }}">
+                @csrf
+                <button class="primary-btn">主动查单</button>
+            </form>
+        @endif
         <a class="primary-btn" href="/user/orders">查看订单</a>
     </section>
 </body>

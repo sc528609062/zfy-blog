@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Middleware\EnsureBackendAccess;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\SiteController;
 use Illuminate\Support\Facades\Route;
@@ -38,12 +39,17 @@ Route::get('/user/vip', [SiteController::class, 'generic'])->defaults('page', 'u
 Route::get('/user/author', [SiteController::class, 'generic'])->defaults('page', 'author-workspace')->name('user.author');
 
 Route::post('/payments/{gateway}/notify', [PaymentController::class, 'notify'])->name('payments.notify');
+Route::post('/payments/{payment}/query', [PaymentController::class, 'query'])->name('payments.query');
+Route::get('/orders/{order:order_no}/status', [PaymentController::class, 'status'])->name('orders.status');
 
-Route::prefix('admin')->name('admin.')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureBackendAccess::class])->group(function () {
     Route::get('/', [AdminController::class, 'page'])->defaults('section', 'dashboard')->name('dashboard');
     Route::get('/{section}', [AdminController::class, 'page'])
         ->where('section', 'dashboard|contents|editor|media|comments|orders|users|themes|page-builder|plugins|settings|installer|updater')
         ->name('section');
     Route::post('/themes/activate', [AdminController::class, 'activateTheme'])->name('themes.activate');
     Route::post('/themes/{theme}/settings', [AdminController::class, 'saveThemeSetting'])->name('themes.settings');
+    Route::post('/page-builder/{layout}', [AdminController::class, 'savePageLayout'])->name('page-builder.save');
+    Route::post('/plugins/{plugin}/toggle', [AdminController::class, 'togglePlugin'])->name('plugins.toggle');
+    Route::post('/plugins/{plugin}/settings', [AdminController::class, 'savePluginSetting'])->name('plugins.settings');
 });

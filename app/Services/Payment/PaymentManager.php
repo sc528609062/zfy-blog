@@ -4,6 +4,7 @@ namespace App\Services\Payment;
 
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\OrderService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -12,7 +13,7 @@ class PaymentManager
     /** @var array<string, PaymentGateway> */
     private array $gateways;
 
-    public function __construct()
+    public function __construct(private readonly OrderService $orders)
     {
         $this->gateways = collect([
             new AlipayOfficialGateway(),
@@ -30,6 +31,11 @@ class PaymentManager
     public function createPayment(Order $order, string $gateway): Payment
     {
         return $this->gateway($gateway)->createPayment($order);
+    }
+
+    public function queryPayment(Payment $payment): array
+    {
+        return $this->gateway($payment->gateway)->query($payment);
     }
 
     public function completeByNotify(string $gateway, array $payload): ?Order
@@ -64,6 +70,7 @@ class PaymentManager
                     'pay_channel' => $gateway,
                 ]);
             }
+            $this->orders->fulfillPaidOrder($order->fresh());
 
             DB::table('payment_logs')->insert([
                 'payment_id' => $payment->id,

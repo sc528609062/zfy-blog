@@ -130,6 +130,7 @@ button, input, select { font: inherit; }
 .admin-top h1 { margin: 0 0 6px; font-size: 30px; }
 .admin-top p { margin: 0; color: #64748b; }
 .notice { background: #ecfdf5; color: #047857; padding: 14px 16px; border-radius: 12px; margin-bottom: 18px; }
+.error-list { background: #fef2f2; color: #b91c1c; padding: 14px 16px; border-radius: 12px; margin-bottom: 18px; }
 .admin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .admin-card { padding: 20px; overflow: hidden; }
 .theme-admin-card img { width: 100%; height: 170px; object-fit: cover; border-radius: 12px; border: 1px solid #e5e7eb; }
@@ -143,6 +144,8 @@ button, input, select { font: inherit; }
 .builder-admin button { width: 100%; margin-bottom: 8px; padding: 10px; border-radius: 10px; border: 1px solid #dbe3ef; background: #f8fafc; }
 .builder-canvas { min-height: 520px; display: grid; gap: 16px; align-content: start; }
 .builder-block { border: 2px dashed #93c5fd; border-radius: 14px; padding: 28px; background: #eff6ff; }
+.builder-block input, .builder-block select, .builder-block textarea { width: 100%; margin-bottom: 10px; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px; background: #fff; }
+.builder-block textarea { min-height: 260px; font-family: Consolas, ui-monospace, monospace; font-size: 13px; }
 .editor-shell { display: grid; grid-template-columns: 220px 1fr 280px; gap: 18px; }
 .editor-shell article { min-height: 560px; line-height: 1.8; }
 .editor-shell button { display: block; width: 100%; padding: 12px; margin-bottom: 8px; border: 0; border-radius: 10px; background: #eff6ff; color: #1d4ed8; font-weight: 800; }

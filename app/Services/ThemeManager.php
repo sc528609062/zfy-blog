@@ -6,11 +6,18 @@ use App\Models\Setting;
 use App\Models\Theme;
 use App\Models\ThemeSetting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 class ThemeManager
 {
     public function active(): array
     {
+        $defaultSlug = config('zfy.default_theme');
+
+        if (! Schema::hasTable('settings') || ! Schema::hasTable('themes')) {
+            return $this->fallbackTheme($defaultSlug);
+        }
+
         return Cache::remember('zfy.active_theme', 60, function () {
             $slug = data_get(Setting::where('key', 'site.active_theme')->first()?->value, 'slug', config('zfy.default_theme'));
             $theme = Theme::where('slug', $slug)->first();
