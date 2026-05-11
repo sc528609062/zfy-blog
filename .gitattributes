@@ -7,5 +7,12 @@
 *.php diff=php
 
 /.github export-ignore
+/.gitee export-ignore
+/.workflow export-ignore
+/docs export-ignore
+/tmp export-ignore
+/ui-mockups export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+composer-setup.php export-ignore
+composer.phar export-ignore
