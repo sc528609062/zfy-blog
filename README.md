@@ -1,59 +1,45 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# zfy-blog
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+zfy-blog 是一个 Laravel 12 + MySQL + Redis 的综合 CMS / 内容商业化平台，内置文章、图集、资源、独立页面、多作者、VIP、付费内容、积分、钱包、支付、主题、插件和页面构建器。
 
-## About Laravel
+## 当前实现
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 12 项目骨架、Sanctum API、Livewire、Spatie 权限、Scout、Redis 客户端。
+- 统一 `contents` 内容模型，支持 `post / images / files / page`。
+- 商业化表结构：订单、支付、钱包、积分、VIP、下载日志、作者收益、提现。
+- 支付适配器入口：支付宝官方、微信官方、虎皮椒 V3、易支付，默认沙箱占位。
+- 三套内置主题：蓝白游戏资源社区风、蓝白资源商城交易风、黄粉创意资源站风。
+- 后台主题切换、主题配置、页面构建器、插件管理、内容/订单/用户管理界面。
+- `/api/v1/*` 公开 API，支持 Sanctum 保护用户接口。
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 本地启动
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```powershell
+pwsh -c "Copy-Item .env.example .env"
+pwsh -c "php artisan key:generate"
+pwsh -c "php artisan migrate --seed"
+pwsh -c "npm install"
+pwsh -c "npm run build"
+pwsh -c "php artisan serve"
+```
 
-## Learning Laravel
+如果本机没有 MySQL，可临时把 `.env` 改为：
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```env
+DB_CONNECTION=sqlite
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+REDIS_CLIENT=predis
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+并确保存在 `database/database.sqlite`。
 
-## Laravel Sponsors
+## 默认后台
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- 地址：`/admin`
+- 邮箱：`admin@zfy-blog.test`
+- 密码：`zfy-blog-123456`
 
-### Premium Partners
+## 主题切换
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+访问 `/admin/themes`，可在三套主题之间切换，并为每套主题保存独立配置。主题 UI 参考 `ui-mockups/gpt-image-2/complete-system/*`。
