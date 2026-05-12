@@ -2,19 +2,25 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasJsonMeta;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Str;
 
 class Tag extends Model
 {
-    use HasJsonMeta;
+    protected $fillable = ['name', 'slug', 'description', 'content_count'];
 
-    protected $fillable = ['name', 'slug', 'color', 'meta'];
-
-    protected $casts = ['meta' => 'array'];
-
-    public function contents()
+    public static function booted(): void
     {
-        return $this->belongsToMany(Content::class);
+        static::creating(function (self $tag) {
+            if (! $tag->slug) {
+                $tag->slug = Str::slug($tag->name) ?: 't-' . Str::lower(Str::random(6));
+            }
+        });
+    }
+
+    public function contents(): BelongsToMany
+    {
+        return $this->belongsToMany(Content::class, 'content_tag');
     }
 }

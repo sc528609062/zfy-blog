@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
-    protected $fillable = ['key', 'value', 'autoload'];
+    protected $fillable = ['key', 'value', 'type', 'group', 'autoload'];
 
-    protected $casts = ['value' => 'array', 'autoload' => 'boolean'];
+    protected function casts(): array
+    {
+        return [
+            'autoload' => 'boolean',
+        ];
+    }
 }
