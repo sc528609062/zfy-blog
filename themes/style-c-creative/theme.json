@@ -1,0 +1,22 @@
+{
+  "name": "黄粉创意资源站风",
+  "slug": "style-c-creative",
+  "version": "1.0.0",
+  "author": "zfy-blog",
+  "compatible": "^1.0",
+  "entry_view": "themes.style-c-creative.layout",
+  "assets": {
+    "css": ["resources/css/app.css"],
+    "preview": "ui-mockups/gpt-image-2/complete-system/style-c-creative/home.png"
+  },
+  "menus": ["primary", "creator", "footer"],
+  "regions": ["home", "creator-sidebar", "gallery", "footer"],
+  "templates": ["home", "gallery", "author", "detail", "vip", "user"],
+  "components": ["creator-hero", "masonry-feed", "author-club", "playful-rank", "vip-card", "activity-strip"],
+  "settings_schema": {
+    "global": ["logo_text", "primary_color", "nav", "footer_text"],
+    "home": ["creator_panel", "playful_sidebar", "masonry_feed", "module_order"],
+    "channel": ["layout", "card_style", "creator_filters", "sort_fields"],
+    "detail": ["show_author_card", "show_related", "show_paywall", "show_creator_tip"]
+  }
+}

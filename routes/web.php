@@ -1,80 +1,55 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Middleware\EnsureBackendAccess;
 use App\Http\Controllers\Web\AuthController;
-use App\Http\Controllers\Web\ChannelController;
-use App\Http\Controllers\Web\ContentController;
-use App\Http\Controllers\Web\HomeController;
-use App\Http\Controllers\Web\PageController;
-use App\Http\Controllers\Web\SearchController;
-use App\Http\Controllers\Web\TaxonomyController;
-use App\Http\Controllers\Web\UserController;
+use App\Http\Controllers\Web\SiteController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes (前台)
-|--------------------------------------------------------------------------
-|
-| 前台路由使用当前激活主题渲染。所有路由都需要 zfy.installed 中间件，
-| 未安装则强制跳转 /install。
-|
-*/
+Route::get('/', [SiteController::class, 'home'])->name('home');
+Route::get('/posts', [SiteController::class, 'channel'])->defaults('type', 'posts')->name('posts.index');
+Route::get('/images', [SiteController::class, 'channel'])->defaults('type', 'images')->name('images.index');
+Route::get('/files', [SiteController::class, 'channel'])->defaults('type', 'files')->name('files.index');
+Route::get('/c/{category:slug}', [SiteController::class, 'category'])->name('categories.show');
+Route::get('/tag/{tag:slug}', [SiteController::class, 'tag'])->name('tags.show');
+Route::get('/content/{slug}', [SiteController::class, 'content'])->name('contents.show');
+Route::get('/p/{slug}', [SiteController::class, 'page'])->name('pages.show');
+Route::get('/search', [SiteController::class, 'generic'])->defaults('page', 'search')->name('search');
+Route::get('/rank', [SiteController::class, 'generic'])->defaults('page', 'rank')->name('rank');
+Route::get('/vip', [SiteController::class, 'generic'])->defaults('page', 'vip')->name('vip');
+Route::get('/points-store', [SiteController::class, 'generic'])->defaults('page', 'points-store')->name('points.store');
+Route::get('/authors', [SiteController::class, 'generic'])->defaults('page', 'authors')->name('authors.index');
+Route::get('/author/{username}', [SiteController::class, 'generic'])->defaults('page', 'author-profile')->name('authors.show');
+Route::get('/links', [SiteController::class, 'generic'])->defaults('page', 'links')->name('links');
+Route::post('/buy/{slug}', [SiteController::class, 'buy'])->name('contents.buy');
 
-Route::middleware('zfy.installed')->group(function () {
+Route::get('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/login', [AuthController::class, 'authenticate'])->name('login.store');
+Route::get('/register', [AuthController::class, 'register'])->name('register');
+Route::post('/register', [AuthController::class, 'store'])->name('register.store');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // 首页与频道
-    Route::get('/', [HomeController::class, 'index'])->name('home');
-    Route::get('/posts', [ChannelController::class, 'posts'])->name('channel.posts');
-    Route::get('/images', [ChannelController::class, 'images'])->name('channel.images');
-    Route::get('/files', [ChannelController::class, 'files'])->name('channel.files');
+Route::get('/user', [SiteController::class, 'generic'])->defaults('page', 'user-overview')->name('user.overview');
+Route::get('/user/orders', [SiteController::class, 'generic'])->defaults('page', 'user-orders')->name('user.orders');
+Route::get('/user/downloads', [SiteController::class, 'generic'])->defaults('page', 'user-downloads')->name('user.downloads');
+Route::get('/user/wallet', [SiteController::class, 'generic'])->defaults('page', 'user-wallet')->name('user.wallet');
+Route::get('/user/points', [SiteController::class, 'generic'])->defaults('page', 'user-points')->name('user.points');
+Route::get('/user/vip', [SiteController::class, 'generic'])->defaults('page', 'user-vip')->name('user.vip');
+Route::get('/user/author', [SiteController::class, 'generic'])->defaults('page', 'author-workspace')->name('user.author');
 
-    // 内容
-    Route::get('/content/{content:slug}', [ContentController::class, 'show'])->name('content.show');
-    Route::post('/content/{content:slug}/unlock', [ContentController::class, 'unlock'])->name('content.unlock');
-    Route::get('/p/{content:slug}', [PageController::class, 'show'])
-        ->where('content', '[a-z0-9\-]+')
-        ->name('page.show');
+Route::post('/payments/{gateway}/notify', [PaymentController::class, 'notify'])->name('payments.notify');
+Route::post('/payments/{payment}/query', [PaymentController::class, 'query'])->name('payments.query');
+Route::get('/orders/{order:order_no}/status', [PaymentController::class, 'status'])->name('orders.status');
 
-    // 分类与标签
-    Route::get('/c/{category:slug}', [TaxonomyController::class, 'category'])->name('taxonomy.category');
-    Route::get('/tag/{tag:slug}', [TaxonomyController::class, 'tag'])->name('taxonomy.tag');
-
-    // 搜索 / 排行 / 作者列表（M5+ 完整实现，先留路由）
-    Route::get('/search', [SearchController::class, 'index'])->name('search');
-    Route::view('/rank', 'frontend.rank')->name('rank');
-    Route::view('/authors', 'frontend.authors')->name('authors');
-    Route::view('/author/{username}', 'frontend.author-profile')
-        ->where('username', '[A-Za-z0-9_\-]+')
-        ->name('author.profile');
-    Route::view('/links', 'frontend.links')->name('links');
-
-    // 商业化前台页（Sprint 3-4 实现）
-    Route::view('/vip', 'frontend.vip')->name('vip.index');
-    Route::view('/points-store', 'frontend.points-store')->name('points.store');
-
-    // 登录 / 注册 / 找回密码
-    Route::middleware('guest')->group(function () {
-        Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-        Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
-        Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-        Route::post('/register', [AuthController::class, 'register'])->name('register.attempt');
-        Route::get('/forgot-password', [AuthController::class, 'showForgot'])->name('password.request');
-        Route::post('/forgot-password', [AuthController::class, 'forgot'])->name('password.email');
-    });
-
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
-
-    // 用户中心
-    Route::middleware('auth')->prefix('user')->name('user.')->group(function () {
-        Route::get('/', [UserController::class, 'overview'])->name('overview');
-        Route::view('/orders', 'frontend.user.orders')->name('orders');
-        Route::view('/downloads', 'frontend.user.downloads')->name('downloads');
-        Route::view('/wallet', 'frontend.user.wallet')->name('wallet');
-        Route::view('/points', 'frontend.user.points')->name('points');
-        Route::view('/vip', 'frontend.user.vip')->name('vip');
-        Route::view('/author', 'frontend.user.author-workspace')->name('author');
-    });
+Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureBackendAccess::class])->group(function () {
+    Route::get('/', [AdminController::class, 'page'])->defaults('section', 'dashboard')->name('dashboard');
+    Route::get('/{section}', [AdminController::class, 'page'])
+        ->where('section', '[A-Za-z0-9-]+')
+        ->name('section');
+    Route::post('/themes/activate', [AdminController::class, 'activateTheme'])->name('themes.activate');
+    Route::post('/themes/{theme}/settings', [AdminController::class, 'saveThemeSetting'])->name('themes.settings');
+    Route::post('/page-builder/{layout}', [AdminController::class, 'savePageLayout'])->name('page-builder.save');
+    Route::post('/plugins/{plugin}/toggle', [AdminController::class, 'togglePlugin'])->name('plugins.toggle');
+    Route::post('/plugins/{plugin}/settings', [AdminController::class, 'savePluginSetting'])->name('plugins.settings');
 });
-
-require __DIR__ . '/install.php';
-require __DIR__ . '/admin.php';

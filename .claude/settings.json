@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pwsh -c \"cd 'C:\\\\Users\\\\52860\\\\Desktop\\\\zfy-blog'; php artisan route:list\")"
+    ]
+  }
+}

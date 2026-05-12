@@ -3,26 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderItem extends Model
 {
-    protected $fillable = [
-        'order_id', 'item_type', 'item_id', 'title',
-        'unit_price', 'quantity', 'subtotal', 'meta',
-    ];
+    protected $fillable = ['order_id', 'item_type', 'item_id', 'title', 'quantity', 'unit_price', 'meta'];
 
-    protected function casts(): array
-    {
-        return [
-            'unit_price' => 'decimal:2',
-            'subtotal'   => 'decimal:2',
-            'meta'       => 'array',
-        ];
-    }
-
-    public function order(): BelongsTo
-    {
-        return $this->belongsTo(Order::class);
-    }
+    protected $casts = ['meta' => 'array'];
 }

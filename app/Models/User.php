@@ -2,136 +2,76 @@
 
 namespace App\Models;
 
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
         'name',
-        'username',
         'email',
-        'phone',
         'password',
-        'avatar',
-        'cover',
+        'username',
+        'avatar_url',
         'bio',
-        'website',
-        'location',
-        'status',
-        'banned_at',
-        'ban_reason',
-        'last_login_at',
-        'last_login_ip',
-        'preferences',
+        'author_status',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'banned_at'         => 'datetime',
-            'last_login_at'     => 'datetime',
-            'preferences'       => 'array',
+            'password' => 'hashed',
+            'is_author' => 'boolean',
+            'meta' => 'array',
         ];
     }
 
-    // === 标记/状态 ===
-    public function isActive(): bool
-    {
-        return $this->status === 'active';
-    }
-
-    public function isBanned(): bool
-    {
-        return $this->status === 'banned';
-    }
-
-    public function isAdmin(): bool
-    {
-        return $this->hasAnyRole(['SUPER_ADMIN', 'ADMIN']);
-    }
-
-    public function isStaff(): bool
-    {
-        return $this->hasAnyRole(['SUPER_ADMIN', 'ADMIN', 'EDITOR']);
-    }
-
-    public function isVip(): bool
-    {
-        return $this->activeVip()->exists();
-    }
-
-    public function getAvatarUrlAttribute(): string
-    {
-        if ($this->avatar) {
-            return str_starts_with($this->avatar, 'http')
-                ? $this->avatar
-                : asset($this->avatar);
-        }
-
-        $hash = md5(strtolower(trim($this->email ?? $this->name ?? 'guest')));
-        return "https://cravatar.cn/avatar/{$hash}?d=identicon&s=120";
-    }
-
-    // === 关系 ===
-    public function contents(): HasMany
+    public function contents()
     {
         return $this->hasMany(Content::class, 'author_id');
     }
 
-    public function authorProfile(): HasOne
-    {
-        return $this->hasOne(AuthorProfile::class);
-    }
-
-    public function wallet(): HasOne
+    public function wallet()
     {
         return $this->hasOne(Wallet::class);
     }
 
-    public function pointsAccount(): HasOne
+    public function pointsAccount()
     {
         return $this->hasOne(PointsAccount::class);
     }
 
-    public function userVips(): HasMany
+    public function vip()
     {
-        return $this->hasMany(UserVip::class);
-    }
-
-    public function activeVip(): HasMany
-    {
-        return $this->userVips()
-            ->where('active', true)
-            ->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            });
-    }
-
-    public function favorites(): HasMany
-    {
-        return $this->hasMany(Favorite::class);
-    }
-
-    public function comments(): HasMany
-    {
-        return $this->hasMany(Comment::class);
+        return $this->hasOne(UserVip::class);
     }
 }

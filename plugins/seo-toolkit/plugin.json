@@ -1,0 +1,15 @@
+{
+  "name": "内容 SEO 工具",
+  "slug": "seo-toolkit",
+  "version": "1.0.0",
+  "compatible": "^1.0",
+  "provider": null,
+  "permissions": ["read_contents", "manage_contents"],
+  "events": ["content.saving", "content.published"],
+  "migrations": [],
+  "settings": ["title_template", "description_length", "sitemap_enabled"],
+  "scripts": {
+    "enable": null,
+    "disable": null
+  }
+}

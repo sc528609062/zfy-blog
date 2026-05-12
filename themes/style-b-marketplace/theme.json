@@ -1,0 +1,22 @@
+{
+  "name": "蓝白资源商城交易风",
+  "slug": "style-b-marketplace",
+  "version": "1.0.0",
+  "author": "zfy-blog",
+  "compatible": "^1.0",
+  "entry_view": "themes.style-b-marketplace.layout",
+  "assets": {
+    "css": ["resources/css/app.css"],
+    "preview": "ui-mockups/gpt-image-2/complete-system/style-b-marketplace/home.png"
+  },
+  "menus": ["primary", "category", "footer"],
+  "regions": ["home", "market-sidebar", "checkout", "footer"],
+  "templates": ["home", "resource-channel", "resource-detail", "vip", "checkout", "user"],
+  "components": ["category-menu", "coupon-panel", "product-card", "sales-rank", "vip-price", "payment-entry"],
+  "settings_schema": {
+    "global": ["logo_text", "primary_color", "nav", "footer_text"],
+    "home": ["market_stats", "coupon_panel", "category_menu", "module_order"],
+    "channel": ["layout", "show_vip_price", "show_sales", "filters"],
+    "detail": ["show_license", "show_download_terms", "show_related", "show_paywall"]
+  }
+}

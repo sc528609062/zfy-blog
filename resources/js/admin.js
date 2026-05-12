@@ -1,8 +1,10 @@
-import './bootstrap';
-import Alpine from 'alpinejs';
-import Sortable from 'sortablejs';
+import { createApp } from 'vue';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
+import '../css/admin.css';
+import AdminApp from './admin/AdminApp.vue';
 
-window.Alpine = Alpine;
-window.Sortable = Sortable;
+const payloadElement = document.getElementById('admin-payload');
+const payload = payloadElement ? JSON.parse(payloadElement.textContent || '{}') : {};
 
-Alpine.start();
+createApp(AdminApp, { payload }).use(ElementPlus).mount('#admin-app');

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pwsh -c \"cd 'C:\\\\Users\\\\52860\\\\Desktop\\\\zfy-blog'; npm run build\")",
+      "Bash(pwsh -c \"where.exe node\")",
+      "Bash(pwsh -c \"cd 'C:\\\\Users\\\\52860\\\\Desktop\\\\zfy-blog'; & 'C:\\\\Program Files\\\\nodejs\\\\npm.cmd' run build\")",
+      "Bash(pwsh -c \"cd 'C:\\\\Users\\\\52860\\\\Desktop\\\\zfy-blog'; & 'C:\\\\Program Files\\\\nodejs\\\\node.exe' node_modules\\\\vite\\\\bin\\\\vite.js build\")",
+      "Bash(pwsh -c \"cd 'C:\\\\Users\\\\52860\\\\Desktop\\\\zfy-blog'; & 'C:\\\\Program Files\\\\nodejs\\\\node.exe' scripts\\\\normalize-vite-manifest.mjs\")"
+    ]
+  }
+}
