@@ -1,6 +1,6 @@
 @php
     $detail = $content ?? $featured;
-    $cover = $detail->cover_url ?? 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1400&q=85';
+    $cover = $detail->cover_url ?? '/assets/zfy/placeholders/cover-blue.svg';
     $isFile = $page === 'file-detail' || ($detail->type ?? '') === 'files';
     $isImages = $page === 'images-detail' || ($detail->type ?? '') === 'images';
     $tone = $themeTone ?? 'blue';
@@ -26,7 +26,7 @@
             <h1>{{ $detail->title ?? '《幻境之旅》全剧情流程详解与隐藏任务攻略' }}</h1>
             <p>{{ $detail->excerpt ?? '包含全章节流程指引、隐藏任务触发条件及丰厚奖励获取方法。' }}</p>
             <div class="a-detail-meta">
-                <img src="{{ $detail->author->avatar_url ?? 'https://api.dicebear.com/8.x/adventurer/svg?seed=author' }}" alt="作者头像">
+                <img src="{{ $detail->author->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="作者头像">
                 <span>{{ $detail->author->name ?? 'zfy小助手' }}</span>
                 <span>{{ optional($detail->published_at)->format('Y-m-d H:i') ?? '2026-05-11 14:30' }}</span>
                 <span>{{ number_format($detail->view_count ?? 28600) }} 阅读</span>
@@ -94,7 +94,7 @@
     <aside class="a-side-stack">
         <div class="a-card-panel a-author-box">
             <h3>作者信息</h3>
-            <img src="{{ $detail->author->avatar_url ?? 'https://api.dicebear.com/8.x/adventurer/svg?seed=author' }}" alt="作者头像">
+            <img src="{{ $detail->author->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="作者头像">
             <h2>{{ $detail->author->name ?? 'zfy小助手' }} <span>LV.6</span></h2>
             <p>资深游戏攻略作者，专注资源整理与玩法分享。</p>
             <div><strong>342<span>文章</span></strong><strong>1.2万<span>粉丝</span></strong><strong>8.6万<span>获赞</span></strong></div>

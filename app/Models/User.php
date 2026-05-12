@@ -27,7 +27,9 @@ class User extends Authenticatable
         'username',
         'avatar_url',
         'bio',
+        'is_author',
         'author_status',
+        'meta',
     ];
 
     /**

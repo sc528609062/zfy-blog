@@ -1,10 +1,25 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Close } from '@element-plus/icons-vue';
-import { adminMenus } from '../useAdminMenu';
+import {
+    Brush,
+    ChatDotRound,
+    Close,
+    Connection,
+    Document,
+    Files,
+    Link,
+    Menu,
+    Monitor,
+    Picture,
+    Setting,
+    ShoppingCart,
+    User,
+} from '@element-plus/icons-vue';
+import type { AdminMenuGroup } from '../useAdminMenu';
 
 const props = defineProps<{
     activeSection: string;
+    menus: AdminMenuGroup[];
     mobileOpen: boolean;
 }>();
 
@@ -14,10 +29,29 @@ const emit = defineEmits<{
 }>();
 
 const defaultOpeneds = computed(() =>
-    adminMenus
+    props.menus
         .filter((group) => group.items.some((item) => item.key === props.activeSection))
-        .map((group) => group.label),
+        .map((group) => group.key),
 );
+
+const iconMap: Record<string, unknown> = {
+    Brush,
+    ChatDotRound,
+    Connection,
+    Document,
+    Files,
+    Link,
+    Menu,
+    Monitor,
+    Picture,
+    Setting,
+    ShoppingCart,
+    User,
+};
+
+function iconFor(name: string) {
+    return iconMap[name] || Menu;
+}
 </script>
 
 <template>
@@ -46,12 +80,12 @@ const defaultOpeneds = computed(() =>
                 @select="(index: string) => emit('navigate', index)"
             >
                 <el-sub-menu
-                    v-for="group in adminMenus"
-                    :key="group.label"
-                    :index="group.label"
+                    v-for="group in menus"
+                    :key="group.key"
+                    :index="group.key"
                 >
                     <template #title>
-                        <el-icon><component :is="group.icon" /></el-icon>
+                        <el-icon><component :is="iconFor(group.icon)" /></el-icon>
                         <span>{{ group.label }}</span>
                     </template>
                     <el-menu-item

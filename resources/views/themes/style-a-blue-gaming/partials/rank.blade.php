@@ -50,7 +50,7 @@
                 @foreach(['zfy小助手', '攻略组-星辰', '设计师阿之', 'MOD达人', '风之旅人'] as $author)
                     <article>
                         <span>{{ $loop->iteration }}</span>
-                        <img src="https://api.dicebear.com/8.x/adventurer/svg?seed={{ urlencode($author) }}" alt="{{ $author }}">
+                        <img src="/assets/zfy/placeholders/avatar.svg" alt="{{ $author }}">
                         <div>
                             <strong>{{ $author }}</strong>
                             <small>{{ rand(100, 500) }} 作品</small>

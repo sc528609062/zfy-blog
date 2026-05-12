@@ -15,7 +15,7 @@
     @include('themes.style-a-blue-gaming.partials.account-menu')
     <div class="a-account-main">
         <section class="a-user-hero">
-            <img src="https://api.dicebear.com/8.x/adventurer/svg?seed=wind-traveler" alt="用户头像">
+            <img src="/assets/zfy/placeholders/avatar.svg" alt="用户头像">
             <div>
                 <h1>风之旅人 <span>VIP</span></h1>
                 <p>UID: 10002345 · 经验值 8250 / 12000</p>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="zfy avatar">
+  <rect width="160" height="160" rx="32" fill="#eaf3ff"/>
+  <circle cx="80" cy="62" r="30" fill="#4f8cff"/>
+  <path d="M32 142c8-30 25-46 48-46s40 16 48 46" fill="#28b487"/>
+  <path d="M58 62c6 8 15 12 27 12 8 0 15-2 21-6" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+</svg>

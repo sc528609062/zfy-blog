@@ -86,14 +86,14 @@
                     <article class="c-masonry-card">
                         <a href="/content/{{ $item->slug }}"><img src="{{ asset('theme-assets/c-card-'.(($loop->index % 8) + 1).'.png') }}" alt="{{ $item->title }}"></a>
                         <h3>{{ $item->title }}</h3>
-                        <p><img src="{{ $item->author->avatar_url ?? 'https://api.dicebear.com/8.x/adventurer/svg?seed=c-author-'.$loop->index }}" alt=""> {{ $item->author->name ?? '小雨在画画' }}</p>
+                        <p><img src="{{ $item->author->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt=""> {{ $item->author->name ?? '小雨在画画' }}</p>
                         <footer><span>♡ {{ number_format($item->like_count ?? 1200) }}</span><span>◎ {{ $item->comment_count ?? 23 }}</span><span>▱ {{ $item->download_count ?? 256 }}</span></footer>
                     </article>
                 @endforeach
             </section>
         </div>
         <aside class="c-rightbar">
-            <div class="c-side-card"><h3>推荐创作者</h3>@foreach(['星野梦','小雨在画画','甜味收藏家','卡卡西里','一只柚子'] as $name)<p><img src="https://api.dicebear.com/8.x/adventurer/svg?seed={{ urlencode($name) }}" alt=""><span>{{ $name }}<small>粉丝 {{ rand(4, 12) }}.{{ rand(1, 9) }}k</small></span><button>关注</button></p>@endforeach</div>
+            <div class="c-side-card"><h3>推荐创作者</h3>@foreach(['星野梦','小雨在画画','甜味收藏家','卡卡西里','一只柚子'] as $name)<p><img src="/assets/zfy/placeholders/avatar.svg" alt=""><span>{{ $name }}<small>粉丝 {{ rand(4, 12) }}.{{ rand(1, 9) }}k</small></span><button>关注</button></p>@endforeach</div>
             <div class="c-side-card"><h3>热门标签</h3><div class="c-tags">@foreach(['可爱风','手绘','壁纸','二次元','风景','国风','治愈','水彩'] as $tag)<a># {{ $tag }}</a>@endforeach</div></div>
             <div class="c-award-card"><strong>创作激励计划</strong><p>参与活动赢取丰厚奖励</p><a href="/vip">立即参与</a></div>
         </aside>
@@ -102,7 +102,7 @@
     <section class="a-market-layout">
         @include('themes.style-a-blue-gaming.partials.filters')
         <div>
-            <section class="a-resource-hero" style="--hero-image:url('{{ $featured->cover_url ?? 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1600&q=85' }}')">
+            <section class="a-resource-hero" style="--hero-image:url('{{ $featured->cover_url ?? '/assets/zfy/placeholders/cover-blue.svg' }}')">
                 <span>精品推荐</span>
                 <h1>{{ $tone === 'market' ? '企业官网响应式模板' : '幻想纪元：重生' }}</h1>
                 <p>{{ $tone === 'market' ? 'Vue3 + Element Plus · 商用授权 · 售后支持' : '完整中文豪华版 · 赠送修改器 + 全 DLC' }}</p>
@@ -153,7 +153,7 @@
     <section class="a-author-grid">
         @foreach(['zfy小助手','攻略组-星辰','设计师阿之','MOD达人','风之旅人','夜雨听风'] as $author)
             <article class="a-author-card">
-                <img src="https://api.dicebear.com/8.x/adventurer/svg?seed={{ urlencode($author) }}" alt="{{ $author }}">
+                <img src="/assets/zfy/placeholders/avatar.svg" alt="{{ $author }}">
                 <h3>{{ $author }}</h3>
                 <p>签约创作者，专注游戏资源、攻略和社区内容。</p>
                 <div><span>342 文章</span><span>1.2万 粉丝</span><span>8.6万 获赞</span></div>

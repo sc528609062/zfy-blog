@@ -2,6 +2,7 @@
 
 return [
     'version' => '1.0.0',
+    'installed' => env('ZFY_INSTALLED', false),
     'default_theme' => env('ZFY_DEFAULT_THEME', 'style-a-blue-gaming'),
     'themes' => [
         'style-a-blue-gaming' => [

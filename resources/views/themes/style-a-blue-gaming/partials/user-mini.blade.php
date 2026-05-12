@@ -1,5 +1,5 @@
 <div class="a-profile-card mini">
-    <img src="https://api.dicebear.com/8.x/adventurer/svg?seed=wind-traveler" alt="用户头像">
+    <img src="/assets/zfy/placeholders/avatar.svg" alt="用户头像">
     <div>
         <h3>风之旅人 <b>LV.6</b></h3>
         <p>经验值 2456 / 5000</p>

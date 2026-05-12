@@ -7,7 +7,7 @@
         </div>
     </div>
     <aside class="profile-card">
-        <img src="https://api.dicebear.com/8.x/adventurer/svg?seed=zfy" alt="">
+        <img src="/assets/zfy/placeholders/avatar.svg" alt="">
         <strong>{{ $isCreative ? '小桃子' : ($isMarket ? 'Zfy_123' : 'zfy小站长') }}</strong>
         <span>Lv.6 创意达人</span>
         <div class="mini-stats">

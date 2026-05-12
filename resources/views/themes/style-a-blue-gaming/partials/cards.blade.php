@@ -1,6 +1,6 @@
 @php
     $mode = $mode ?? 'list';
-    $cover = $item->cover_url ?? 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80';
+    $cover = $item->cover_url ?? '/assets/zfy/placeholders/cover-blue.svg';
     $typeLabel = match ($item->type ?? 'post') {
         'files' => '资源发布',
         'images' => '图集精选',

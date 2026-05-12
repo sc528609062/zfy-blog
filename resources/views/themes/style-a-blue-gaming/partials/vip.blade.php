@@ -28,7 +28,7 @@
         @foreach(['首页','资源广场','创作者','灵感集市','活动中心','VIP会员','我的收藏','我的下载','消息通知','收益中心'] as $label)
             <a class="{{ $label === 'VIP会员' ? 'active' : '' }}" href="/vip">{{ $label }}</a>
         @endforeach
-        <div class="c-user-card"><img src="https://api.dicebear.com/8.x/adventurer/svg?seed=creative-vip" alt=""><strong>小z奶芙</strong><span>Lv.6 创意达人</span><p>286 收藏 · 1.2k 粉丝 · 89 资源</p></div>
+        <div class="c-user-card"><img src="/assets/zfy/placeholders/avatar.svg" alt=""><strong>小z奶芙</strong><span>Lv.6 创意达人</span><p>286 收藏 · 1.2k 粉丝 · 89 资源</p></div>
     </aside>
     <div class="c-vip-main">
         <section class="c-vip-hero" style="--theme-hero:url('{{ asset('theme-assets/c-vip-hero.png') }}')"><div><h1>解锁无限创意可能</h1><p>海量优质资源免费下载，专属特权助力创作</p></div><span>VIP</span></section>

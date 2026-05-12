@@ -1,12 +1,18 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\InstallController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Middleware\EnsureBackendAccess;
+use App\Http\Middleware\EnsureInstalled;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\SiteController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/install', [InstallController::class, 'show'])->name('install.show');
+Route::post('/install', [InstallController::class, 'store'])->name('install.store');
+
+Route::middleware(EnsureInstalled::class)->group(function (): void {
 Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::get('/posts', [SiteController::class, 'channel'])->defaults('type', 'posts')->name('posts.index');
 Route::get('/images', [SiteController::class, 'channel'])->defaults('type', 'images')->name('images.index');
@@ -52,4 +58,5 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureBackendAccess:
     Route::post('/page-builder/{layout}', [AdminController::class, 'savePageLayout'])->name('page-builder.save');
     Route::post('/plugins/{plugin}/toggle', [AdminController::class, 'togglePlugin'])->name('plugins.toggle');
     Route::post('/plugins/{plugin}/settings', [AdminController::class, 'savePluginSetting'])->name('plugins.settings');
+});
 });

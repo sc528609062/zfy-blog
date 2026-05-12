@@ -11,7 +11,7 @@
     @auth
         <form class="a-comment-form" method="post" action="/content/{{ $content->slug ?? '#' }}/comments">
             @csrf
-            <img src="{{ auth()->user()->avatar_url ?? 'https://api.dicebear.com/8.x/adventurer/svg?seed='.auth()->id() }}" alt="用户头像">
+            <img src="{{ auth()->user()->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="用户头像">
             <textarea name="content" placeholder="发表你的看法..." rows="3" required></textarea>
             <button type="submit" class="a-primary">发表评论</button>
         </form>
@@ -25,7 +25,7 @@
     <div class="a-comments-list">
         @forelse($comments->take(20) as $comment)
             <article class="a-comment-item">
-                <img src="{{ $comment->user->avatar_url ?? 'https://api.dicebear.com/8.x/adventurer/svg?seed='.$comment->user_id }}" alt="用户头像">
+                <img src="{{ $comment->user->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="用户头像">
                 <div class="a-comment-body">
                     <div class="a-comment-head">
                         <strong>{{ $comment->user->name ?? '匿名用户' }}</strong>
@@ -44,7 +44,7 @@
                         <div class="a-comment-replies">
                             @foreach($comment->replies as $reply)
                                 <article class="a-comment-reply-item">
-                                    <img src="{{ $reply->user->avatar_url ?? 'https://api.dicebear.com/8.x/adventurer/svg?seed='.$reply->user_id }}" alt="用户头像">
+                                    <img src="{{ $reply->user->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="用户头像">
                                     <div>
                                         <strong>{{ $reply->user->name ?? '匿名用户' }}</strong>
                                         <span>回复</span>

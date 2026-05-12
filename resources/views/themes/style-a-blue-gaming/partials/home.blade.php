@@ -71,10 +71,10 @@
         <section class="c-feed-panel"><div class="a-tabs-head"><h2>推荐</h2><nav><a class="active">推荐</a><a>最新</a><a>关注</a><a>热门</a></nav></div><div class="c-card-grid">@foreach($images->merge($resources)->merge($contents)->take(6) as $item)<article><img src="{{ asset('theme-assets/c-card-'.(($loop->index % 8) + 1).'.png') }}" alt=""><span>{{ $loop->odd ? '插画绘画' : '设计素材' }}</span><h3>{{ $item->title }}</h3><p>{{ $item->author->name ?? '创作者' }} · {{ number_format($item->view_count ?? 865) }} 浏览</p></article>@endforeach</div><a class="a-load-more">加载更多内容</a></section>
     </div>
     <aside class="c-rightbar">
-        <div class="c-profile-card"><img src="https://api.dicebear.com/8.x/adventurer/svg?seed=peach" alt=""><h3>小桃子 <span>VIP</span></h3><p>Lv.6 创意达人</p><div><strong>68<small>关注</small></strong><strong>1.2k<small>粉丝</small></strong><strong>328<small>获赞</small></strong><strong>56<small>作品</small></strong></div></div>
+        <div class="c-profile-card"><img src="/assets/zfy/placeholders/avatar.svg" alt=""><h3>小桃子 <span>VIP</span></h3><p>Lv.6 创意达人</p><div><strong>68<small>关注</small></strong><strong>1.2k<small>粉丝</small></strong><strong>328<small>获赞</small></strong><strong>56<small>作品</small></strong></div></div>
         <div class="c-vip-home"><h3>zfy-blog VIP</h3><p>开通 VIP，享受更多特权</p><a href="/vip">立即开通</a></div>
         @include('themes.style-a-blue-gaming.partials.ranking', ['title' => '资源排行榜'])
-        <div class="c-side-card"><h3>活跃创作者</h3>@foreach(['鹿小萌','设计师阿Z','摄影小白'] as $name)<p><img src="https://api.dicebear.com/8.x/adventurer/svg?seed={{ urlencode($name) }}" alt=""><span>{{ $name }}<small>创作者</small></span><button>关注</button></p>@endforeach</div>
+        <div class="c-side-card"><h3>活跃创作者</h3>@foreach(['鹿小萌','设计师阿Z','摄影小白'] as $name)<p><img src="/assets/zfy/placeholders/avatar.svg" alt=""><span>{{ $name }}<small>创作者</small></span><button>关注</button></p>@endforeach</div>
     </aside>
 </section>
 @else

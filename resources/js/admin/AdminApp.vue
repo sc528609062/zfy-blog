@@ -3,16 +3,22 @@ import { computed, shallowRef } from 'vue';
 import AdminPage from './components/AdminPage.vue';
 import AdminSidebar from './components/AdminSidebar.vue';
 import AdminTopbar from './components/AdminTopbar.vue';
-import { findAdminMenuItem } from './useAdminMenu';
+import { findAdminMenuItem, type AdminMenuGroup, type AdminPageDefinition } from './useAdminMenu';
 
 const props = defineProps<{
     payload: Record<string, any>;
 }>();
 
 const activeSection = computed(() => props.payload.section || 'dashboard');
-const currentItem = computed(() => findAdminMenuItem(activeSection.value));
-const pageTitle = computed(() => currentItem.value?.label || '后台');
-const pageDescription = computed(() => currentItem.value?.description || '后台管理页面');
+const menus = computed<AdminMenuGroup[]>(() => props.payload.admin_menu || []);
+const currentPage = computed<AdminPageDefinition>(() => props.payload.current_page || findAdminMenuItem(menus.value, activeSection.value) || {
+    key: activeSection.value,
+    label: '后台',
+    description: '后台管理页面',
+    kind: 'placeholder',
+});
+const pageTitle = computed(() => currentPage.value.label || '后台');
+const pageDescription = computed(() => currentPage.value.description || '后台管理页面');
 const isMobileSidebarOpen = shallowRef(false);
 
 function navigate(section: string) {
@@ -33,6 +39,7 @@ function closeMobileSidebar() {
     <el-container class="zfy-admin-shell">
         <AdminSidebar
             :active-section="activeSection"
+            :menus="menus"
             :mobile-open="isMobileSidebarOpen"
             @close="closeMobileSidebar"
             @navigate="navigate"
@@ -52,7 +59,7 @@ function closeMobileSidebar() {
             />
             <el-main class="zfy-admin-main">
                 <AdminPage
-                    :current-item="currentItem"
+                    :current-page="currentPage"
                     :description="pageDescription"
                     :payload="payload"
                     :section="activeSection"

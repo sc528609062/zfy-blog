@@ -26,7 +26,7 @@
     </article>
     <aside class="sidebar">
         <div class="panel author-box">
-            <img src="{{ $detail->author->avatar_url ?? 'https://api.dicebear.com/8.x/adventurer/svg?seed=author' }}" alt="">
+            <img src="{{ $detail->author->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="">
             <h3>{{ $detail->author->name ?? 'zfy作者' }}</h3>
             <p>签约创作者，收益分成和提现后台可管理。</p>
         </div>

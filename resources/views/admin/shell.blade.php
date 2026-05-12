@@ -4,6 +4,10 @@
         'section' => $section,
         'csrf' => csrf_token(),
         'today' => now()->format('Y-m-d'),
+        'admin_menu' => $adminMenu ?? [],
+        'current_page' => $currentPage ?? null,
+        'settings_schema' => $settingsSchema ?? [],
+        'theme_capabilities' => $themeCapabilities ?? [],
         'stats' => $stats ?? [],
         'contents' => collect($contents ?? [])->map(fn ($content) => [
             'id' => $content->id,
@@ -19,6 +23,7 @@
             'type' => $order->pay_channel,
             'created_at' => optional($order->created_at)->format('Y-m-d H:i'),
         ])->values(),
+        'data_rows' => collect($dataRows ?? [])->values(),
         'themes' => collect($themes ?? [])->map(fn ($themeItem) => [
             'id' => $themeItem->id,
             'name' => $themeItem->name,

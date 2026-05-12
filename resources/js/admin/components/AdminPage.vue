@@ -2,17 +2,18 @@
 import { computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import AdminDataTable from './AdminDataTable.vue';
+import SettingsForm from './SettingsForm.vue';
 import BitsGradientText from './bits/BitsGradientText.vue';
 import BitsMetricCard from './bits/BitsMetricCard.vue';
 import BitsSpotlightCard from './bits/BitsSpotlightCard.vue';
-import type { AdminMenuItem } from '../useAdminMenu';
+import type { AdminPageDefinition } from '../useAdminMenu';
 
 const props = defineProps<{
     section: string;
     title: string;
     description: string;
     payload: Record<string, any>;
-    currentItem?: AdminMenuItem;
+    currentPage?: AdminPageDefinition;
 }>();
 
 const stats = computed(() => props.payload.stats || {});
@@ -21,8 +22,9 @@ const orders = computed(() => props.payload.orders || []);
 const themes = computed(() => props.payload.themes || []);
 const plugins = computed(() => props.payload.plugins || []);
 const layouts = computed(() => props.payload.layouts || []);
-
-const tableRows = computed(() => (props.section === 'orders' ? orders.value : contents.value));
+const pageKind = computed(() => props.currentPage?.kind || 'placeholder');
+const tableRows = computed(() => props.payload.data_rows || (props.section === 'orders' ? orders.value : contents.value));
+const settingsSchema = computed(() => props.payload.settings_schema || []);
 
 function submitPost(url: string, data: Record<string, string | number | boolean | null> = {}) {
     const form = document.createElement('form');
@@ -70,12 +72,12 @@ function goAdmin(section: string) {
             </el-space>
         </div>
 
-        <template v-if="section === 'dashboard'">
+        <template v-if="pageKind === 'dashboard'">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <BitsMetricCard label="文章总数" :value="stats.contents || 0" trend="内容资产" tone="blue" />
                 <BitsMetricCard label="订单总数" :value="stats.orders || 0" trend="商城交易" tone="green" />
-                <BitsMetricCard label="用户总数" :value="stats.users || 0" trend="注册用户" tone="amber" />
-                <BitsMetricCard label="主题总数" :value="stats.themes || 0" trend="本地主题" tone="rose" />
+                <BitsMetricCard label="商品总数" :value="stats.products || 0" trend="核心商城" tone="amber" />
+                <BitsMetricCard label="链接总数" :value="stats.links || 0" trend="增强友链" tone="rose" />
             </div>
 
             <div class="grid grid-cols-1 gap-5 xl:grid-cols-3">
@@ -101,7 +103,7 @@ function goAdmin(section: string) {
                         <el-button @click="goAdmin('editor')">写文章</el-button>
                         <el-button @click="goAdmin('media')">媒体库</el-button>
                         <el-button @click="goAdmin('themes')">主题</el-button>
-                        <el-button @click="goAdmin('plugins')">插件</el-button>
+                        <el-button @click="goAdmin('products')">商品</el-button>
                     </div>
                 </BitsSpotlightCard>
             </div>
@@ -118,7 +120,7 @@ function goAdmin(section: string) {
             </div>
         </template>
 
-        <template v-else-if="['contents', 'comments', 'users', 'media', 'orders'].includes(section)">
+        <template v-else-if="pageKind === 'table'">
             <el-card shadow="never">
                 <template #header>
                     <div class="zfy-card-title">
@@ -137,7 +139,7 @@ function goAdmin(section: string) {
             </el-card>
         </template>
 
-        <template v-else-if="section === 'editor'">
+        <template v-else-if="pageKind === 'editor'">
             <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <el-card shadow="never">
                     <template #header>写文章</template>
@@ -167,7 +169,7 @@ function goAdmin(section: string) {
             </div>
         </template>
 
-        <template v-else-if="section === 'themes'">
+        <template v-else-if="pageKind === 'themes'">
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <el-card v-for="theme in themes" :key="theme.slug" shadow="never">
                     <div class="zfy-theme-preview">
@@ -192,7 +194,7 @@ function goAdmin(section: string) {
             </div>
         </template>
 
-        <template v-else-if="section === 'plugins'">
+        <template v-else-if="pageKind === 'plugins'">
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <el-card v-for="plugin in plugins" :key="plugin.slug" shadow="never">
                     <div class="zfy-card-title">
@@ -208,7 +210,7 @@ function goAdmin(section: string) {
             </div>
         </template>
 
-        <template v-else-if="section === 'page-builder'">
+        <template v-else-if="pageKind === 'builder'">
             <div class="grid grid-cols-1 gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
                 <BitsSpotlightCard tone="slate">
                     <h2 class="mb-3 text-base font-semibold">组件库</h2>
@@ -232,9 +234,13 @@ function goAdmin(section: string) {
             </div>
         </template>
 
+        <template v-else-if="pageKind === 'settings'">
+            <SettingsForm :schema="settingsSchema" />
+        </template>
+
         <template v-else>
             <BitsSpotlightCard class="zfy-placeholder-card" tone="blue">
-                <el-tag effect="plain">{{ currentItem ? '菜单入口' : '后台' }}</el-tag>
+                <el-tag effect="plain">{{ currentPage ? '菜单入口' : '后台' }}</el-tag>
                 <h2><BitsGradientText :text="title" subtle /></h2>
                 <p>{{ description }}。这个功能页面还没有接入实际业务，当前先保留入口和说明，方便后台菜单结构先完整起来。</p>
                 <el-space wrap>

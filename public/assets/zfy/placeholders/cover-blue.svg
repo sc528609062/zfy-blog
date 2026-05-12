@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-label="zfy blue cover">
+  <rect width="1200" height="680" fill="#eff6ff"/>
+  <path d="M0 520c150-85 278-110 384-75 126 41 229 41 309 0 117-60 286-35 507 75v160H0z" fill="#4f8cff" opacity=".28"/>
+  <path d="M0 420c160-70 300-86 420-48 126 40 240 35 342-16 120-60 266-46 438 42v282H0z" fill="#28b487" opacity=".24"/>
+  <circle cx="938" cy="170" r="118" fill="#4f8cff" opacity=".18"/>
+  <rect x="92" y="92" width="420" height="82" rx="18" fill="#ffffff" opacity=".82"/>
+  <rect x="92" y="200" width="260" height="30" rx="15" fill="#4f8cff" opacity=".38"/>
+</svg>

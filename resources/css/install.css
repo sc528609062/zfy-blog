@@ -1,0 +1,244 @@
+@import 'tailwindcss';
+
+:root {
+    --zfy-install-bg: #f4f8fb;
+    --zfy-install-panel: #ffffff;
+    --zfy-install-line: #dfe8f2;
+    --zfy-install-text: #152033;
+    --zfy-install-muted: #667085;
+    --zfy-install-primary: #3178ff;
+    --zfy-install-green: #2bbf91;
+    --zfy-install-shadow: 0 24px 70px rgba(32, 64, 112, .12);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.zfy-install-body {
+    min-width: 0;
+    min-height: 100vh;
+    margin: 0;
+    color: var(--zfy-install-text);
+    background:
+        linear-gradient(135deg, rgba(49, 120, 255, .1), transparent 36%),
+        linear-gradient(315deg, rgba(43, 191, 145, .1), transparent 32%),
+        var(--zfy-install-bg);
+    font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    letter-spacing: 0;
+}
+
+.zfy-install-shell {
+    width: min(1120px, calc(100vw - 32px));
+    min-height: 100vh;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, .86fr) minmax(420px, 1.14fr);
+    gap: 28px;
+    align-items: center;
+    padding: 32px 0;
+}
+
+.zfy-install-hero {
+    display: grid;
+    gap: 20px;
+}
+
+.zfy-install-brand {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.zfy-install-brand span {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--zfy-install-primary), var(--zfy-install-green));
+    font-weight: 900;
+}
+
+.zfy-install-brand strong,
+.zfy-install-brand small {
+    display: block;
+}
+
+.zfy-install-brand strong {
+    font-size: 22px;
+}
+
+.zfy-install-brand small,
+.zfy-install-hero p,
+.zfy-install-heading p {
+    color: var(--zfy-install-muted);
+}
+
+.zfy-install-hero h1 {
+    max-width: 560px;
+    margin: 0;
+    font-size: 44px;
+    line-height: 1.12;
+}
+
+.zfy-install-hero p {
+    max-width: 560px;
+    margin: 0;
+    line-height: 1.8;
+}
+
+.zfy-install-panel {
+    min-width: 0;
+    border: 1px solid var(--zfy-install-line);
+    border-radius: 8px;
+    padding: 24px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: var(--zfy-install-shadow);
+}
+
+.zfy-install-steps {
+    margin-bottom: 26px;
+}
+
+.zfy-install-content {
+    min-height: 390px;
+}
+
+.zfy-install-heading h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+}
+
+.zfy-install-heading p {
+    margin: 0 0 22px;
+}
+
+.zfy-check-list {
+    display: grid;
+    gap: 12px;
+}
+
+.zfy-check-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--zfy-install-line);
+    border-radius: 8px;
+    background: #f9fbfe;
+}
+
+.zfy-check-item strong,
+.zfy-check-item span {
+    display: block;
+}
+
+.zfy-check-item span {
+    margin-top: 4px;
+    color: var(--zfy-install-muted);
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.zfy-install-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 14px;
+}
+
+.zfy-install-alert {
+    margin-top: 16px;
+}
+
+.zfy-install-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 18px;
+    border-top: 1px solid var(--zfy-install-line);
+}
+
+.zfy-install-done {
+    min-height: 350px;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.zfy-install-done .el-icon {
+    color: var(--zfy-install-green);
+    font-size: 54px;
+}
+
+.zfy-install-done h2,
+.zfy-install-done p {
+    margin: 0;
+}
+
+.zfy-install-done p {
+    max-width: 520px;
+    color: var(--zfy-install-muted);
+    line-height: 1.8;
+}
+
+.zfy-install-panel .el-button,
+.zfy-install-panel .el-input__wrapper,
+.zfy-install-panel .el-input-number,
+.zfy-install-panel .el-input-number .el-input__wrapper {
+    border-radius: 8px;
+}
+
+.zfy-install-panel .el-button--primary {
+    --el-button-bg-color: var(--zfy-install-primary);
+    --el-button-border-color: var(--zfy-install-primary);
+}
+
+@media (max-width: 920px) {
+    .zfy-install-shell {
+        grid-template-columns: 1fr;
+        align-items: start;
+        padding: 22px 0;
+    }
+
+    .zfy-install-hero h1 {
+        font-size: 34px;
+    }
+}
+
+@media (max-width: 560px) {
+    .zfy-install-shell {
+        width: min(100vw - 20px, 520px);
+    }
+
+    .zfy-install-panel {
+        padding: 16px;
+    }
+
+    .zfy-install-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .zfy-install-steps {
+        overflow-x: auto;
+        padding-bottom: 8px;
+    }
+
+    .zfy-install-steps .el-step {
+        min-width: 94px;
+    }
+
+    .zfy-check-item,
+    .zfy-install-actions {
+        display: grid;
+    }
+
+    .zfy-install-actions .el-button {
+        width: 100%;
+        margin-left: 0;
+    }
+}

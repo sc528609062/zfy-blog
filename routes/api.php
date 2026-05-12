@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\V1\PlatformController;
+use App\Http\Middleware\EnsureInstalled;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function () {
+Route::prefix('v1')->name('api.v1.')->middleware([EnsureInstalled::class, 'throttle:api'])->group(function () {
     Route::post('/auth/token', [PlatformController::class, 'token']);
     Route::get('/home', [PlatformController::class, 'home']);
     Route::get('/contents', [PlatformController::class, 'contents']);
