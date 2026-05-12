@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { House, Plus, Refresh, Search, UserFilled } from '@element-plus/icons-vue';
+import { House, Menu, Plus, Refresh, Search, UserFilled } from '@element-plus/icons-vue';
 
 defineProps<{
     title: string;
@@ -8,6 +8,7 @@ defineProps<{
 
 const emit = defineEmits<{
     navigate: [section: string];
+    openMenu: [];
 }>();
 
 function reloadPage() {
@@ -21,6 +22,14 @@ function visitSite() {
 
 <template>
     <el-header class="zfy-admin-topbar">
+        <el-button
+            aria-label="打开后台菜单"
+            class="zfy-mobile-menu-button"
+            :icon="Menu"
+            circle
+            @click="emit('openMenu')"
+        />
+
         <div class="min-w-0">
             <el-breadcrumb separator="/">
                 <el-breadcrumb-item>后台</el-breadcrumb-item>
