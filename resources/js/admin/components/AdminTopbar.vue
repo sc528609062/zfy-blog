@@ -9,6 +9,14 @@ defineProps<{
 const emit = defineEmits<{
     navigate: [section: string];
 }>();
+
+function reloadPage() {
+    window.location.reload();
+}
+
+function visitSite() {
+    window.location.href = '/';
+}
 </script>
 
 <template>
@@ -29,9 +37,9 @@ const emit = defineEmits<{
         />
 
         <div class="zfy-admin-top-actions">
-            <el-button :icon="Refresh" circle @click="window.location.reload()" />
+            <el-button :icon="Refresh" circle @click="reloadPage" />
             <el-button :icon="Plus" type="primary" @click="emit('navigate', 'editor')">发布</el-button>
-            <el-button :icon="House" @click="window.location.href = '/'">前台</el-button>
+            <el-button :icon="House" @click="visitSite">前台</el-button>
             <el-avatar :icon="UserFilled" />
         </div>
     </el-header>
