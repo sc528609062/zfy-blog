@@ -4,6 +4,7 @@
         'section' => $section,
         'csrf' => csrf_token(),
         'today' => now()->format('Y-m-d'),
+        'current_user' => auth()->user()?->only(['id', 'name', 'username', 'email', 'avatar_url']),
         'admin_menu' => $adminMenu ?? [],
         'current_page' => $currentPage ?? null,
         'settings_schema' => $settingsSchema ?? [],
@@ -50,10 +51,14 @@
             'schema' => json_encode($layout->schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
             'save_url' => route('admin.page-builder.save', $layout, false),
         ])->values(),
+        'editor' => $editor ?? [],
         'theme_manifests' => $themeManifests ?? [],
         'plugin_manifests' => $pluginManifests ?? [],
         'routes' => [
             'theme_activate' => route('admin.themes.activate', [], false),
+            'content_store' => route('admin.contents.store', [], false),
+            'content_update' => '/admin/contents/__CONTENT__',
+            'content_preview' => route('admin.contents.preview', [], false),
         ],
     ];
 @endphp

@@ -3,7 +3,7 @@ import { computed, shallowRef } from 'vue';
 import AdminPage from './components/AdminPage.vue';
 import AdminSidebar from './components/AdminSidebar.vue';
 import AdminTopbar from './components/AdminTopbar.vue';
-import { findAdminMenuItem, type AdminMenuGroup, type AdminPageDefinition } from './useAdminMenu';
+import { buildAdminBreadcrumbs, findAdminMenuItem, type AdminMenuGroup, type AdminPageDefinition } from './useAdminMenu';
 
 const props = defineProps<{
     payload: Record<string, any>;
@@ -19,6 +19,7 @@ const currentPage = computed<AdminPageDefinition>(() => props.payload.current_pa
 });
 const pageTitle = computed(() => currentPage.value.label || '后台');
 const pageDescription = computed(() => currentPage.value.description || '后台管理页面');
+const breadcrumbs = computed(() => buildAdminBreadcrumbs(menus.value, activeSection.value, currentPage.value));
 const isMobileSidebarOpen = shallowRef(false);
 
 function navigate(section: string) {
@@ -52,8 +53,9 @@ function closeMobileSidebar() {
         />
         <el-container class="zfy-admin-workspace" direction="vertical">
             <AdminTopbar
-                :description="pageDescription"
-                :title="pageTitle"
+                :breadcrumbs="breadcrumbs"
+                :csrf="payload.csrf"
+                :user="payload.current_user"
                 @open-menu="openMobileSidebar"
                 @navigate="navigate"
             />
