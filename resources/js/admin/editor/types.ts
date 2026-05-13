@@ -52,6 +52,42 @@ export interface EditorCategory {
     type?: string;
 }
 
+export interface MediaLibraryItem {
+    id: number;
+    name: string;
+    path: string;
+    url: string;
+    thumbUrl: string;
+    disk: string;
+    type: string;
+    mime?: string | null;
+    size: number;
+    directory: string;
+    storageDirectory?: string;
+    createdAt?: string | null;
+}
+
+export interface MediaLibraryMeta {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+}
+
+export interface EditorMediaDirectory {
+    label: string;
+    value: string;
+}
+
+export interface EditorMediaConfig {
+    disk?: string;
+    storageRoot?: string;
+    defaultDirectory?: string;
+    libraryPerPage?: number;
+    uploadMaxKb?: number;
+    directories?: EditorMediaDirectory[];
+}
+
 export interface EditorForm {
     title: string;
     type: string;

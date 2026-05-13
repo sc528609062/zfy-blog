@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { ElMessageBox } from 'element-plus';
 import { shallowRef } from 'vue';
+import EditorImageDialog from './EditorImageDialog.vue';
 import EditorInsertDialog from './EditorInsertDialog.vue';
 import EditorToolbar from './EditorToolbar.vue';
 import { getEditorPromptSpec, toolFromPrompt } from './editorToolPrompts';
 import { useMarkdownEditor } from './useMarkdownEditor';
-import type { EditorPromptSpec, EditorTool } from './types';
+import type { EditorMediaConfig, EditorPromptSpec, EditorTool } from './types';
 
-defineProps<{
+const props = defineProps<{
     tools: EditorTool[];
     busy?: boolean;
     previewVisible?: boolean;
     fullscreen?: boolean;
+    routes?: Record<string, string>;
+    media?: EditorMediaConfig;
 }>();
 
 const emit = defineEmits<{
@@ -24,6 +27,7 @@ const emit = defineEmits<{
 const model = defineModel<string>({ required: true });
 const { hostRef, applyTool, setValue } = useMarkdownEditor(model);
 const promptVisible = shallowRef(false);
+const imageVisible = shallowRef(false);
 const promptSpec = shallowRef<EditorPromptSpec | null>(null);
 const promptTool = shallowRef<EditorTool | null>(null);
 
@@ -53,6 +57,11 @@ async function cleanEditor(): Promise<void> {
 }
 
 async function handleTool(tool: EditorTool): Promise<void> {
+    if (tool.id === 'image') {
+        imageVisible.value = true;
+        return;
+    }
+
     if (tool.action === 'save') {
         emit('save', 'draft');
         return;
@@ -103,6 +112,20 @@ function handlePromptSubmit(values: Record<string, string>): void {
     promptTool.value = null;
     promptSpec.value = null;
 }
+
+function handleImageSubmit(snippet: string): void {
+    if (!snippet.trim()) {
+        return;
+    }
+
+    applyTool({
+        id: 'image-inline',
+        label: '图片',
+        action: 'insert',
+        snippet,
+    });
+    imageVisible.value = false;
+}
 </script>
 
 <template>
@@ -119,5 +142,12 @@ function handlePromptSubmit(values: Record<string, string>): void {
             <slot name="preview" />
         </div>
         <EditorInsertDialog v-model:visible="promptVisible" :spec="promptSpec" @submit="handlePromptSubmit" />
+        <EditorImageDialog
+            v-model:visible="imageVisible"
+            :media="props.media"
+            :library-url="String(props.routes?.media_library || '/admin/media/library')"
+            :upload-url="String(props.routes?.media_upload || '/admin/media/upload')"
+            @submit="handleImageSubmit"
+        />
     </section>
 </template>

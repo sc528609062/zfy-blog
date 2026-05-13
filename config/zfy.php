@@ -26,6 +26,20 @@ return [
     ],
     'roles' => ['SUPER_ADMIN', 'ADMIN', 'EDITOR', 'USER'],
     'content_types' => ['post', 'images', 'files', 'page'],
+    'editor' => [
+        'media' => [
+            'disk' => 'media',
+            'storage_root' => 'media',
+            'default_directory' => 'editor/images',
+            'library_per_page' => 24,
+            'upload_max_kb' => 20480,
+            'directories' => [
+                ['value' => 'editor/images', 'label' => '正文图片'],
+                ['value' => 'editor/covers', 'label' => '文章封面'],
+                ['value' => 'editor/files', 'label' => '资源附件'],
+            ],
+        ],
+    ],
     'payment_gateways' => [
         'alipay_official' => '支付宝官方',
         'wechat_official' => '微信官方',

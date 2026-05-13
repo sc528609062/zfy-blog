@@ -61,6 +61,8 @@
             'content_store' => route('admin.contents.store', [], false),
             'content_update' => '/admin/contents/__CONTENT__',
             'content_preview' => route('admin.contents.preview', [], false),
+            'media_library' => route('admin.media.library', [], false),
+            'media_upload' => route('admin.media.upload', [], false),
         ],
     ];
 @endphp

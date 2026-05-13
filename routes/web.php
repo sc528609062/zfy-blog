@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminContentController;
+use App\Http\Controllers\Admin\AdminMediaController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Middleware\EnsureBackendAccess;
 use App\Http\Middleware\EnsureInstalled;
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\MediaController;
 use App\Http\Controllers\Web\SiteController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +25,8 @@ Route::get('/c/{category:slug}', [SiteController::class, 'category'])->name('cat
 Route::get('/tag/{tag:slug}', [SiteController::class, 'tag'])->name('tags.show');
 Route::get('/content/{slug}', [SiteController::class, 'content'])->name('contents.show');
 Route::get('/p/{slug}', [SiteController::class, 'page'])->name('pages.show');
+Route::get('/media/{path}', [MediaController::class, 'show'])->where('path', '.*')->name('media.show');
+Route::get('/storage/{path}', [MediaController::class, 'legacy'])->where('path', '.*')->name('media.legacy');
 Route::get('/search', [SiteController::class, 'generic'])->defaults('page', 'search')->name('search');
 Route::get('/rank', [SiteController::class, 'generic'])->defaults('page', 'rank')->name('rank');
 Route::get('/vip', [SiteController::class, 'generic'])->defaults('page', 'vip')->name('vip');
@@ -56,6 +60,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureBackendAccess:
     Route::post('/contents', [AdminContentController::class, 'store'])->name('contents.store');
     Route::patch('/contents/{content}', [AdminContentController::class, 'update'])->name('contents.update');
     Route::post('/contents/preview', [AdminContentController::class, 'preview'])->name('contents.preview');
+    Route::get('/media/library', [AdminMediaController::class, 'index'])->name('media.library');
+    Route::post('/media/upload', [AdminMediaController::class, 'store'])->name('media.upload');
     Route::get('/{section}', [AdminController::class, 'page'])
         ->where('section', '[A-Za-z0-9-]+')
         ->name('section');

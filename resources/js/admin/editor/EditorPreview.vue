@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { nextTick, watch } from 'vue';
+import {
+    copyEnlighterCode,
+    getEnlighterBlock,
+    openEnlighterWindow,
+    pulseEnlighterButton,
+    toggleEnlighterRaw,
+} from '../../shared/enlighterBlocks';
 
 const props = defineProps<{
     html: string;
@@ -42,10 +49,40 @@ async function copyText(text: string): Promise<void> {
     }
 }
 
-function handlePreviewClick(event: MouseEvent): void {
+async function handlePreviewClick(event: MouseEvent): Promise<void> {
     const target = event.target as HTMLElement | null;
     if (!target) {
         return;
+    }
+
+    const enlighterButton = target.closest<HTMLElement>('.enlighter-btn');
+    if (enlighterButton) {
+        const block = getEnlighterBlock(enlighterButton);
+        if (!block) {
+            return;
+        }
+
+        if (enlighterButton.classList.contains('enlighter-btn-raw')) {
+            toggleEnlighterRaw(block);
+            return;
+        }
+
+        if (enlighterButton.classList.contains('enlighter-btn-copy')) {
+            try {
+                if (await copyEnlighterCode(block)) {
+                    pulseEnlighterButton(enlighterButton);
+                    ElMessage.success('已复制');
+                }
+            } catch {
+                ElMessage.error('复制失败，请手动选择复制');
+            }
+            return;
+        }
+
+        if (enlighterButton.classList.contains('enlighter-btn-window')) {
+            openEnlighterWindow(block);
+            return;
+        }
     }
 
     const tabHead = target.closest<HTMLElement>('.zfy-tabs-head-item');

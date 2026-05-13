@@ -259,6 +259,7 @@ class AdminController extends Controller
                 ])
                 ->values(),
             'categories' => Category::orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'type']),
+            'media' => $this->editorMediaPayload(),
             'can_use_raw_html' => $this->canUseRawHtml($request),
             'default_status' => 'draft',
             'content' => $this->editorContent($request),
@@ -305,6 +306,30 @@ class AdminController extends Controller
         $user = $request->user();
 
         return (bool) ($user?->can('manage system') || $user?->hasAnyRole(['SUPER_ADMIN', 'ADMIN']));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function editorMediaPayload(): array
+    {
+        $media = config('zfy.editor.media', []);
+
+        return [
+            'disk' => (string) ($media['disk'] ?? 'media'),
+            'storageRoot' => (string) ($media['storage_root'] ?? 'media'),
+            'defaultDirectory' => (string) ($media['default_directory'] ?? 'editor/images'),
+            'libraryPerPage' => (int) ($media['library_per_page'] ?? 24),
+            'uploadMaxKb' => (int) ($media['upload_max_kb'] ?? 20480),
+            'directories' => collect($media['directories'] ?? [])
+                ->map(fn (array $directory) => [
+                    'value' => (string) ($directory['value'] ?? ''),
+                    'label' => (string) ($directory['label'] ?? ''),
+                ])
+                ->filter(fn (array $directory) => $directory['value'] !== '' && $directory['label'] !== '')
+                ->values()
+                ->all(),
+        ];
     }
 
     private function defaultEditorToolbar(): array

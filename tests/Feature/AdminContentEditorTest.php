@@ -230,6 +230,13 @@ MARKDOWN;
         $this->assertStringContainsString('<ul>', $html);
         $this->assertStringContainsString('待办事项', $html);
         $this->assertStringContainsString('zfy-taskbox is-checked', $html);
+        $this->assertStringContainsString('wp-block-zibllblock-enlighter', $html);
+        $this->assertStringContainsString('enlighter-toolbar', $html);
+        $this->assertStringContainsString('enlighter-btn-raw', $html);
+        $this->assertStringContainsString('enlighter-btn-copy', $html);
+        $this->assertStringContainsString('enlighter-btn-window', $html);
+        $this->assertStringContainsString('enlighter-raw', $html);
+        $this->assertStringContainsString('enlighter-origin', $html);
         $this->assertStringContainsString('zfy-shortcode-alert', $html);
         $this->assertStringContainsString('zfy-shortcode-callout', $html);
         $this->assertStringContainsString('zfy-shortcode-collapse', $html);
@@ -239,6 +246,52 @@ MARKDOWN;
         $this->assertStringContainsString('zfy-shortcode-grid', $html);
         $this->assertStringContainsString('zfy-custom-html', $html);
         $this->assertStringNotContainsString('{zfy-', $html);
+    }
+
+    public function test_fenced_code_blocks_render_with_zibll_enlighter_shell_and_escape_html(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $markdown = <<<'MARKDOWN'
+```html
+<div class="da-copyright"><span data-x="1">NOTICE</span></div>
+<script>alert(1)</script>
+```
+MARKDOWN;
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), ['markdown' => $markdown])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString('pre class="wp-block-zibllblock-enlighter"', $html);
+        $this->assertStringContainsString('enlighter-default enlighter-v-standard enlighter-t-enlighter enlighter-hover enlighter-linenumbers enlighter-overflow-scroll', $html);
+        $this->assertStringContainsString('enlighter-toolbar', $html);
+        $this->assertStringContainsString('enlighter-btn-raw', $html);
+        $this->assertStringContainsString('enlighter-btn-copy', $html);
+        $this->assertStringContainsString('enlighter-btn-window', $html);
+        $this->assertStringContainsString('enlighter-raw', $html);
+        $this->assertStringContainsString('gl enlighter-origin', $html);
+        $this->assertStringContainsString('data-enlighter-language="html"', $html);
+        $this->assertStringContainsString('&lt;div class="da-copyright"&gt;', $html);
+        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $html);
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+        $this->assertStringNotContainsString('<pre><code', $html);
+    }
+
+    public function test_preview_normalizes_legacy_storage_media_urls_to_media_path(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $legacyUrl = url('/storage/media/editor/images/2026/05/demo.png');
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), [
+                'markdown' => "![旧图片]({$legacyUrl})",
+            ])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString(url('/media/editor/images/2026/05/demo.png'), $html);
+        $this->assertStringNotContainsString('/storage/media/', $html);
     }
 
     public function test_joe_style_child_shortcodes_render_with_zfy_names(): void
@@ -540,6 +593,36 @@ MARKDOWN,
 
         $this->assertStringContainsString('zfy-shortcode-quote', $content->rendered_html);
         $this->assertStringNotContainsString('<blockquote>', $content->rendered_html);
+    }
+
+    public function test_front_content_rerenders_stale_plain_code_cache(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $content = Content::create([
+            'author_id' => $admin->id,
+            'type' => 'post',
+            'status' => 'published',
+            'title' => '旧代码缓存文章',
+            'slug' => 'legacy-code-cache',
+            'published_at' => now(),
+            'markdown_cache' => <<<'MARKDOWN'
+```php
+echo "legacy";
+```
+MARKDOWN,
+            'rendered_html' => '<pre><code>echo "legacy";</code></pre>',
+        ]);
+
+        $this->get('/content/legacy-code-cache')
+            ->assertOk()
+            ->assertSee('wp-block-zibllblock-enlighter', false)
+            ->assertSee('enlighter-toolbar', false)
+            ->assertDontSee('<pre><code>', false);
+
+        $content->refresh();
+
+        $this->assertStringContainsString('wp-block-zibllblock-enlighter', $content->rendered_html);
+        $this->assertStringNotContainsString('<pre><code>', $content->rendered_html);
     }
 
     private function seedAndAdmin(): User

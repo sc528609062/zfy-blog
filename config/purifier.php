@@ -13,7 +13,7 @@ return [
                 'h1[class],h2[class],h3[class],h4[class],h5[class],h6[class]',
                 'p[class],br,hr[class]',
                 'strong[class],b[class],em[class],i[class],s[class],del[class]',
-                'blockquote[class],pre[class],code[class]',
+                'blockquote[class],pre[class|data-enlighter-language|data-enlighter-title],code[class|data-enlighter-language|data-enlighter-theme|data-enlighter-highlight|data-enlighter-linenumbers|data-enlighter-lineoffset|data-enlighter-title|data-enlighter-group]',
                 'ul[class],ol[class],li[class]',
                 'a[href|title|target|rel|class]',
                 'img[src|alt|title|width|height|class]',
@@ -34,7 +34,7 @@ return [
         ],
         'custom_definition' => [
             'id' => 'zfy-html5-media',
-            'rev' => 2,
+            'rev' => 3,
             'debug' => false,
             'elements' => [
                 ['audio', 'Block', 'Optional: (source, Flow) | (Flow, source) | Flow', 'Common', [
@@ -55,6 +55,15 @@ return [
             ],
             'attributes' => [
                 ['div', 'data-color', 'Text'],
+                ['pre', 'data-enlighter-language', 'Text'],
+                ['pre', 'data-enlighter-title', 'Text'],
+                ['code', 'data-enlighter-language', 'Text'],
+                ['code', 'data-enlighter-theme', 'Text'],
+                ['code', 'data-enlighter-highlight', 'Text'],
+                ['code', 'data-enlighter-linenumbers', 'Text'],
+                ['code', 'data-enlighter-lineoffset', 'Text'],
+                ['code', 'data-enlighter-title', 'Text'],
+                ['code', 'data-enlighter-group', 'Text'],
             ],
         ],
     ],

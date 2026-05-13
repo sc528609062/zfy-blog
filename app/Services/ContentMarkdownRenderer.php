@@ -160,12 +160,14 @@ class ContentMarkdownRenderer
             $html = str_replace($placeholder, $replacement, $html);
         }
 
+        $html = $this->renderEnlighterCodeBlocks($html);
         $html = $this->replaceTaskListInputs($html);
         $html = $this->cleanupRenderedHtml($html);
         $html = Purifier::clean($html);
         $html = $this->cleanupRenderedHtml($html);
         $html = $this->renderMarkdownBlockquotes($html);
         $html = $this->applyQuoteStyleVariables($html);
+        $html = $this->normalizeMediaAssetUrls($html);
 
         return (string) zfy_apply('zfy_rendered_html', $html, $markdown, $context);
     }
@@ -206,7 +208,8 @@ class ContentMarkdownRenderer
         }
 
         return preg_match($this->shortcodeTokenPattern(), $html) === 1
-            || Str::contains(Str::lower($html), ['<joe-', 'joe_', '<blockquote', 'zfy-shortcode-quote zfy-quote quote_q']);
+            || Str::contains(Str::lower($html), ['<joe-', 'joe_', '<blockquote', 'zfy-shortcode-quote zfy-quote quote_q', '/storage/media/'])
+            || preg_match('/<pre\b(?![^>]*\bwp-block-zibllblock-enlighter\b)[^>]*>\s*<code\b/i', $html) === 1;
     }
 
     /**
@@ -426,6 +429,117 @@ class ContentMarkdownRenderer
         return trim($html);
     }
 
+    private function renderEnlighterCodeBlocks(string $html): string
+    {
+        return preg_replace_callback(
+            '/<pre(?<preAttributes>[^>]*)>\s*<code(?<codeAttributes>[^>]*)>(?<code>[\s\S]*?)<\/code>\s*<\/pre>/i',
+            function (array $matches): string {
+                $language = $this->enlighterLanguageFromAttributes(($matches['preAttributes'] ?? '').' '.($matches['codeAttributes'] ?? ''));
+                $rawCode = html_entity_decode($matches['code'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                return $this->renderEnlighterCodeBlock($rawCode, $language);
+            },
+            $html
+        ) ?? $html;
+    }
+
+    private function renderEnlighterCodeBlock(string $rawCode, string $language): string
+    {
+        $language = $this->safeToken($language ?: 'generic');
+        $escapedRaw = $this->escapeCodeText($rawCode);
+        $lines = $this->enlighterLinesHtml($rawCode);
+
+        return '<pre class="wp-block-zibllblock-enlighter" data-enlighter-language="'.e($language).'">'
+            .'<div class="enlighter-default enlighter-v-standard enlighter-t-enlighter enlighter-hover enlighter-linenumbers enlighter-overflow-scroll">'
+            .'<div class="enlighter-toolbar"><div class="enlighter-btn enlighter-btn-raw"></div><div class="enlighter-btn enlighter-btn-copy"></div><div class="enlighter-btn enlighter-btn-window"></div></div>'
+            .'<div class="enlighter" style=""><div class="">'.$lines.'</div></div>'
+            .'<pre class="enlighter-raw">'.$escapedRaw.'</pre>'
+            .'</div>'
+            .'<code class="gl enlighter-origin" data-enlighter-language="'.e($language).'" data-enlighter-theme="" data-enlighter-highlight="" data-enlighter-linenumbers="" data-enlighter-lineoffset="" data-enlighter-title="" data-enlighter-group="">'.$escapedRaw.'</code>'
+            .'</pre>';
+    }
+
+    private function enlighterLanguageFromAttributes(string $attributes): string
+    {
+        if (preg_match('/\blanguage-([a-zA-Z0-9_+-]+)/', $attributes, $match)) {
+            return $this->safeToken($match[1]);
+        }
+
+        if (preg_match('/\blang(?:uage)?-([a-zA-Z0-9_+-]+)/', $attributes, $match)) {
+            return $this->safeToken($match[1]);
+        }
+
+        return 'generic';
+    }
+
+    private function enlighterLinesHtml(string $rawCode): string
+    {
+        $visualCode = rtrim(str_replace(["\r\n", "\r"], "\n", $rawCode), "\n");
+        $lines = $visualCode === '' ? [''] : explode("\n", $visualCode);
+
+        return collect($lines)
+            ->map(fn (string $line): string => '<div>'.$this->enlighterSyntaxHtml($line).'</div>')
+            ->implode('');
+    }
+
+    private function enlighterSyntaxHtml(string $line): string
+    {
+        if ($line === '') {
+            return '<span class="enlighter-text"></span>';
+        }
+
+        $pattern = '/(\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\'|#[0-9a-fA-F]{3,8}\b|\b\d+(?:\.\d+)?\b|<\/?|\/>|>|[{}()[\];:,]|\b(?:abstract|and|as|break|case|catch|class|const|continue|data-[a-z0-9_-]+|default|else|elseif|extends|false|finally|for|foreach|from|function|href|id|if|import|let|new|null|private|protected|public|return|src|static|style|switch|target|this|throw|true|try|var|while)\b)/i';
+        preg_match_all($pattern, $line, $matches, PREG_OFFSET_CAPTURE);
+
+        $html = '';
+        $offset = 0;
+
+        foreach ($matches[0] ?? [] as [$token, $position]) {
+            if ($position > $offset) {
+                $html .= '<span class="enlighter-text">'.$this->escapeCodeText(substr($line, $offset, $position - $offset)).'</span>';
+            }
+
+            $html .= '<span class="'.$this->enlighterTokenClass($token).'">'.$this->escapeCodeText($token).'</span>';
+            $offset = $position + strlen($token);
+        }
+
+        if ($offset < strlen($line)) {
+            $html .= '<span class="enlighter-text">'.$this->escapeCodeText(substr($line, $offset)).'</span>';
+        }
+
+        return $html;
+    }
+
+    private function enlighterTokenClass(string $token): string
+    {
+        if (preg_match('/^(?:\/\/|\/\*)/', $token)) {
+            return 'enlighter-c0';
+        }
+
+        if (preg_match('/^(?:"|\')/', $token)) {
+            return 'enlighter-s0';
+        }
+
+        if (preg_match('/^#[0-9a-fA-F]{3,8}$/', $token)) {
+            return 'enlighter-c0';
+        }
+
+        if (preg_match('/^\d/', $token)) {
+            return 'enlighter-n1';
+        }
+
+        if (preg_match('/^(?:<\/?|\/>|>|[{}()[\];:,])$/', $token)) {
+            return 'enlighter-g1';
+        }
+
+        return 'enlighter-k1';
+    }
+
+    private function escapeCodeText(string $value): string
+    {
+        return htmlspecialchars($value, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
     private function wrapShortcode(string $name, string $tone, string $html): string
     {
         return '<div class="zfy-shortcode zfy-shortcode-'.$this->safeToken($name).' zfy-shortcode-tone-'.$this->safeToken($tone).'">'.$html.'</div>';
@@ -514,6 +628,48 @@ class ContentMarkdownRenderer
             },
             $html
         ) ?? $html;
+    }
+
+    private function normalizeMediaAssetUrls(string $html): string
+    {
+        return preg_replace_callback(
+            '/\b(?<attribute>src|href)=(?<quote>["\'])(?<url>[^"\']*\/storage\/media\/[^"\']+)\k<quote>/i',
+            function (array $matches): string {
+                $url = html_entity_decode($matches['url'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $path = parse_url($url, PHP_URL_PATH) ?: $url;
+                $position = stripos($path, '/storage/media/');
+
+                if ($position === false) {
+                    return $matches[0];
+                }
+
+                $relativePath = substr($path, $position + strlen('/storage/media/'));
+                $relativePath = $this->normalizeMediaRelativePath($relativePath);
+                if ($relativePath === '') {
+                    return $matches[0];
+                }
+
+                $mediaRoot = trim((string) config('zfy.editor.media.storage_root', 'media'), '/');
+                $normalizedUrl = url('/'.$mediaRoot.'/'.$relativePath);
+                $query = parse_url($url, PHP_URL_QUERY);
+                if (is_string($query) && $query !== '') {
+                    $normalizedUrl .= '?'.$query;
+                }
+
+                return $matches['attribute'].'='.$matches['quote'].e($normalizedUrl).$matches['quote'];
+            },
+            $html
+        ) ?? $html;
+    }
+
+    private function normalizeMediaRelativePath(string $path): string
+    {
+        $path = rawurldecode($path);
+        $path = str_replace('\\', '/', $path);
+        $path = preg_replace('#\.\.+#', '', $path) ?? '';
+        $path = preg_replace('#/+#', '/', $path) ?? '';
+
+        return trim($path, '/');
     }
 
     private function bodyHtml(string $innerHtml): string

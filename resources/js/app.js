@@ -1,4 +1,11 @@
 import './bootstrap';
+import {
+    copyEnlighterCode,
+    getEnlighterBlock,
+    openEnlighterWindow,
+    pulseEnlighterButton,
+    toggleEnlighterRaw,
+} from './shared/enlighterBlocks';
 
 // 搜索功能
 document.addEventListener('DOMContentLoaded', () => {
@@ -312,6 +319,35 @@ function initZfyShortcodes() {
         const target = event.target;
         if (!(target instanceof HTMLElement)) {
             return;
+        }
+
+        const enlighterButton = target.closest('.enlighter-btn');
+        if (enlighterButton) {
+            const block = getEnlighterBlock(enlighterButton);
+            if (!block) {
+                return;
+            }
+
+            if (enlighterButton.classList.contains('enlighter-btn-raw')) {
+                toggleEnlighterRaw(block);
+                return;
+            }
+
+            if (enlighterButton.classList.contains('enlighter-btn-copy')) {
+                try {
+                    if (await copyEnlighterCode(block)) {
+                        pulseEnlighterButton(enlighterButton);
+                    }
+                } catch (error) {
+                    console.error('复制失败:', error);
+                }
+                return;
+            }
+
+            if (enlighterButton.classList.contains('enlighter-btn-window')) {
+                openEnlighterWindow(block);
+                return;
+            }
         }
 
         const tabHead = target.closest('.zfy-tabs-head-item');
