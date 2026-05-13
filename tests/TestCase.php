@@ -12,7 +12,10 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->withoutVite();
-        config(['zfy.installed' => true]);
+        config([
+            'app.name' => 'zfy-blog',
+            'zfy.installed' => true,
+        ]);
         File::ensureDirectoryExists(storage_path('app/zfy'));
         File::put(storage_path('app/zfy/install.lock'), '{}');
     }

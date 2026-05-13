@@ -28,15 +28,17 @@ class PlatformController extends Controller
     public function token(Request $request)
     {
         $data = $request->validate([
-            'email' => ['required', 'email'],
+            'login' => ['nullable', 'string', 'max:160', 'required_without:email'],
+            'email' => ['nullable', 'string', 'max:160', 'required_without:login'],
             'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:80'],
         ]);
 
-        $user = User::where('email', $data['email'])->first();
+        $login = (string) ($data['login'] ?? $data['email'] ?? '');
+        $user = User::findForLogin($login);
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
-            throw ValidationException::withMessages(['email' => '账号或密码不正确。']);
+            throw ValidationException::withMessages(['login' => '账号或密码不正确。']);
         }
 
         return $this->ok([

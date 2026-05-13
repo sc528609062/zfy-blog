@@ -41,10 +41,21 @@ class InstallController extends Controller
                 ],
                 'routes' => [
                     'install' => route('install.store', [], false),
+                    'status' => route('install.status', [], false),
                     'login' => route('login', [], false),
                     'admin' => route('admin.dashboard', [], false),
                 ],
+                'csrf' => csrf_token(),
             ],
+        ]);
+    }
+
+    public function status(InstallationState $state): JsonResponse
+    {
+        return response()->json([
+            'installed' => $state->installed(),
+            'login' => route('login', [], false),
+            'admin' => route('admin.dashboard', [], false),
         ]);
     }
 

@@ -57,6 +57,19 @@ class User extends Authenticatable
         ];
     }
 
+    public static function findForLogin(string $login): ?self
+    {
+        $login = trim($login);
+
+        if ($login === '') {
+            return null;
+        }
+
+        $column = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        return self::where($column, $login)->first();
+    }
+
     public function contents()
     {
         return $this->hasMany(Content::class, 'author_id');

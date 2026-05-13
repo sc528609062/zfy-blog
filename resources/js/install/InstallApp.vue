@@ -21,9 +21,11 @@ interface InstallPayload {
     };
     routes: {
         install: string;
+        status?: string;
         login: string;
         admin: string;
     };
+    csrf?: string;
 }
 
 const props = defineProps<{
@@ -57,6 +59,12 @@ const form = reactive({
 });
 
 const checksOk = computed(() => props.payload.checks.every((item) => item.ok));
+const csrfToken = computed(() =>
+    props.payload.csrf
+    || document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content
+    || '',
+);
+
 function hasText(value: unknown) {
     return String(value ?? '').trim().length > 0;
 }
@@ -130,6 +138,82 @@ function previousStep() {
     }
 }
 
+interface InstallResponse {
+    message?: string;
+    redirect?: string;
+    installed?: boolean;
+    login?: string;
+    admin?: string;
+    errors?: Record<string, string[]>;
+}
+
+function wait(ms: number) {
+    return new Promise((resolve) => {
+        window.setTimeout(resolve, ms);
+    });
+}
+
+async function readJsonResponse(response: Response): Promise<InstallResponse> {
+    const text = await response.text();
+
+    if (!text.trim()) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(text) as InstallResponse;
+    } catch {
+        throw new Error(`安装接口返回了非 JSON 响应（HTTP ${response.status}）。`);
+    }
+}
+
+function firstResponseError(result: InstallResponse) {
+    const fieldErrors = Object.values(result.errors || {}).flat();
+
+    return fieldErrors[0] || result.message || '';
+}
+
+function normalizeFetchError(error: unknown) {
+    if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) {
+        return '安装请求连接中断，请确认本地 PHP 服务仍在运行后重试。';
+    }
+
+    return error instanceof Error ? error.message : '安装失败，请稍后重试。';
+}
+
+async function probeInstallStatus() {
+    const statusUrl = props.payload.routes.status || '/install/status';
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        await wait(attempt === 0 ? 500 : 1000);
+
+        try {
+            const response = await fetch(statusUrl, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                continue;
+            }
+
+            const result = await readJsonResponse(response);
+
+            if (result.installed) {
+                return true;
+            }
+        } catch {
+            // The PHP dev server may still be restarting after .env is written.
+        }
+    }
+
+    return false;
+}
+
 async function submitInstall() {
     if (installing.value) {
         return;
@@ -151,19 +235,29 @@ async function submitInstall() {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(csrfToken.value ? { 'X-CSRF-TOKEN': csrfToken.value } : {}),
             },
+            credentials: 'same-origin',
             body: JSON.stringify(form),
         });
-        const result = await response.json();
+        const result = await readJsonResponse(response);
 
         if (!response.ok) {
-            throw new Error(result.message || '安装失败，请检查数据库配置。');
+            throw new Error(firstResponseError(result) || '安装失败，请检查数据库配置。');
         }
 
         installed.value = true;
         step.value = 3;
     } catch (error) {
-        errorMessage.value = error instanceof Error ? error.message : '安装失败，请稍后重试。';
+        if (await probeInstallStatus()) {
+            installed.value = true;
+            step.value = 3;
+            errorMessage.value = '';
+            return;
+        }
+
+        errorMessage.value = normalizeFetchError(error);
     } finally {
         installing.value = false;
     }

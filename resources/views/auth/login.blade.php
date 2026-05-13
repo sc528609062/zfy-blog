@@ -33,9 +33,10 @@
             <h1>欢迎回来</h1>
             <p>登录 zfy-blog 继续你的游戏之旅</p>
             <div class="a-auth-tabs"><button type="button" class="active">账号密码登录</button><button type="button">手机验证码登录</button></div>
-            <label>邮箱地址<input type="email" name="email" value="admin@zfy-blog.test" required></label>
+            <label>用户名或邮箱<input type="text" name="login" value="{{ old('login', 'admin') }}" autocomplete="username" required></label>
             <label>密码<input type="password" name="password" value="zfy-blog-123456" required></label>
             <div class="a-form-row"><label><input type="checkbox" checked> 记住我</label><a href="/register">忘记密码?</a></div>
+            @error('login')<span class="a-error-text">{{ $message }}</span>@enderror
             @error('email')<span class="a-error-text">{{ $message }}</span>@enderror
             <button class="a-primary wide">登录</button>
             <div class="a-social-login"><span>QQ登录</span><span>微信登录</span><span>微博登录</span><span>Steam登录</span></div>

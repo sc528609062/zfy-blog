@@ -26,6 +26,26 @@ class InstallAndAdminArchitectureTest extends TestCase
         $this->get('/install')->assertRedirect(route('admin.dashboard', [], false));
     }
 
+    public function test_install_status_reports_current_lock_state(): void
+    {
+        $this->getJson('/install/status')
+            ->assertOk()
+            ->assertJson([
+                'installed' => true,
+                'login' => '/login',
+                'admin' => '/admin',
+            ]);
+
+        config(['zfy.installed' => false]);
+        File::delete(storage_path('app/zfy/install.lock'));
+
+        $this->getJson('/install/status')
+            ->assertOk()
+            ->assertJson([
+                'installed' => false,
+            ]);
+    }
+
     public function test_admin_menu_is_registry_driven_and_skips_removed_wordpress_entries(): void
     {
         $this->seed();

@@ -23,18 +23,25 @@ class AuthController extends Controller
 
     public function authenticate(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
+        $data = $request->validate([
+            'login' => ['nullable', 'string', 'max:160', 'required_without:email'],
+            'email' => ['nullable', 'string', 'max:160', 'required_without:login'],
+            'password' => ['required', 'string'],
         ]);
 
-        if (Auth::attempt($credentials, true)) {
+        $login = (string) ($data['login'] ?? $data['email'] ?? '');
+        $user = User::findForLogin($login);
+
+        if ($user && Hash::check($data['password'], $user->password)) {
+            Auth::login($user, true);
             $request->session()->regenerate();
 
             return redirect()->intended('/user');
         }
 
-        return back()->withErrors(['email' => '邮箱或密码不正确。']);
+        return back()
+            ->withInput($request->only('login', 'email'))
+            ->withErrors(['login' => '账号或密码不正确。']);
     }
 
     public function store(Request $request)

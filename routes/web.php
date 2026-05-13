@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\SiteController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/install', [InstallController::class, 'show'])->name('install.show');
+Route::get('/install/status', [InstallController::class, 'status'])->name('install.status');
 Route::post('/install', [InstallController::class, 'store'])->name('install.store');
 
 Route::middleware(EnsureInstalled::class)->group(function (): void {
