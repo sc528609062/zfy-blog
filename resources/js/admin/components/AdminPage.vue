@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { ElMessage } from 'element-plus';
+import AdminEditorPage from '../editor/AdminEditorPage.vue';
 import AdminDataTable from './AdminDataTable.vue';
 import SettingsForm from './SettingsForm.vue';
 import BitsGradientText from './bits/BitsGradientText.vue';
@@ -56,22 +57,24 @@ function copyPlaceholder() {
 function goAdmin(section: string) {
     window.location.href = `/admin/${section}`;
 }
+
+function editRow(row: Record<string, any>) {
+    if (row.edit_url) {
+        window.location.href = row.edit_url;
+        return;
+    }
+
+    if (props.section === 'contents' && row.id) {
+        window.location.href = `/admin/editor?content=${row.id}`;
+        return;
+    }
+
+    ElMessage.info('这个条目的编辑页面还没有接入');
+}
 </script>
 
 <template>
     <section class="zfy-admin-page">
-        <div class="zfy-page-heading">
-            <div>
-                <p class="zfy-page-kicker">zfy-blog admin</p>
-                <h1><BitsGradientText :text="title" /></h1>
-                <span>{{ description }} · {{ payload.today }}</span>
-            </div>
-            <el-space wrap>
-                <el-button @click="goAdmin('dashboard')">仪表盘</el-button>
-                <el-button type="primary" @click="goAdmin('editor')">写文章</el-button>
-            </el-space>
-        </div>
-
         <template v-if="pageKind === 'dashboard'">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <BitsMetricCard label="文章总数" :value="stats.contents || 0" trend="内容资产" tone="blue" />
@@ -111,11 +114,11 @@ function goAdmin(section: string) {
             <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
                 <el-card shadow="never">
                     <template #header>最新文章</template>
-                    <AdminDataTable :rows="contents" />
+                    <AdminDataTable :rows="contents" @edit="editRow" />
                 </el-card>
                 <el-card shadow="never">
                     <template #header>最新订单</template>
-                    <AdminDataTable :rows="orders" />
+                    <AdminDataTable :rows="orders" @edit="editRow" />
                 </el-card>
             </div>
         </template>
@@ -135,38 +138,12 @@ function goAdmin(section: string) {
                         </el-space>
                     </div>
                 </template>
-                <AdminDataTable :rows="tableRows" />
+                <AdminDataTable :rows="tableRows" @edit="editRow" />
             </el-card>
         </template>
 
         <template v-else-if="pageKind === 'editor'">
-            <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <el-card shadow="never">
-                    <template #header>写文章</template>
-                    <el-input model-value="《幻境战纪》1.2版本更新解析" size="large" />
-                    <div class="zfy-editor-toolbar">
-                        <el-button>段落</el-button>
-                        <el-button>B</el-button>
-                        <el-button>I</el-button>
-                        <el-button>链接</el-button>
-                        <el-button>图片</el-button>
-                    </div>
-                    <el-input
-                        type="textarea"
-                        :rows="18"
-                        model-value="这里是文章编辑器示例。后续可以接入 Markdown、富文本或块编辑器。"
-                    />
-                </el-card>
-                <el-card shadow="never">
-                    <template #header>发布设置</template>
-                    <el-form label-position="top">
-                        <el-form-item label="状态"><el-select model-value="draft"><el-option label="草稿" value="draft" /><el-option label="公开" value="published" /></el-select></el-form-item>
-                        <el-form-item label="分类"><el-input model-value="游戏攻略" /></el-form-item>
-                        <el-form-item label="标签"><el-input model-value="更新, 攻略" /></el-form-item>
-                        <el-button class="w-full" type="primary">保存草稿</el-button>
-                    </el-form>
-                </el-card>
-            </div>
+            <AdminEditorPage :payload="payload" />
         </template>
 
         <template v-else-if="pageKind === 'themes'">

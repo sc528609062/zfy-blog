@@ -111,7 +111,7 @@ class ZfyServiceProvider extends ServiceProvider
             ['key' => 'dashboard', 'label' => '首页', 'description' => '站点运营、内容和商城概览', 'group' => 'dashboard', 'kind' => 'dashboard', 'status' => 'ready', 'position' => 10],
             ['key' => 'updater', 'label' => '更新', 'description' => '显示系统核心、插件、主题更新', 'group' => 'dashboard', 'kind' => 'placeholder', 'position' => 20],
             ['key' => 'contents', 'label' => '所有文章', 'description' => '管理网站文章和资源内容', 'group' => 'content', 'kind' => 'table', 'permission' => 'manage contents', 'status' => 'ready', 'position' => 10],
-            ['key' => 'editor', 'label' => '写文章', 'description' => '新增文章、图集或资源内容', 'group' => 'content', 'kind' => 'editor', 'permission' => 'publish contents', 'status' => 'placeholder', 'position' => 20],
+            ['key' => 'editor', 'label' => '写文章', 'description' => '新增文章、图集或资源内容', 'group' => 'content', 'kind' => 'editor', 'permission' => 'publish contents', 'status' => 'ready', 'position' => 20],
             ['key' => 'categories', 'label' => '分类目录', 'description' => '管理内容分类层级', 'group' => 'content', 'kind' => 'placeholder', 'permission' => 'manage contents', 'position' => 30],
             ['key' => 'tags', 'label' => '标签', 'description' => '管理内容标签', 'group' => 'content', 'kind' => 'placeholder', 'permission' => 'manage contents', 'position' => 40],
             ['key' => 'topics', 'label' => '专题', 'description' => '管理专题聚合页', 'group' => 'content', 'kind' => 'placeholder', 'permission' => 'manage contents', 'position' => 50],

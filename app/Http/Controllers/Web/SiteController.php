@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Content;
 use App\Models\Tag;
+use App\Services\ContentMarkdownRenderer;
 use App\Services\DemoContentRepository;
 use App\Services\OrderService;
 use App\Services\Payment\PaymentManager;
@@ -17,6 +18,7 @@ class SiteController extends Controller
     public function __construct(
         private readonly ThemeManager $themes,
         private readonly DemoContentRepository $repository,
+        private readonly ContentMarkdownRenderer $renderer,
     ) {}
 
     public function home()
@@ -47,6 +49,7 @@ class SiteController extends Controller
     public function content(string $slug)
     {
         $content = $this->repository->findContent($slug) ?? Content::where('status', 'published')->firstOrFail();
+        $this->renderer->renderContent($content, true);
         $page = match ($content->type) {
             'files' => 'file-detail',
             'images' => 'images-detail',
@@ -60,6 +63,7 @@ class SiteController extends Controller
     public function page(string $slug)
     {
         $content = Content::where('type', 'page')->where('slug', $slug)->firstOrFail();
+        $this->renderer->renderContent($content, true);
 
         return $this->render('page-detail', null, ['content' => $content]);
     }

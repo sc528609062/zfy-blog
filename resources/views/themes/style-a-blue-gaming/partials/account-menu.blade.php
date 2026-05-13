@@ -7,6 +7,7 @@
         '/user/orders' => '我的订单',
         '/user/downloads' => '我的下载',
         '/user/points' => '积分中心',
+        '/user/settings' => '用户设置',
         '/user/author' => '作者工作台',
     ] as $href => $label)
         <a href="{{ $href }}" class="{{ request()->path() === trim($href, '/') ? 'active' : '' }}">{{ $label }}</a>

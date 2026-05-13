@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminContentController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\PaymentController;
@@ -43,6 +44,7 @@ Route::get('/user/downloads', [SiteController::class, 'generic'])->defaults('pag
 Route::get('/user/wallet', [SiteController::class, 'generic'])->defaults('page', 'user-wallet')->name('user.wallet');
 Route::get('/user/points', [SiteController::class, 'generic'])->defaults('page', 'user-points')->name('user.points');
 Route::get('/user/vip', [SiteController::class, 'generic'])->defaults('page', 'user-vip')->name('user.vip');
+Route::get('/user/settings', [SiteController::class, 'generic'])->defaults('page', 'user-settings')->name('user.settings');
 Route::get('/user/author', [SiteController::class, 'generic'])->defaults('page', 'author-workspace')->name('user.author');
 
 Route::post('/payments/{gateway}/notify', [PaymentController::class, 'notify'])->name('payments.notify');
@@ -51,6 +53,9 @@ Route::get('/orders/{order:order_no}/status', [PaymentController::class, 'status
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureBackendAccess::class])->group(function () {
     Route::get('/', [AdminController::class, 'page'])->defaults('section', 'dashboard')->name('dashboard');
+    Route::post('/contents', [AdminContentController::class, 'store'])->name('contents.store');
+    Route::patch('/contents/{content}', [AdminContentController::class, 'update'])->name('contents.update');
+    Route::post('/contents/preview', [AdminContentController::class, 'preview'])->name('contents.preview');
     Route::get('/{section}', [AdminController::class, 'page'])
         ->where('section', '[A-Za-z0-9-]+')
         ->name('section');

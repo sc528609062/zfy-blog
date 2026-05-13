@@ -129,7 +129,7 @@ class InstallationService
         }
 
         Role::findByName('SUPER_ADMIN')->syncPermissions(Permission::all());
-        Role::findByName('ADMIN')->syncPermissions(['manage contents', 'manage commerce', 'manage themes', 'manage plugins', 'manage links']);
+        Role::findByName('ADMIN')->syncPermissions(['manage contents', 'publish contents', 'manage commerce', 'manage themes', 'manage plugins', 'manage links']);
         Role::findByName('EDITOR')->syncPermissions(['manage contents', 'publish contents']);
         Role::findByName('USER')->syncPermissions(['buy contents']);
 

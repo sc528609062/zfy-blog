@@ -6,6 +6,7 @@
         'user-wallet' => '钱包与充值',
         'user-points' => '积分中心',
         'user-vip' => '我的会员',
+        'user-settings' => '用户设置',
         'author-workspace' => '作者工作台',
     ];
     $title = $titles[$page] ?? '个人中心';
@@ -54,6 +55,11 @@
                         <div><span>{{ mb_substr($perk, 0, 1) }}</span><strong>{{ $perk }}</strong><p>当前账号已解锁</p></div>
                     @endforeach
                 </div>
+            </section>
+        @elseif($page === 'user-settings')
+            <section class="a-card-panel">
+                <div class="a-section-title"><h2>用户设置</h2></div>
+                <p>账号资料、头像、密码和通知偏好将在这里统一管理。</p>
             </section>
         @else
             <section class="a-dashboard-grid">

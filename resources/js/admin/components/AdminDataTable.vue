@@ -3,6 +3,10 @@ defineProps<{
     rows: Array<Record<string, any>>;
     emptyText?: string;
 }>();
+
+const emit = defineEmits<{
+    edit: [row: Record<string, any>];
+}>();
 </script>
 
 <template>
@@ -17,8 +21,8 @@ defineProps<{
         <el-table-column prop="type" label="类型" width="130" />
         <el-table-column prop="created_at" label="时间" width="170" />
         <el-table-column label="操作" width="190" fixed="right">
-            <template #default>
-                <el-button link type="primary">编辑</el-button>
+            <template #default="{ row }">
+                <el-button link type="primary" @click="emit('edit', row)">编辑</el-button>
                 <el-button link>审核</el-button>
                 <el-button link>日志</el-button>
             </template>

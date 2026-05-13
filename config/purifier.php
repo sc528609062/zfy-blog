@@ -1,0 +1,61 @@
+<?php
+
+return [
+    'encoding' => 'UTF-8',
+    'finalize' => true,
+    'ignoreNonStrings' => false,
+    'cachePath' => storage_path('app/purifier'),
+    'cacheFileMode' => 0755,
+    'settings' => [
+        'default' => [
+            'HTML.Doctype' => 'HTML 4.01 Transitional',
+            'HTML.Allowed' => implode(',', [
+                'h1[class],h2[class],h3[class],h4[class],h5[class],h6[class]',
+                'p[class],br,hr[class]',
+                'strong[class],b[class],em[class],i[class],s[class],del[class]',
+                'blockquote[class],pre[class],code[class]',
+                'ul[class],ol[class],li[class]',
+                'a[href|title|target|rel|class]',
+                'img[src|alt|title|width|height|class]',
+                'iframe[src|class|width|height]',
+                'audio[src|class|controls|preload]',
+                'video[src|class|controls|preload|poster]',
+                'source[src|type]',
+                'table[class],thead[class],tbody[class],tr[class],th[class|colspan|rowspan],td[class|colspan|rowspan]',
+                'div[class|style|data-color]',
+                'span[class|style],small[class]',
+            ]),
+            'Attr.AllowedFrameTargets' => ['_blank'],
+            'AutoFormat.AutoParagraph' => false,
+            'AutoFormat.RemoveEmpty' => false,
+            'CSS.AllowedProperties' => ['width', 'border-color', 'background-color', 'color'],
+            'HTML.SafeIframe' => true,
+            'URI.SafeIframeRegexp' => '%^https://player\.bilibili\.com/%',
+        ],
+        'custom_definition' => [
+            'id' => 'zfy-html5-media',
+            'rev' => 2,
+            'debug' => false,
+            'elements' => [
+                ['audio', 'Block', 'Optional: (source, Flow) | (Flow, source) | Flow', 'Common', [
+                    'src' => 'URI',
+                    'preload' => 'Enum#auto,metadata,none',
+                    'controls' => 'Bool',
+                ]],
+                ['video', 'Block', 'Optional: (source, Flow) | (Flow, source) | Flow', 'Common', [
+                    'src' => 'URI',
+                    'poster' => 'URI',
+                    'preload' => 'Enum#auto,metadata,none',
+                    'controls' => 'Bool',
+                ]],
+                ['source', 'Block', 'Flow', 'Common', [
+                    'src' => 'URI',
+                    'type' => 'Text',
+                ]],
+            ],
+            'attributes' => [
+                ['div', 'data-color', 'Text'],
+            ],
+        ],
+    ],
+];

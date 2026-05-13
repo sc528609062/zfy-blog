@@ -1,0 +1,93 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<svg id="_å¾å±_1" data-name="å¾å± 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 387.45 105.45" style="">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke: #fff;
+        stroke-width: 11px;
+      }
+
+      .cls-1, .cls-2, .cls-3, .cls-4 {
+        fill: none;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-5 {
+        fill: #587aea;
+      }
+
+      .cls-2 {
+        stroke-width: 6px;
+      }
+
+      .cls-2, .cls-4 {
+        stroke: #000;
+      }
+
+      .cls-3 {
+        stroke: #587aea;
+        stroke-width: 25px;
+      }
+
+      .cls-4 {
+        stroke-width: 3px;
+      }
+    </style>
+  </defs>
+  <path class="cls-5 MTRioSKw_0" d="M7.56,52.11C7.56,12.95,18.12,2.39,57.28,2.39s49.72,10.56,49.72,49.72-10.56,49.72-49.72,49.72S7.56,91.27,7.56,52.11Z"></path>
+  <path class="cls-2 MTRioSKw_1" d="M125.41,20.02L180.4,20.02"></path>
+  <path class="cls-2 MTRioSKw_2" d="M135.81,14.12L135.81,27.23"></path>
+  <path class="cls-2 MTRioSKw_3" d="M170.51,14.09L170.51,27.2"></path>
+  <path class="cls-2 MTRioSKw_4" d="M126.37,33.81h35.87c1.87,0,3.39,1.52,3.39,3.39v25.07c0,1.87-1.52,3.39-3.39,3.39h-9.33"></path>
+  <path class="cls-2 MTRioSKw_5" d="M144.74,27.23L137.73,67.53"></path>
+  <path class="cls-2 MTRioSKw_6" d="M132.13,39.64L127.67,63.35"></path>
+  <path class="cls-2 MTRioSKw_7" d="M174.47,33.81L178.08,63.35"></path>
+  <path class="cls-2 MTRioSKw_8" width="48.08" height="11.59" d="M 196.35,17.58 L 234.43,17.58 A 5,5,0,0,1,239.43,22.58 L 239.43,24.169999999999998 A 5,5,0,0,1,234.43,29.169999999999998 L 196.35,29.169999999999998 A 5,5,0,0,1,191.35,24.169999999999998 L 191.35,22.58 A 5,5,0,0,1,196.35,17.58"></path>
+  <path class="cls-2 MTRioSKw_9" d="M242.9,36.76h-47.31c-2.34,0-4.24,1.9-4.24,4.24v26.53"></path>
+  <path class="cls-2 MTRioSKw_10" d="M197.42,44.7L241.41,44.7"></path>
+  <path class="cls-2 MTRioSKw_11" d="M196.42,52.15L242.41,52.15"></path>
+  <path class="cls-2 MTRioSKw_12" d="M203.57,54.67v6.89c0,1.65,1.34,2.99,2.99,2.99h13.68"></path>
+  <path class="cls-2 MTRioSKw_13" d="M250.53,23.38L269.92,23.38"></path>
+  <path class="cls-2 MTRioSKw_14" d="M260.23,14.34v45.58c0,2.56-2.07,4.63-4.63,4.63h-3.72"></path>
+  <path class="cls-2 MTRioSKw_15" d="M250.53,47.81L269.92,39.44"></path>
+  <path class="cls-2 MTRioSKw_16" d="M272.36,34.11l4.72-12.42c.71-1.86,2.49-3.09,4.48-3.09h13.06c2.01,0,3.81,1.26,4.5,3.15l4.51,12.36"></path>
+  <path class="cls-2 MTRioSKw_17" width="26.2" height="18.77" d="M 283.58,45.78 L 291.78,45.78 A 9,9,0,0,1,300.78,54.78 L 300.78,55.55 A 9,9,0,0,1,291.78,64.55 L 283.58,64.55 A 9,9,0,0,1,274.58,55.55 L 274.58,54.78 A 9,9,0,0,1,283.58,45.78"></path>
+  <path class="cls-2 MTRioSKw_18" d="M274.12,36.78L301.72,36.78"></path>
+  <path class="cls-2 MTRioSKw_19" d="M340.58,14.34L340.58,37.76"></path>
+  <path class="cls-2 MTRioSKw_20" d="M313.09,35.41L368.62,35.41"></path>
+  <path class="cls-2 MTRioSKw_21" d="M327.93,37.76L322.03,67.53"></path>
+  <path class="cls-2 MTRioSKw_22" d="M351.21,36.72v20.57c0,4.05,3.28,7.33,7.33,7.33h10.08"></path>
+  <path class="cls-2 MTRioSKw_23" d="M318.99,15.64L324.96,30.01"></path>
+  <path class="cls-2 MTRioSKw_24" d="M362.56,16.19L356.6,30.56"></path>
+  <path class="cls-4 MTRioSKw_25" d="M138.67,75.49v9.57c0,2.96,2.4,5.36,5.36,5.36h0c2.96,0,5.36-2.4,5.36-5.36v-9.57"></path>
+  <path class="cls-4 MTRioSKw_26" d="M305.13,75.67v9.57c0,2.96,2.4,5.36,5.36,5.36h0c2.96,0,5.36-2.4,5.36-5.36v-9.57"></path>
+  <g>
+    <path class="cls-4 MTRioSKw_27" d="M177.77,75.67L177.77,91.84"></path>
+    <path class="cls-4 MTRioSKw_28" d="M188.94,75.57L188.94,91.74"></path>
+    <path class="cls-4 MTRioSKw_29" d="M178.56,83.83L188.15,83.83"></path>
+  </g>
+  <g>
+    <path class="cls-4 MTRioSKw_30" d="M253.42,75.8L253.42,91.97"></path>
+    <path class="cls-4 MTRioSKw_31" d="M264.59,75.7L264.59,91.87"></path>
+    <path class="cls-4 MTRioSKw_32" d="M254.21,83.96L263.8,83.96"></path>
+  </g>
+  <path class="cls-4 MTRioSKw_33" d="M274.17,75.67L274.17,92.2"></path>
+  <g>
+    <path class="cls-4 MTRioSKw_34" d="M207.15,77.13L195.89,77.13L195.89,90.22L207.15,90.22"></path>
+    <path class="cls-4 MTRioSKw_35" d="M196.75,83.65L206.59,83.65"></path>
+  </g>
+  <path class="cls-4 MTRioSKw_36" d="M214.11,91.84L214.11,77.37L215.23,77.37L223.54,90.22L225.25,90.22L225.25,75.57"></path>
+  <path class="cls-4 MTRioSKw_37" d="M341.25,91.79L341.25,77.32L342.37,77.32L350.68,90.17L352.39,90.17L352.39,75.52"></path>
+  <path class="cls-4 MTRioSKw_38" d="M322.21,91.74L327.56,77.13L329.29,77.13L335.11,91.84"></path>
+  <path class="cls-4 MTRioSKw_39" d="M370.32,80.29c-1.06-1.85-3.06-3.09-5.34-3.09h0c-3.4,0-6.15,2.76-6.15,6.15v1.16c0,3.4,2.76,6.15,6.15,6.15h0c3.4,0,6.15-2.76,6.15-6.15h-6.47"></path>
+  <path class="cls-4 MTRioSKw_40" d="M297.67,80.01c-1.06-1.85-3.06-3.09-5.34-3.09h0c-3.4,0-6.15,2.76-6.15,6.15v1.16c0,3.4,2.76,6.15,6.15,6.15h0c3.4,0,6.15-2.76,6.15-6.15h-6.47"></path>
+  <path class="cls-4 MTRioSKw_41" d="M170.58,85.87c-.51,2.48-2.7,4.35-5.33,4.35h0c-3.01,0-5.45-2.44-5.45-5.45v-2.2c0-3.01,2.44-5.45,5.45-5.45h0c2.26,0,4.19,1.37,5.02,3.33"></path>
+  <path class="cls-4 MTRioSKw_42" d="M133.77,79.3h0c-.87-1.84-2.72-3.01-4.75-3.01h-1.79c-.65,0-1.28.24-1.76.68l-.05.05c-.54.49-.85,1.19-.85,1.93h0c0,1.06.64,2.01,1.62,2.41l1.03.42c.54.22,1.07.46,1.59.72l1.84.91c.63.31,1.23.69,1.8,1.11l.2.15c.71.54,1.12,1.38,1.12,2.27h0c0,.83-.36,1.61-.98,2.15h0c-.77.67-1.75,1.03-2.76,1.03h-1.56c-.81,0-1.61-.23-2.3-.66h0c-1.02-.63-1.73-1.66-1.97-2.84l-.23-1.15"></path>
+  <path class="cls-4 MTRioSKw_43" d="M245.75,79.19h0c-.87-1.84-2.72-3.01-4.75-3.01h-1.79c-.65,0-1.28.24-1.76.68l-.05.05c-.54.49-.85,1.19-.85,1.93h0c0,1.06.64,2.01,1.62,2.41l1.03.42c.54.22,1.07.46,1.59.72l1.84.91c.63.31,1.23.69,1.8,1.11l.2.15c.71.54,1.12,1.38,1.12,2.27h0c0,.83-.36,1.61-.98,2.15h0c-.77.67-1.75,1.03-2.76,1.03h-1.56c-.81,0-1.61-.23-2.3-.66h0c-1.02-.63-1.73-1.66-1.97-2.84l-.23-1.15"></path>
+  <path class="cls-2 MTRioSKw_44" d="M225.7,52.65h0c0,4.83,2.56,9.29,6.73,11.72l5.41,3.16"></path>
+  <path class="cls-2 MTRioSKw_45" d="M236.01,56.7L232.43,64.37"></path>
+  <path class="cls-1 MTRioSKw_46" d="M62.77,61.49v-25.95c0-7.78,6.31-14.09,14.09-14.09h0c5.61,0,10.46,3.29,12.73,8.04"></path>
+  <path class="cls-1 MTRioSKw_47" d="M51.89,77.46c-2.4,3.67-6.47,6.17-11.18,6.38h0c-7.77.34-14.35-5.69-14.69-13.46l-.17-3.96"></path>
+  <path class="cls-3 MTRioSKw_48" d="M36.37,50.35L73.95,84.72"></path>
+  <path class="cls-1 MTRioSKw_49" d="M91.26,66.61c.67,4.12-.48,8.49-3.51,11.8h0c-5.26,5.74-14.17,6.13-19.9.87L31.96,46.41c-5.74-5.26-6.13-14.17-.87-19.9h0c5.26-5.74,14.17-6.13,19.9-.87"></path>
+<style data-made-with="vivus-instant">.MTRioSKw_0{stroke-dasharray:335 337;stroke-dashoffset:336;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_1{stroke-dasharray:55 57;stroke-dashoffset:56;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_2{stroke-dasharray:14 16;stroke-dashoffset:15;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_3{stroke-dasharray:14 16;stroke-dashoffset:15;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_4{stroke-dasharray:81 83;stroke-dashoffset:82;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_5{stroke-dasharray:41 43;stroke-dashoffset:42;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_6{stroke-dasharray:25 27;stroke-dashoffset:26;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_7{stroke-dasharray:30 32;stroke-dashoffset:31;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_8{stroke-dasharray:111 113;stroke-dashoffset:112;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_9{stroke-dasharray:81 83;stroke-dashoffset:82;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_10{stroke-dasharray:44 46;stroke-dashoffset:45;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_11{stroke-dasharray:46 48;stroke-dashoffset:47;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_12{stroke-dasharray:26 28;stroke-dashoffset:27;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_13{stroke-dasharray:20 22;stroke-dashoffset:21;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_14{stroke-dasharray:57 59;stroke-dashoffset:58;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_15{stroke-dasharray:22 24;stroke-dashoffset:23;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_16{stroke-dasharray:52 54;stroke-dashoffset:53;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_17{stroke-dasharray:75 77;stroke-dashoffset:76;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_18{stroke-dasharray:28 30;stroke-dashoffset:29;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_19{stroke-dasharray:24 26;stroke-dashoffset:25;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_20{stroke-dasharray:56 58;stroke-dashoffset:57;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_21{stroke-dasharray:31 33;stroke-dashoffset:32;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_22{stroke-dasharray:43 45;stroke-dashoffset:44;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_23{stroke-dasharray:16 18;stroke-dashoffset:17;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_24{stroke-dasharray:16 18;stroke-dashoffset:17;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_25{stroke-dasharray:36 38;stroke-dashoffset:37;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_26{stroke-dasharray:36 38;stroke-dashoffset:37;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_27{stroke-dasharray:17 19;stroke-dashoffset:18;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_28{stroke-dasharray:17 19;stroke-dashoffset:18;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_29{stroke-dasharray:10 12;stroke-dashoffset:11;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_30{stroke-dasharray:17 19;stroke-dashoffset:18;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_31{stroke-dasharray:17 19;stroke-dashoffset:18;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_32{stroke-dasharray:10 12;stroke-dashoffset:11;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_33{stroke-dasharray:17 19;stroke-dashoffset:18;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_34{stroke-dasharray:36 38;stroke-dashoffset:37;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_35{stroke-dasharray:10 12;stroke-dashoffset:11;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_36{stroke-dasharray:48 50;stroke-dashoffset:49;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_37{stroke-dasharray:48 50;stroke-dashoffset:49;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_38{stroke-dasharray:34 36;stroke-dashoffset:35;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_39{stroke-dasharray:44 46;stroke-dashoffset:45;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_40{stroke-dasharray:44 46;stroke-dashoffset:45;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_41{stroke-dasharray:34 36;stroke-dashoffset:35;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_42{stroke-dasharray:40 42;stroke-dashoffset:41;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_43{stroke-dasharray:40 42;stroke-dashoffset:41;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_44{stroke-dasharray:21 23;stroke-dashoffset:22;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_45{stroke-dasharray:9 11;stroke-dashoffset:10;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_46{stroke-dasharray:64 66;stroke-dashoffset:65;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_47{stroke-dasharray:40 42;stroke-dashoffset:41;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_48{stroke-dasharray:51 53;stroke-dashoffset:52;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}.MTRioSKw_49{stroke-dasharray:128 130;stroke-dashoffset:129;animation:MTRioSKw_draw 1500ms ease-out 0ms forwards;}@keyframes MTRioSKw_draw{100%{stroke-dashoffset:0;}}@keyframes MTRioSKw_fade{0%{stroke-opacity:1;}92.98245614035088%{stroke-opacity:1;}100%{stroke-opacity:0;}}</style></svg>

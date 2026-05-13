@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 无限滚动
     initInfiniteScroll();
+
+    // 编辑器短代码交互
+    initZfyShortcodes();
 });
 
 // 防抖函数
@@ -304,3 +307,49 @@ function initInfiniteScroll() {
     });
 }
 
+function initZfyShortcodes() {
+    document.addEventListener('click', async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const tabHead = target.closest('.zfy-tabs-head-item');
+        if (tabHead) {
+            const tabs = tabHead.closest('.zfy-shortcode-tabs');
+            const heads = [...(tabs?.querySelectorAll('.zfy-tabs-head-item') || [])];
+            const bodies = [...(tabs?.querySelectorAll('.zfy-tabs-body-item') || [])];
+            const index = heads.indexOf(tabHead);
+
+            heads.forEach((item, itemIndex) => item.classList.toggle('is-active', itemIndex === index));
+            bodies.forEach((item, itemIndex) => item.classList.toggle('is-active', itemIndex === index));
+            return;
+        }
+
+        const collapseTitle = target.closest('.zfy-shortcode-collapse .zfy-shortcode-title');
+        if (collapseTitle) {
+            collapseTitle.closest('.zfy-collapse-item')?.classList.toggle('is-open');
+            return;
+        }
+
+        const copyTrigger = target.closest('.zfy-copy-trigger');
+        if (copyTrigger) {
+            const body = copyTrigger.closest('.zfy-shortcode-copy')?.querySelector('.zfy-copy-body');
+            const text = body?.innerText?.trim() || '';
+
+            if (!text) {
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(text);
+                copyTrigger.textContent = '已复制';
+                window.setTimeout(() => {
+                    copyTrigger.textContent = '复制';
+                }, 1200);
+            } catch (error) {
+                console.error('复制失败:', error);
+            }
+        }
+    });
+}

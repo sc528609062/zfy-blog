@@ -16,6 +16,8 @@
             'status' => $content->status,
             'type' => $content->type,
             'created_at' => optional($content->created_at)->format('Y-m-d H:i'),
+            'editable' => true,
+            'edit_url' => '/admin/editor?content='.$content->id,
         ])->values(),
         'orders' => collect($orders ?? [])->map(fn ($order) => [
             'id' => $order->id,

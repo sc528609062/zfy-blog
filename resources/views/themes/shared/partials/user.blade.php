@@ -7,6 +7,7 @@
         <a href="/user/wallet">钱包余额</a>
         <a href="/user/points">积分明细</a>
         <a href="/user/vip">我的会员</a>
+        <a href="/user/settings">用户设置</a>
         <a href="/user/author">作者工作台</a>
     </aside>
     <section class="dashboard-main">
@@ -18,6 +19,7 @@
                 'user-wallet' => '钱包余额',
                 'user-points' => '积分明细',
                 'user-vip' => '我的会员',
+                'user-settings' => '用户设置',
                 'author-workspace' => '作者工作台',
             ][$page] ?? '用户中心' }}</h1>
             <p>钱包、积分、VIP、下载权限、作者收益和提现流程已接入统一业务模型。</p>
