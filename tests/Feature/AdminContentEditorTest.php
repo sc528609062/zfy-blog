@@ -272,6 +272,8 @@ MARKDOWN;
         $this->assertStringContainsString('enlighter-raw', $html);
         $this->assertStringContainsString('gl enlighter-origin', $html);
         $this->assertStringContainsString('data-enlighter-language="html"', $html);
+        $this->assertStringContainsString('<div class="enlighter" style=""><div class=""><div><span class="enlighter-g1">&lt;</span>', $html);
+        $this->assertStringNotContainsString('<div class="enlighter" style=""><div class=""><div class="">', $html);
         $this->assertStringContainsString('&lt;div class="da-copyright"&gt;', $html);
         $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $html);
         $this->assertStringNotContainsString('<script>alert(1)</script>', $html);

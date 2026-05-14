@@ -217,18 +217,36 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .a-article .wp-block-zibllblock-enlighter .enlighter-default,
 .article-content .wp-block-zibllblock-enlighter .enlighter-default {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: 34px auto;
+    align-items: center;
     position: relative;
     overflow: hidden;
     background: #f7f8fa;
 }
+.a-article .wp-block-zibllblock-enlighter .enlighter-default::before,
+.article-content .wp-block-zibllblock-enlighter .enlighter-default::before {
+    content: "";
+    grid-column: 1;
+    grid-row: 1;
+    width: 15px;
+    height: 15px;
+    margin-left: 15px;
+    border-radius: 50%;
+    background: #fc625d;
+    box-shadow: 20px 0 #fdbc40, 40px 0 #35cd4b;
+    pointer-events: none;
+}
 .a-article .wp-block-zibllblock-enlighter .enlighter-toolbar,
 .article-content .wp-block-zibllblock-enlighter .enlighter-toolbar {
-    position: absolute;
-    top: 8px;
-    right: 8px;
+    grid-column: 2;
+    grid-row: 1;
+    position: relative;
     z-index: 3;
     display: flex;
     gap: 5px;
+    padding-right: 8px;
     opacity: 0;
     transition: opacity .16s ease;
 }
@@ -255,7 +273,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .a-article .wp-block-zibllblock-enlighter .enlighter-btn:hover,
 .article-content .wp-block-zibllblock-enlighter .enlighter-btn:hover,
 .a-article .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter-btn-raw,
-.article-content .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter-btn-raw {
+.article-content .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter-btn-raw,
+.a-article .wp-block-zibllblock-enlighter .enlighter-default.enlighter-show-rawcode .enlighter-btn-raw,
+.article-content .wp-block-zibllblock-enlighter .enlighter-default.enlighter-show-rawcode .enlighter-btn-raw {
     border-color: var(--a-primary);
     color: var(--a-primary);
 }
@@ -298,14 +318,22 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .a-article .wp-block-zibllblock-enlighter .enlighter,
 .article-content .wp-block-zibllblock-enlighter .enlighter {
+    grid-column: 1 / -1;
+    grid-row: 2;
     overflow-x: auto;
     padding: 14px 0;
+    border-top: 1px solid #e4eaf2;
     background: #f7f8fa;
+    counter-reset: enlighter-line;
+}
+.a-article .wp-block-zibllblock-enlighter .enlighter::before,
+.article-content .wp-block-zibllblock-enlighter .enlighter::before {
+    display: none;
+    content: none;
 }
 .a-article .wp-block-zibllblock-enlighter .enlighter > div,
 .article-content .wp-block-zibllblock-enlighter .enlighter > div {
     min-width: max-content;
-    counter-reset: enlighter-line;
 }
 .a-article .wp-block-zibllblock-enlighter .enlighter > div > div,
 .article-content .wp-block-zibllblock-enlighter .enlighter > div > div {
@@ -349,6 +377,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .article-content .wp-block-zibllblock-enlighter .enlighter-m3 { color: #0b73b7; }
 .a-article .wp-block-zibllblock-enlighter .enlighter-raw,
 .article-content .wp-block-zibllblock-enlighter .enlighter-raw {
+    grid-column: 1 / -1;
+    grid-row: 2;
     display: none;
     overflow: auto;
     margin: 0;
@@ -362,16 +392,71 @@ button, a { -webkit-tap-highlight-color: transparent; }
     white-space: pre;
 }
 .a-article .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter,
-.article-content .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter {
+.article-content .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter,
+.a-article .wp-block-zibllblock-enlighter .enlighter-default.enlighter-show-rawcode .enlighter,
+.article-content .wp-block-zibllblock-enlighter .enlighter-default.enlighter-show-rawcode .enlighter {
     display: none;
 }
 .a-article .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter-raw,
-.article-content .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter-raw {
+.article-content .wp-block-zibllblock-enlighter .enlighter-default.is-raw-visible .enlighter-raw,
+.a-article .wp-block-zibllblock-enlighter .enlighter-default.enlighter-show-rawcode .enlighter-raw,
+.article-content .wp-block-zibllblock-enlighter .enlighter-default.enlighter-show-rawcode .enlighter-raw {
     display: block;
 }
 .a-article .wp-block-zibllblock-enlighter .enlighter-origin,
 .article-content .wp-block-zibllblock-enlighter .enlighter-origin {
     display: none;
+}
+.dark-theme .wp-block-zibllblock-enlighter {
+    border-color: #323a4f;
+    background: #1f2433;
+    color: #d6dbe9;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-default,
+.dark-theme .wp-block-zibllblock-enlighter .enlighter {
+    background: #1f2433;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter {
+    border-top-color: #363d51;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-btn {
+    border-color: #3a4254;
+    background: #232838;
+    color: #d6dbe9;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-btn:hover,
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-default.enlighter-show-rawcode .enlighter-btn-raw {
+    border-color: #667799;
+    color: #f8f8f2;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-hover .enlighter > div > div:hover {
+    background: #2b3144;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-linenumbers .enlighter > div > div::before,
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-raw {
+    border-color: #384156;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-text,
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-g1 {
+    color: #f8f8f2;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-k1,
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-m3 {
+    color: #8be9fd;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-s0 {
+    color: #f1fa8c;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-n1,
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-n4 {
+    color: #bd93f9;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-c0 {
+    color: #8d97b3;
+}
+.dark-theme .wp-block-zibllblock-enlighter .enlighter-raw {
+    background: #1f2433;
+    color: #f8f8f2;
 }
 .a-article ul, .a-article ol { padding-left: 1.35em; margin: 0 0 1em; }
 .a-article li + li { margin-top: 4px; }

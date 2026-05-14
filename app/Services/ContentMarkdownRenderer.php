@@ -169,7 +169,7 @@ class ContentMarkdownRenderer
         $html = $this->applyQuoteStyleVariables($html);
         $html = $this->normalizeMediaAssetUrls($html);
 
-        return (string) zfy_apply('zfy_rendered_html', $html, $markdown, $context);
+        return $this->restoreEnlighterCodeBlocks((string) zfy_apply('zfy_rendered_html', $html, $markdown, $context));
     }
 
     public function renderContent(Content $content, bool $persist = false, bool $allowRawHtml = true): string
@@ -449,10 +449,10 @@ class ContentMarkdownRenderer
         $escapedRaw = $this->escapeCodeText($rawCode);
         $lines = $this->enlighterLinesHtml($rawCode);
 
-        return '<pre class="wp-block-zibllblock-enlighter" data-enlighter-language="'.e($language).'">'
+        return '<pre class="wp-block-zibllblock-enlighter">'
             .'<div class="enlighter-default enlighter-v-standard enlighter-t-enlighter enlighter-hover enlighter-linenumbers enlighter-overflow-scroll">'
             .'<div class="enlighter-toolbar"><div class="enlighter-btn enlighter-btn-raw"></div><div class="enlighter-btn enlighter-btn-copy"></div><div class="enlighter-btn enlighter-btn-window"></div></div>'
-            .'<div class="enlighter" style=""><div class="">'.$lines.'</div></div>'
+            .'<div class="enlighter" style="">'.$lines.'</div>'
             .'<pre class="enlighter-raw">'.$escapedRaw.'</pre>'
             .'</div>'
             .'<code class="gl enlighter-origin" data-enlighter-language="'.e($language).'" data-enlighter-theme="" data-enlighter-highlight="" data-enlighter-linenumbers="" data-enlighter-lineoffset="" data-enlighter-title="" data-enlighter-group="">'.$escapedRaw.'</code>'
@@ -478,8 +478,22 @@ class ContentMarkdownRenderer
         $lines = $visualCode === '' ? [''] : explode("\n", $visualCode);
 
         return collect($lines)
-            ->map(fn (string $line): string => '<div>'.$this->enlighterSyntaxHtml($line).'</div>')
+            ->map(fn (string $line): string => '<div class=""><div>'.$this->enlighterSyntaxHtml($line).'</div></div>')
             ->implode('');
+    }
+
+    private function restoreEnlighterCodeBlocks(string $html): string
+    {
+        return preg_replace_callback(
+            '/<pre class="wp-block-zibllblock-enlighter"><\/pre>(<div class="enlighter-default[\s\S]*?<\/code>)/i',
+            static function (array $matches): string {
+                $block = preg_replace('/<div class="enlighter"(?![^>]*style=)/i', '<div class="enlighter" style=""', $matches[1], 1) ?? $matches[1];
+                $block = str_replace('<div><div><span', '<div class=""><div><span', $block);
+
+                return '<pre class="wp-block-zibllblock-enlighter">'.$block.'</pre>';
+            },
+            $html
+        ) ?? $html;
     }
 
     private function enlighterSyntaxHtml(string $line): string
@@ -488,23 +502,45 @@ class ContentMarkdownRenderer
             return '<span class="enlighter-text"></span>';
         }
 
-        $pattern = '/(\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\'|#[0-9a-fA-F]{3,8}\b|\b\d+(?:\.\d+)?\b|<\/?|\/>|>|[{}()[\];:,]|\b(?:abstract|and|as|break|case|catch|class|const|continue|data-[a-z0-9_-]+|default|else|elseif|extends|false|finally|for|foreach|from|function|href|id|if|import|let|new|null|private|protected|public|return|src|static|style|switch|target|this|throw|true|try|var|while)\b)/i';
+        $pattern = '~(?<comment>(?<![A-Za-z0-9:/])//[^\n]*|/\*[\s\S]*?\*/)|(?<string>"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\')|(?<selector>\.[A-Za-z_][A-Za-z0-9_-]*)|(?<keyword>\bclass\b)|(?<hex>#[0-9a-fA-F]{3,8}\b)|(?<number>\b0\d+\b|\b\d+(?:\.\d+)?\b)|(?<brace>[<>{}])~i';
         preg_match_all($pattern, $line, $matches, PREG_OFFSET_CAPTURE);
 
         $html = '';
         $offset = 0;
+        $buffer = '';
 
         foreach ($matches[0] ?? [] as [$token, $position]) {
             if ($position > $offset) {
-                $html .= '<span class="enlighter-text">'.$this->escapeCodeText(substr($line, $offset, $position - $offset)).'</span>';
+                $buffer .= substr($line, $offset, $position - $offset);
             }
 
-            $html .= '<span class="'.$this->enlighterTokenClass($token).'">'.$this->escapeCodeText($token).'</span>';
+            $class = $this->enlighterTokenClass($token);
+            if ($class === 'enlighter-m3' && str_starts_with($token, '.') && ! $this->isSelectorHighlightable($line, $position)) {
+                $buffer .= $token;
+                $offset = $position + strlen($token);
+                continue;
+            }
+
+            if ($buffer !== '') {
+                $html .= '<span class="enlighter-text">'.$this->escapeCodeText($buffer).'</span>';
+                $buffer = '';
+            }
+
+            if ($class === 'enlighter-m3' && str_starts_with($token, '.')) {
+                $html .= '<span class="enlighter-text">.</span>';
+                $html .= '<span class="enlighter-m3">'.$this->escapeCodeText(substr($token, 1)).'</span>';
+            } else {
+                $html .= '<span class="'.$class.'">'.$this->escapeCodeText($token).'</span>';
+            }
             $offset = $position + strlen($token);
         }
 
         if ($offset < strlen($line)) {
-            $html .= '<span class="enlighter-text">'.$this->escapeCodeText(substr($line, $offset)).'</span>';
+            $buffer .= substr($line, $offset);
+        }
+
+        if ($buffer !== '') {
+            $html .= '<span class="enlighter-text">'.$this->escapeCodeText($buffer).'</span>';
         }
 
         return $html;
@@ -512,7 +548,7 @@ class ContentMarkdownRenderer
 
     private function enlighterTokenClass(string $token): string
     {
-        if (preg_match('/^(?:\/\/|\/\*)/', $token)) {
+        if (str_starts_with($token, '//') || str_starts_with($token, '/*')) {
             return 'enlighter-c0';
         }
 
@@ -520,19 +556,42 @@ class ContentMarkdownRenderer
             return 'enlighter-s0';
         }
 
+        if (str_starts_with($token, '.')) {
+            return 'enlighter-m3';
+        }
+
+        if ($token === 'class') {
+            return 'enlighter-k1';
+        }
+
         if (preg_match('/^#[0-9a-fA-F]{3,8}$/', $token)) {
             return 'enlighter-c0';
         }
 
         if (preg_match('/^\d/', $token)) {
+            if (preg_match('/^0\d+$/', $token)) {
+                return 'enlighter-n4';
+            }
+
             return 'enlighter-n1';
         }
 
-        if (preg_match('/^(?:<\/?|\/>|>|[{}()[\];:,])$/', $token)) {
+        if (preg_match('/^(?:<|>|{|})$/', $token)) {
             return 'enlighter-g1';
         }
 
-        return 'enlighter-k1';
+        return 'enlighter-text';
+    }
+
+    private function isSelectorHighlightable(string $line, int $position): bool
+    {
+        if ($position <= 0) {
+            return false;
+        }
+
+        $previous = $line[$position - 1] ?? '';
+
+        return $previous !== '' && (ctype_alnum($previous) || in_array($previous, [')', ']', '}'], true));
     }
 
     private function escapeCodeText(string $value): string
