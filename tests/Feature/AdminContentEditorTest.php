@@ -627,6 +627,40 @@ MARKDOWN,
         $this->assertStringNotContainsString('<pre><code>', $content->rendered_html);
     }
 
+    public function test_front_content_escapes_raw_html_examples_as_text(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $content = Content::create([
+            'author_id' => $admin->id,
+            'type' => 'post',
+            'status' => 'published',
+            'title' => 'HTML 文本示例',
+            'slug' => 'html-text-example',
+            'published_at' => now(),
+            'markdown_cache' => <<<'MARKDOWN'
+<p align="center">居中</p>
+<p align="right">居右</p>
+<font size="5" color="red">颜色大小</font>
+<button aria-disabled="false" type="button" class="el-button el-button--default zfy-editor-tool">按钮</button>
+MARKDOWN,
+            'rendered_html' => '<p align="center">居中</p><p align="right">居右</p><font size="5" color="red">颜色大小</font><button aria-disabled="false" type="button" class="el-button el-button--default zfy-editor-tool">按钮</button>',
+        ]);
+
+        $this->get('/content/html-text-example')
+            ->assertOk()
+            ->assertSee('&lt;p align="center"&gt;居中&lt;/p&gt;', false)
+            ->assertSee('&lt;p align="right"&gt;居右&lt;/p&gt;', false)
+            ->assertSee('&lt;font size="5" color="red"&gt;颜色大小&lt;/font&gt;', false)
+            ->assertSee('&lt;button aria-disabled="false" type="button" class="el-button el-button--default zfy-editor-tool"&gt;按钮&lt;/button&gt;', false)
+            ->assertDontSee('<p align="center">居中</p>', false)
+            ->assertDontSee('<font size="5" color="red">颜色大小</font>', false)
+            ->assertDontSee('<button aria-disabled="false" type="button" class="el-button el-button--default zfy-editor-tool">按钮</button>', false);
+
+        $content->refresh();
+
+        $this->assertStringContainsString('&lt;p align="center"&gt;居中&lt;/p&gt;', $content->rendered_html);
+    }
+
     private function seedAndAdmin(): User
     {
         $this->seed(CoreInstallSeeder::class);

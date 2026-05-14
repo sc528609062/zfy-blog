@@ -386,7 +386,7 @@ class ContentMarkdownRenderer
     private function markdownOptions(bool $allowRawHtml): array
     {
         return [
-            'html_input' => $allowRawHtml ? 'allow' : 'strip',
+            'html_input' => $allowRawHtml ? 'allow' : 'escape',
             'allow_unsafe_links' => false,
             'renderer' => [
                 'soft_break' => "<br>\n",
