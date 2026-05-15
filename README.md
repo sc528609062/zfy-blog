@@ -2,6 +2,10 @@
 
 zfy-blog 是一个 Laravel 12 + MySQL + Redis 的综合 CMS / 内容商业化平台，内置文章、图集、资源、独立页面、多作者、VIP、付费内容、积分、钱包、支付、主题、插件和页面构建器。
 
+## 使用教程
+
+完整安装、宝塔、1Panel、Docker Compose、更新维护和常见问题请查看：[使用教程.md](./使用教程.md)。
+
 ## 当前实现
 
 - Laravel 12 项目骨架、Sanctum API、Livewire、Spatie 权限、Scout、Redis 客户端。

@@ -3,16 +3,44 @@
 *.blade.php diff=html
 *.css diff=css
 *.html diff=html
+*.js diff=javascript
+*.json text eol=lf
+*.lock text eol=lf
 *.md diff=markdown
 *.php diff=php
+*.ts diff=javascript
+*.vue diff=html
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
 
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.avif binary -eol
+*.gif binary -eol
+*.ico binary -eol
+*.jpeg binary -eol
+*.jpg binary -eol
+*.pdf binary -eol
+*.phar binary -eol
+*.png binary -eol
+*.webp binary -eol
+*.woff binary -eol
+*.woff2 binary -eol
+*.zip binary -eol
+
+/.claude export-ignore
 /.github export-ignore
 /.gitee export-ignore
 /.workflow export-ignore
 /docs export-ignore
 /tmp export-ignore
 /ui-mockups export-ignore
+AGENTS.md export-ignore
 CHANGELOG.md export-ignore
+CLAUDE.md export-ignore
 .styleci.yml export-ignore
 composer-setup.php export-ignore
 composer.phar export-ignore
