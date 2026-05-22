@@ -45,7 +45,7 @@ class AdminContentController extends Controller
         ]);
 
         return response()->json([
-            'html' => $this->renderer->render($data['markdown'] ?? '', $this->canUseRawHtml($request)),
+            'html' => $this->renderer->render($data['markdown'] ?? '', true),
         ]);
     }
 
@@ -79,7 +79,7 @@ class AdminContentController extends Controller
         $isPublished = $payload['status'] === 'published';
         $wasPublished = $content?->status === 'published';
         $contentId = $content?->id;
-        $allowRawHtml = $this->canUseRawHtml($request);
+        $allowRawHtml = true;
 
         $attributes = [
             'author_id' => $content?->author_id ?: $user?->id,
@@ -98,7 +98,7 @@ class AdminContentController extends Controller
                 'editor' => 'zfy-markdown',
                 'version' => 1,
                 'shortcodes' => $this->renderer->extractShortcodes($markdown),
-                'raw_html' => $allowRawHtml,
+                'raw_html' => $this->renderer->containsRawHtmlMarkup($markdown),
             ], Arr::wrap($payload['block_json'] ?? [])),
             'published_at' => $isPublished ? ($content?->published_at ?: now()) : null,
         ];

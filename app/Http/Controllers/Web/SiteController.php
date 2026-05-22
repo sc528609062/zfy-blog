@@ -99,27 +99,6 @@ class SiteController extends Controller
 
     private function renderFrontContent(Content $content): void
     {
-        $markdown = (string) ($content->markdown_cache ?? '');
-
-        if ($markdown !== '' && $this->containsRawHtmlMarkup($markdown)) {
-            $renderedHtml = $this->renderer->render($markdown, false);
-
-            if ($renderedHtml !== (string) ($content->rendered_html ?? '')) {
-                $content->rendered_html = $renderedHtml;
-
-                if ($content->exists) {
-                    $content->saveQuietly();
-                }
-            }
-
-            return;
-        }
-
-        $this->renderer->renderContent($content, true, false);
-    }
-
-    private function containsRawHtmlMarkup(string $markdown): bool
-    {
-        return preg_match('/<(?!!--)(?:\/?[a-z][a-z0-9:-]*)(?:\s[^>]*)?>/i', $markdown) === 1;
+        $this->renderer->renderContent($content, true, true);
     }
 }

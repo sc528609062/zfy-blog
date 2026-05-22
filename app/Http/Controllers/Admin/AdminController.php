@@ -282,7 +282,7 @@ class AdminController extends Controller
             403
         );
 
-        $renderedHtml = $this->renderer->renderContent($content, true, $this->canUseRawHtml($request));
+        $renderedHtml = $this->renderer->renderContent($content, true, true);
 
         return [
             'id' => $content->id,

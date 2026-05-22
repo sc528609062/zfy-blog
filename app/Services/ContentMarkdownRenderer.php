@@ -142,6 +142,11 @@ class ContentMarkdownRenderer
             ->all();
     }
 
+    public function containsRawHtmlMarkup(string $markdown): bool
+    {
+        return preg_match('/<(?!!--)(?:\/?[a-z][a-z0-9:-]*)(?:\s[^>]*)?>/i', $markdown) === 1;
+    }
+
     public function render(string $markdown, bool $allowRawHtml = false): string
     {
         $context = ['allow_raw_html' => $allowRawHtml];
@@ -192,7 +197,7 @@ class ContentMarkdownRenderer
         $markdown = trim((string) $markdown);
         $html = (string) ($html ?? '');
 
-        if ($markdown !== '' && $this->shouldRefreshCachedHtml($html)) {
+        if ($markdown !== '' && ($this->containsRawHtmlMarkup($markdown) || $this->shouldRefreshCachedHtml($html))) {
             return $this->render($markdown, $allowRawHtml);
         }
 
