@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CardCode;
 use App\Models\Category;
-use App\Models\Content;
 use App\Models\Comment;
+use App\Models\Content;
 use App\Models\Coupon;
 use App\Models\Link;
 use App\Models\LinkCheck;
@@ -358,7 +358,7 @@ class AdminController extends Controller
             ['id' => 'image', 'label' => '图片', 'icon' => 'Picture', 'action' => 'blockInsert', 'snippet' => '![图片描述](/assets/zfy/placeholders/blue.svg)', 'group' => 'insert'],
             ['id' => 'table', 'label' => '表格', 'icon' => 'Grid', 'action' => 'blockInsert', 'snippet' => "| 标题 | 内容 |\n| --- | --- |\n| 示例 | 文本 |", 'group' => 'insert'],
             ['id' => 'code-block', 'label' => '代码块', 'icon' => 'DocumentCopy', 'action' => 'blockWrap', 'prefix' => "```\n", 'suffix' => "\n```", 'placeholder' => '代码内容', 'group' => 'insert'],
-            ['id' => 'html', 'label' => 'HTML', 'icon' => 'Collection', 'action' => 'blockInsert', 'snippet' => '<div class="zfy-custom-html">HTML 内容</div>', 'requiresRawHtml' => true, 'group' => 'insert'],
+            ['id' => 'html', 'label' => 'HTML', 'icon' => 'Collection', 'action' => 'blockInsert', 'snippet' => "{zfy-html}\n<div class=\"zfy-custom-html\">HTML 内容</div>\n{/zfy-html}", 'requiresRawHtml' => true, 'group' => 'insert'],
             ['id' => 'time', 'label' => '当前时间', 'icon' => 'Timer', 'action' => 'insert', 'snippet' => '{zfy-time label="{date}" /}', 'group' => 'insert'],
             ['id' => 'indent', 'label' => '缩进', 'icon' => 'DArrowRight', 'action' => 'linePrefix', 'prefix' => '    ', 'placeholder' => '缩进内容', 'group' => 'insert'],
             ['id' => 'characters', 'label' => '符号', 'icon' => 'Star', 'action' => 'insert', 'snippet' => '★ ☆ ✓ ✕ → ← ↑ ↓', 'group' => 'insert'],

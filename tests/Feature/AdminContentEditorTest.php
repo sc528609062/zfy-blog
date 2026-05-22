@@ -165,7 +165,9 @@ class AdminContentEditorTest extends TestCase
 ```
 代码内容
 ```
+{zfy-html}
 <div class="zfy-custom-html">HTML 内容</div>
+{/zfy-html}
 {zfy-time label="2026-05-13 10:41" /}
 ★ ☆ ✓ ✕ → ← ↑ ↓
 :smile: :rocket: :sparkles:
@@ -480,7 +482,7 @@ MARKDOWN;
 
         $this->actingAs($admin)
             ->postJson(route('admin.contents.preview'), [
-                'markdown' => '<script>alert(1)</script><strong>ok</strong>',
+                'markdown' => "{zfy-html}\n<script>alert(1)</script><strong>ok</strong>\n{/zfy-html}",
             ])
             ->assertOk()
             ->assertJsonMissing(['html' => '<script>alert(1)</script>'])
@@ -491,7 +493,7 @@ MARKDOWN;
                 'title' => 'Filtered',
                 'type' => 'post',
                 'status' => 'draft',
-                'markdown_cache' => '<script>alert(1)</script><strong>ok</strong>',
+                'markdown_cache' => "{zfy-html}\n<script>alert(1)</script><strong>ok</strong>\n{/zfy-html}",
             ])
             ->assertOk();
 
@@ -501,6 +503,82 @@ MARKDOWN;
         $this->assertStringNotContainsString('<script>', $content->rendered_html);
         $this->assertStringContainsString('<strong>ok</strong>', $content->rendered_html);
         $this->assertStringContainsString('filtered', $content->rendered_html);
+    }
+
+    public function test_preview_and_save_escape_unmarked_raw_html_with_line_breaks(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $markdown = <<<'MARKDOWN'
+<p align="center">居中</p>
+<p align="right">居右</p>
+<font size="5" color="red">颜色大小</font>
+MARKDOWN;
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), ['markdown' => $markdown])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString('&lt;p align="center"&gt;居中&lt;/p&gt;', $html);
+        $this->assertStringContainsString('&lt;p align="right"&gt;居右&lt;/p&gt;', $html);
+        $this->assertStringContainsString('&lt;font size="5" color="red"&gt;颜色大小&lt;/font&gt;', $html);
+        $this->assertStringContainsString('<br', $html);
+        $this->assertStringNotContainsString('<p align="center">居中</p>', $html);
+        $this->assertStringNotContainsString('<font size="5" color="#FF0000">颜色大小</font>', $html);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.contents.store'), [
+                'title' => 'HTML 文本',
+                'type' => 'post',
+                'status' => 'draft',
+                'markdown_cache' => $markdown,
+            ])
+            ->assertOk();
+
+        $content = Content::firstOrFail();
+
+        $this->assertStringContainsString('&lt;p align="center"&gt;居中&lt;/p&gt;', $content->rendered_html);
+        $this->assertStringContainsString('&lt;p align="right"&gt;居右&lt;/p&gt;', $content->rendered_html);
+        $this->assertStringContainsString('&lt;font size="5" color="red"&gt;颜色大小&lt;/font&gt;', $content->rendered_html);
+        $this->assertFalse($content->block_json['raw_html']);
+    }
+
+    public function test_preview_and_save_render_marked_html_blocks(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $markdown = <<<'MARKDOWN'
+{zfy-html}
+<p align="center">居中</p>
+<p align="right">居右</p>
+<font size="5" color="red">颜色大小</font>
+{/zfy-html}
+MARKDOWN;
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), ['markdown' => $markdown])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString('<p align="center">居中</p>', $html);
+        $this->assertStringContainsString('<p align="right">居右</p>', $html);
+        $this->assertStringContainsString('<font size="5" color="#FF0000">颜色大小</font>', $html);
+        $this->assertStringNotContainsString('{zfy-html}', $html);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.contents.store'), [
+                'title' => 'HTML 排版',
+                'type' => 'post',
+                'status' => 'draft',
+                'markdown_cache' => $markdown,
+            ])
+            ->assertOk();
+
+        $content = Content::firstOrFail();
+
+        $this->assertStringContainsString('<p align="center">居中</p>', $content->rendered_html);
+        $this->assertStringContainsString('<p align="right">居右</p>', $content->rendered_html);
+        $this->assertStringContainsString('<font size="5" color="#FF0000">颜色大小</font>', $content->rendered_html);
+        $this->assertTrue($content->block_json['raw_html']);
     }
 
     public function test_contents_table_exposes_edit_url_and_editor_loads_existing_content(): void
@@ -627,7 +705,7 @@ MARKDOWN,
         $this->assertStringNotContainsString('<pre><code>', $content->rendered_html);
     }
 
-    public function test_front_content_escapes_raw_html_examples_as_text(): void
+    public function test_front_content_escapes_unmarked_raw_html_examples_as_text(): void
     {
         $admin = $this->seedAndAdmin();
         $content = Content::create([
@@ -653,12 +731,50 @@ MARKDOWN,
             ->assertSee('&lt;font size="5" color="red"&gt;颜色大小&lt;/font&gt;', false)
             ->assertSee('&lt;button aria-disabled="false" type="button" class="el-button el-button--default zfy-editor-tool"&gt;按钮&lt;/button&gt;', false)
             ->assertDontSee('<p align="center">居中</p>', false)
-            ->assertDontSee('<font size="5" color="red">颜色大小</font>', false)
+            ->assertDontSee('<font size="5" color="#FF0000">颜色大小</font>', false)
             ->assertDontSee('<button aria-disabled="false" type="button" class="el-button el-button--default zfy-editor-tool">按钮</button>', false);
 
         $content->refresh();
 
         $this->assertStringContainsString('&lt;p align="center"&gt;居中&lt;/p&gt;', $content->rendered_html);
+        $this->assertStringContainsString('&lt;p align="right"&gt;居右&lt;/p&gt;', $content->rendered_html);
+        $this->assertStringContainsString('&lt;font size="5" color="red"&gt;颜色大小&lt;/font&gt;', $content->rendered_html);
+        $this->assertStringContainsString('&lt;button aria-disabled="false" type="button" class="el-button el-button--default zfy-editor-tool"&gt;按钮&lt;/button&gt;', $content->rendered_html);
+    }
+
+    public function test_front_content_renders_marked_html_blocks(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $content = Content::create([
+            'author_id' => $admin->id,
+            'type' => 'post',
+            'status' => 'published',
+            'title' => 'HTML 渲染块',
+            'slug' => 'html-render-block',
+            'published_at' => now(),
+            'markdown_cache' => <<<'MARKDOWN'
+{zfy-html}
+<p align="center">居中</p>
+<p align="right">居右</p>
+<font size="5" color="red">颜色大小</font>
+{/zfy-html}
+MARKDOWN,
+            'rendered_html' => '{zfy-html}<p align="center">居中</p>{/zfy-html}',
+        ]);
+
+        $this->get('/content/html-render-block')
+            ->assertOk()
+            ->assertSee('<p align="center">居中</p>', false)
+            ->assertSee('<p align="right">居右</p>', false)
+            ->assertSee('<font size="5" color="#FF0000">颜色大小</font>', false)
+            ->assertDontSee('{zfy-html}', false);
+
+        $content->refresh();
+
+        $this->assertStringContainsString('<p align="center">居中</p>', $content->rendered_html);
+        $this->assertStringContainsString('<p align="right">居右</p>', $content->rendered_html);
+        $this->assertStringContainsString('<font size="5" color="#FF0000">颜色大小</font>', $content->rendered_html);
+        $this->assertStringNotContainsString('{zfy-html}', $content->rendered_html);
     }
 
     private function seedAndAdmin(): User

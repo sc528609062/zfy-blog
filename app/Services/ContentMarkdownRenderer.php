@@ -41,6 +41,7 @@ class ContentMarkdownRenderer
         'zfy-card-describe',
         'zfy-lamp',
         'zfy-cloud',
+        'zfy-html',
         'zfy-hr',
         'zfy-time',
         'alert',
@@ -78,6 +79,7 @@ class ContentMarkdownRenderer
         'card-describe',
         'lamp',
         'cloud',
+        'html',
         'hr',
         'time',
     ];
@@ -118,6 +120,7 @@ class ContentMarkdownRenderer
         'card-describe' => 'zfy-card-describe',
         'lamp' => 'zfy-lamp',
         'cloud' => 'zfy-cloud',
+        'html' => 'zfy-html',
         'hr' => 'zfy-hr',
         'time' => 'zfy-time',
     ];
@@ -147,6 +150,11 @@ class ContentMarkdownRenderer
         return preg_match('/<(?!!--)(?:\/?[a-z][a-z0-9:-]*)(?:\s[^>]*)?>/i', $markdown) === 1;
     }
 
+    public function containsMarkedHtmlBlock(string $markdown): bool
+    {
+        return preg_match('/\{(?:zfy-html|html)(?:\s[^}]*)?\}[\s\S]*?\{\/\s*(?:zfy-html|html)\s*\}/i', $markdown) === 1;
+    }
+
     public function render(string $markdown, bool $allowRawHtml = false): string
     {
         $context = ['allow_raw_html' => $allowRawHtml];
@@ -157,6 +165,7 @@ class ContentMarkdownRenderer
         $shortcodes = [];
         $markdown = $this->extractPairedShortcodes($markdown, $shortcodes, $allowRawHtml);
         $markdown = $this->extractSingleShortcodes($markdown, $shortcodes);
+        $markdown = $this->escapeUnmarkedRawHtmlLines($markdown);
 
         $html = Str::markdown($markdown, $this->markdownOptions($allowRawHtml));
 
@@ -197,7 +206,7 @@ class ContentMarkdownRenderer
         $markdown = trim((string) $markdown);
         $html = (string) ($html ?? '');
 
-        if ($markdown !== '' && ($this->containsRawHtmlMarkup($markdown) || $this->shouldRefreshCachedHtml($html))) {
+        if ($markdown !== '' && ($this->containsMarkedHtmlBlock($markdown) || $this->containsRawHtmlMarkup($markdown) || $this->shouldRefreshCachedHtml($html))) {
             return $this->render($markdown, $allowRawHtml);
         }
 
@@ -218,15 +227,20 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $shortcodes
+     * @param  array<string, string>  $shortcodes
      */
     private function extractPairedShortcodes(string $markdown, array &$shortcodes, bool $allowRawHtml): string
     {
         return preg_replace_callback(
             $this->pairedShortcodePattern(),
             function (array $matches) use (&$shortcodes, $allowRawHtml): string {
-                $placeholder = $this->placeholder(count($shortcodes));
                 $name = $this->normalizeShortcodeName($matches['name']);
+
+                if ($name === 'zfy-html' && ! $allowRawHtml) {
+                    return $matches[0];
+                }
+
+                $placeholder = $this->placeholder(count($shortcodes));
                 $attributes = $this->normalizeAttributes($this->parseAttributes($matches['attributes'] ?? ''));
                 $inner = trim($matches['body'] ?? '');
                 $innerHtml = $this->renderMarkdownFragment($inner, $allowRawHtml);
@@ -240,7 +254,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $shortcodes
+     * @param  array<string, string>  $shortcodes
      */
     private function extractSingleShortcodes(string $markdown, array &$shortcodes): string
     {
@@ -333,7 +347,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderPairedShortcode(string $name, array $attributes, string $innerHtml, string $innerMarkdown, bool $allowRawHtml): string
     {
@@ -343,6 +357,7 @@ class ContentMarkdownRenderer
         $titleHtml = $title !== '' ? '<div class="zfy-shortcode-title">'.e($title).'</div>' : '';
 
         return match ($name) {
+            'zfy-html' => $this->renderMarkedHtmlBlock($innerMarkdown),
             'zfy-alert' => $this->wrapShortcode('alert', $tone, $titleHtml.$this->bodyHtml($innerHtml)),
             'zfy-callout' => $this->renderCallout($attributes, $innerHtml, $tone, $titleHtml),
             'zfy-quote' => $this->renderQuote($attributes, $innerHtml),
@@ -362,7 +377,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderSingleShortcode(string $name, array $attributes): string
     {
@@ -391,7 +406,7 @@ class ContentMarkdownRenderer
     private function markdownOptions(bool $allowRawHtml): array
     {
         return [
-            'html_input' => $allowRawHtml ? 'allow' : 'escape',
+            'html_input' => 'escape',
             'allow_unsafe_links' => false,
             'renderer' => [
                 'soft_break' => "<br>\n",
@@ -402,6 +417,48 @@ class ContentMarkdownRenderer
     private function renderMarkdownFragment(string $markdown, bool $allowRawHtml): string
     {
         return Str::markdown($this->replaceEmojiCodes($this->normalizeMarkdown($markdown)), $this->markdownOptions($allowRawHtml));
+    }
+
+    private function renderMarkedHtmlBlock(string $html): string
+    {
+        return trim($this->normalizeMarkdown($html));
+    }
+
+    private function escapeUnmarkedRawHtmlLines(string $markdown): string
+    {
+        $lines = explode("\n", $markdown);
+        $inFence = false;
+        $fenceMarker = '';
+
+        foreach ($lines as $index => $line) {
+            if (preg_match('/^\s*(```|~~~)/', $line, $matches) === 1) {
+                $marker = $matches[1];
+
+                if (! $inFence) {
+                    $inFence = true;
+                    $fenceMarker = $marker;
+                } elseif ($marker === $fenceMarker) {
+                    $inFence = false;
+                    $fenceMarker = '';
+                }
+
+                continue;
+            }
+
+            if ($inFence || ! $this->containsRawHtmlMarkup($line)) {
+                continue;
+            }
+
+            $line = htmlspecialchars($line, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+            if (isset($lines[$index + 1]) && trim($lines[$index + 1]) !== '') {
+                $line .= '  ';
+            }
+
+            $lines[$index] = $line;
+        }
+
+        return implode("\n", $lines);
     }
 
     private function normalizeMarkdown(string $markdown): string
@@ -523,6 +580,7 @@ class ContentMarkdownRenderer
             if ($class === 'enlighter-m3' && str_starts_with($token, '.') && ! $this->isSelectorHighlightable($line, $position)) {
                 $buffer .= $token;
                 $offset = $position + strlen($token);
+
                 continue;
             }
 
@@ -626,7 +684,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderQuote(array $attributes, string $innerHtml, bool $allowInlineColorMarker = false): string
     {
@@ -742,7 +800,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderMtitle(array $attributes, string $innerHtml): string
     {
@@ -753,7 +811,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderCardDefault(array $attributes, string $innerHtml): string
     {
@@ -765,7 +823,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderCardDescribe(array $attributes, string $innerHtml): string
     {
@@ -796,7 +854,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderCallout(array $attributes, string $innerHtml, string $tone, string $titleHtml): string
     {
@@ -807,7 +865,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderMessage(array $attributes, string $innerHtml, string $tone): string
     {
@@ -817,7 +875,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderCollapse(array $attributes, string $innerMarkdown, string $fallbackHtml, bool $allowRawHtml): string
     {
@@ -851,7 +909,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderTabs(array $attributes, string $innerMarkdown, string $fallbackHtml, bool $allowRawHtml): string
     {
@@ -913,7 +971,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderGrid(array $attributes, string $innerMarkdown, string $fallbackHtml, bool $allowRawHtml): string
     {
@@ -941,7 +999,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderCopy(array $attributes, string $innerHtml): string
     {
@@ -951,7 +1009,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderCopySingle(array $attributes): string
     {
@@ -964,7 +1022,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderHide(array $attributes): string
     {
@@ -974,7 +1032,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderProgress(array $attributes): string
     {
@@ -986,7 +1044,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderMedia(string $name, array $attributes): string
     {
@@ -1029,7 +1087,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderBilibili(array $attributes, string $title): string
     {
@@ -1046,7 +1104,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderCloud(array $attributes): string
     {
@@ -1060,7 +1118,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderButton(array $attributes): string
     {
@@ -1077,7 +1135,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderNoteButton(array $attributes): string
     {
@@ -1091,7 +1149,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderDotted(array $attributes): string
     {
@@ -1102,7 +1160,7 @@ class ContentMarkdownRenderer
     }
 
     /**
-     * @param array<string, string> $attributes
+     * @param  array<string, string>  $attributes
      */
     private function renderLamp(array $attributes): string
     {
