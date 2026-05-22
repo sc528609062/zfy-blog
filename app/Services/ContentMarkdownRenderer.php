@@ -8,6 +8,17 @@ use Mews\Purifier\Facades\Purifier;
 
 class ContentMarkdownRenderer
 {
+    private const DEFAULT_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+
+    private const TIME_FORMATS = [
+        'YYYY-MM-DD HH:mm:ss',
+        'YYYY-MM-DD HH:mm',
+        'YYYY-MM-DD',
+        'YYYY年MM月DD日 HH:mm:ss',
+        'MM月DD日 HH:mm:ss',
+        'HH:mm:ss',
+    ];
+
     private const SHORTCODE_NAMES = [
         'zfy-alert',
         'zfy-callout',
@@ -385,7 +396,7 @@ class ContentMarkdownRenderer
 
         return match ($name) {
             'zfy-hr' => '<hr class="zfy-shortcode-rule">',
-            'zfy-time' => '<span class="zfy-shortcode-time">'.e($attributes['label'] ?? now()->format('Y-m-d H:i')).'</span>',
+            'zfy-time' => $this->renderTime($attributes),
             'zfy-mtitle' => $this->renderMtitle($attributes, ''),
             'zfy-message' => $this->renderMessage($attributes, '<p>'.e($attributes['content'] ?? $attributes['title'] ?? '消息内容').'</p>', $this->safeToken($attributes['type'] ?? 'success')),
             'zfy-progress' => $this->renderProgress($attributes),
@@ -1046,6 +1057,16 @@ class ContentMarkdownRenderer
     /**
      * @param  array<string, string>  $attributes
      */
+    private function renderTime(array $attributes): string
+    {
+        $format = $this->safeTimeFormat($attributes['format'] ?? self::DEFAULT_TIME_FORMAT);
+
+        return '<div class="zfy-shortcode zfy-shortcode-time" data-zfy-time-format="'.e($format).'">'.e($this->formatCurrentTime($format)).'</div>';
+    }
+
+    /**
+     * @param  array<string, string>  $attributes
+     */
     private function renderMedia(string $name, array $attributes): string
     {
         $type = $this->safeToken(Str::after($name, 'zfy-'));
@@ -1220,6 +1241,25 @@ class ContentMarkdownRenderer
         $size = trim($size);
 
         return preg_match('/^(?:\d{1,4}(?:\.\d{1,2})?(?:px|%|rem|em)|auto)$/', $size) ? $size : '';
+    }
+
+    private function safeTimeFormat(string $format): string
+    {
+        $format = trim($format);
+
+        return in_array($format, self::TIME_FORMATS, true) ? $format : self::DEFAULT_TIME_FORMAT;
+    }
+
+    private function formatCurrentTime(string $format): string
+    {
+        return now()->format(strtr($format, [
+            'YYYY' => 'Y',
+            'MM' => 'm',
+            'DD' => 'd',
+            'HH' => 'H',
+            'mm' => 'i',
+            'ss' => 's',
+        ]));
     }
 
     private function truthy(?string $value): bool

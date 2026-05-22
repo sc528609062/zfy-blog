@@ -3,8 +3,10 @@ import { ElMessageBox } from 'element-plus';
 import { shallowRef } from 'vue';
 import EditorImageDialog from './EditorImageDialog.vue';
 import EditorInsertDialog from './EditorInsertDialog.vue';
+import EditorSymbolDialog from './EditorSymbolDialog.vue';
 import EditorToolbar from './EditorToolbar.vue';
 import { getEditorPromptSpec, toolFromPrompt } from './editorToolPrompts';
+import type { SymbolPickerKind } from './symbolPresets';
 import { useMarkdownEditor } from './useMarkdownEditor';
 import type { EditorMediaConfig, EditorPromptSpec, EditorTool } from './types';
 
@@ -28,6 +30,8 @@ const model = defineModel<string>({ required: true });
 const { hostRef, applyTool, setValue } = useMarkdownEditor(model);
 const promptVisible = shallowRef(false);
 const imageVisible = shallowRef(false);
+const symbolVisible = shallowRef(false);
+const symbolKind = shallowRef<SymbolPickerKind>('characters');
 const promptSpec = shallowRef<EditorPromptSpec | null>(null);
 const promptTool = shallowRef<EditorTool | null>(null);
 
@@ -59,6 +63,12 @@ async function cleanEditor(): Promise<void> {
 async function handleTool(tool: EditorTool): Promise<void> {
     if (tool.id === 'image') {
         imageVisible.value = true;
+        return;
+    }
+
+    if (tool.id === 'characters' || tool.id === 'emoji') {
+        symbolKind.value = tool.id;
+        symbolVisible.value = true;
         return;
     }
 
@@ -126,6 +136,19 @@ function handleImageSubmit(snippet: string): void {
     });
     imageVisible.value = false;
 }
+
+function handleSymbolSubmit(snippet: string): void {
+    if (!snippet) {
+        return;
+    }
+
+    applyTool({
+        id: `${symbolKind.value}-picker`,
+        label: symbolKind.value === 'emoji' ? '表情包' : '符号',
+        action: 'insert',
+        snippet,
+    });
+}
 </script>
 
 <template>
@@ -142,6 +165,7 @@ function handleImageSubmit(snippet: string): void {
             <slot name="preview" />
         </div>
         <EditorInsertDialog v-model:visible="promptVisible" :spec="promptSpec" @submit="handlePromptSubmit" />
+        <EditorSymbolDialog v-model:visible="symbolVisible" :kind="symbolKind" @submit="handleSymbolSubmit" />
         <EditorImageDialog
             v-model:visible="imageVisible"
             :media="props.media"

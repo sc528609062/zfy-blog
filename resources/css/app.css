@@ -515,6 +515,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .a-article .zfy-shortcode-media a[href], .a-article .zfy-shortcode-cloud a[href], .a-article a.zfy-shortcode-button[href] { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 14px; border-radius: 8px; background: var(--a-primary); color: #fff; font-weight: 900; text-decoration: none; }
 .a-article .zfy-shortcode-media a[href]:is(:hover, :focus-visible), .a-article .zfy-shortcode-cloud a[href]:is(:hover, :focus-visible), .a-article a.zfy-shortcode-button[href]:is(:hover, :focus-visible) { color: #fff; text-decoration: none; }
 .a-article .zfy-shortcode-button-wrap { margin: 18px 0; }
+.a-article .zfy-shortcode-time, .article-content .zfy-shortcode-time { display: block; width: max-content; max-width: 100%; padding: 6px 10px; border-radius: 8px; background: #f2f6fb; color: #475467; font-variant-numeric: tabular-nums; font-weight: 800; }
 .a-article .zfy-shortcode-timeline { display: grid; gap: 0; }
 .a-article .zfy-timeline-item { position: relative; padding: 0 0 16px 26px; }
 .a-article .zfy-timeline-item::before { content: ""; position: absolute; top: 3px; bottom: -3px; left: 6px; border-left: 1px solid #d9e5f2; }

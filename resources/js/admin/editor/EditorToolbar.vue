@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import * as ElementPlusIcons from '@element-plus/icons-vue';
-import { computed, type Component } from 'vue';
+import { computed } from 'vue';
+import ZfyIcon from '../icons/ZfyIcon.vue';
+import { iconForEditorTool } from './editorToolbarIcons';
 import type { EditorTool } from './types';
 
 const props = defineProps<{
@@ -24,13 +25,15 @@ const groupedTools = computed(() => {
     return [...groups.entries()].map(([key, tools]) => ({ key, tools }));
 });
 
-function iconFor(name?: string): Component | null {
-    if (!name) {
-        return null;
-    }
+const toolbarRows = computed(() => {
+    const primaryGroups = groupedTools.value.filter((group) => group.key !== 'shortcode');
+    const shortcodeGroups = groupedTools.value.filter((group) => group.key === 'shortcode');
 
-    return (ElementPlusIcons as unknown as Record<string, Component>)[name] || null;
-}
+    return [
+        { key: 'primary', groups: primaryGroups },
+        { key: 'secondary', groups: shortcodeGroups },
+    ].filter((row) => row.groups.length > 0);
+});
 
 function buttonType(tool: EditorTool): 'primary' | 'default' {
     return tool.primary || tool.action === 'publish' ? 'primary' : 'default';
@@ -47,42 +50,64 @@ function toolLabel(tool: EditorTool): string {
 
     return tool.label;
 }
+
+function showToolText(_tool: EditorTool): boolean {
+    return false;
+}
 </script>
 
 <template>
     <div class="zfy-editor-toolbar" role="toolbar" aria-label="写文章工具栏">
-        <div v-for="group in groupedTools" :key="group.key" class="zfy-editor-tool-group">
-            <template v-for="tool in group.tools" :key="tool.id">
-                <el-dropdown
-                    v-if="tool.action === 'dropdown' && tool.children?.length"
-                    trigger="click"
-                    @command="(child: EditorTool) => emit('tool', child)"
-                >
-                    <el-button class="zfy-editor-tool" :disabled="busy">
-                        <el-icon v-if="iconFor(tool.icon)"><component :is="iconFor(tool.icon)" /></el-icon>
-                        <span>{{ tool.label }}</span>
-                    </el-button>
-                    <template #dropdown>
-                        <el-dropdown-menu>
-                            <el-dropdown-item v-for="child in tool.children" :key="child.id" :command="child">
-                                {{ child.label }}
-                            </el-dropdown-item>
-                        </el-dropdown-menu>
-                    </template>
-                </el-dropdown>
-
-                <el-tooltip v-else :content="toolLabel(tool)" placement="bottom">
-                    <el-button
-                        :class="['zfy-editor-tool', { 'is-active': (tool.id === 'preview' && previewVisible) || (tool.id === 'fullscreen' && fullscreen) }]"
-                        :disabled="busy && !['preview', 'fullscreen', 'download'].includes(tool.action)"
-                        :type="buttonType(tool)"
-                        @click="emit('tool', tool)"
+        <div
+            v-for="row in toolbarRows"
+            :key="row.key"
+            :class="['zfy-editor-toolbar-row', { 'is-secondary': row.key === 'secondary' }]"
+        >
+            <div v-for="group in row.groups" :key="group.key" :class="['zfy-editor-tool-group', `is-${group.key}`]">
+                <template v-for="tool in group.tools" :key="tool.id">
+                    <el-tooltip
+                        v-if="tool.action === 'dropdown' && tool.children?.length"
+                        :content="toolLabel(tool)"
+                        placement="bottom"
                     >
-                        <el-icon v-if="iconFor(tool.icon)"><component :is="iconFor(tool.icon)" /></el-icon>
-                        <span v-if="tool.primary || ['save', 'publish'].includes(tool.action)">{{ toolLabel(tool) }}</span>
-                    </el-button>
-                </el-tooltip>
-            </template>
+                        <el-dropdown
+                            trigger="click"
+                            @command="(child: EditorTool) => emit('tool', child)"
+                        >
+                            <el-button class="zfy-editor-tool" :disabled="busy">
+                                <ZfyIcon :name="iconForEditorTool(tool)" />
+                                <span v-if="showToolText(tool)">{{ toolLabel(tool) }}</span>
+                            </el-button>
+                            <template #dropdown>
+                                <el-dropdown-menu>
+                                    <el-dropdown-item v-for="child in tool.children" :key="child.id" :command="child">
+                                        <ZfyIcon :name="iconForEditorTool(child)" size="15" />
+                                        <span>{{ child.label }}</span>
+                                    </el-dropdown-item>
+                                </el-dropdown-menu>
+                            </template>
+                        </el-dropdown>
+                    </el-tooltip>
+
+                    <el-tooltip v-else :content="toolLabel(tool)" placement="bottom">
+                        <el-button
+                            :class="[
+                                'zfy-editor-tool',
+                                {
+                                    'has-text': showToolText(tool),
+                                    'is-active': (tool.id === 'preview' && previewVisible) || (tool.id === 'fullscreen' && fullscreen),
+                                },
+                            ]"
+                            :disabled="busy && !['preview', 'fullscreen', 'download'].includes(tool.action)"
+                            :type="buttonType(tool)"
+                            @click="emit('tool', tool)"
+                        >
+                            <ZfyIcon :name="iconForEditorTool(tool)" />
+                            <span v-if="showToolText(tool)">{{ toolLabel(tool) }}</span>
+                        </el-button>
+                    </el-tooltip>
+                </template>
+            </div>
         </div>
     </div>
 </template>

@@ -515,24 +515,34 @@ html,
 }
 
 .zfy-editor-toolbar {
+    display: grid;
+    border-bottom: 1px solid #edf1f6;
+    background: #fff;
+}
+
+.zfy-editor-toolbar-row {
     display: flex;
     gap: 0;
     align-items: center;
     min-height: 42px;
     padding: 5px 8px;
-    border-bottom: 1px solid #edf1f6;
-    background: #fff;
     overflow-x: auto;
     overscroll-behavior-x: contain;
 }
 
-.zfy-editor-toolbar::-webkit-scrollbar {
+.zfy-editor-toolbar-row::-webkit-scrollbar {
     height: 6px;
 }
 
-.zfy-editor-toolbar::-webkit-scrollbar-thumb {
+.zfy-editor-toolbar-row::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: #d4e2f2;
+}
+
+.zfy-editor-toolbar-row.is-secondary {
+    flex-wrap: wrap;
+    padding: 0 8px 7px;
+    overflow-x: visible;
 }
 
 .zfy-editor-tool-group {
@@ -548,6 +558,13 @@ html,
     border-right: 0;
 }
 
+.zfy-editor-toolbar-row.is-secondary .zfy-editor-tool-group {
+    flex-wrap: wrap;
+    width: 100%;
+    padding: 0;
+    border-right: 0;
+}
+
 .zfy-editor-tool.el-button {
     min-width: 30px;
     height: 30px;
@@ -560,6 +577,13 @@ html,
     font-weight: 800;
 }
 
+.zfy-editor-tool.el-button.has-text {
+    min-width: auto;
+    padding: 6px 9px;
+    font-size: 12px;
+    line-height: 1;
+}
+
 .zfy-editor-tool.el-button:hover,
 .zfy-editor-tool.el-button:focus-visible,
 .zfy-editor-tool.el-button.is-active {
@@ -568,8 +592,19 @@ html,
     color: #1f2937;
 }
 
-.zfy-editor-tool.el-button .el-icon {
-    font-size: 15px;
+.zfy-icon {
+    display: block;
+    flex: 0 0 auto;
+}
+
+.zfy-editor-tool.el-button .zfy-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.el-dropdown-menu__item .zfy-icon {
+    margin-right: 7px;
+    color: #64748b;
 }
 
 .zfy-markdown-editor-body {
@@ -1524,6 +1559,18 @@ html,
     background: repeating-linear-gradient(-45deg, #ff6c6c 0, #ff6c6c 20%, transparent 0, transparent 25%, #1989fa 0, #1989fa 45%, transparent 0, transparent 50%);
 }
 
+.zfy-shortcode-time {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #f2f6fb;
+    color: #475467;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+}
+
 .zfy-shortcode-timeline {
     display: grid;
     gap: 0;
@@ -1615,6 +1662,7 @@ html,
 
 .zfy-editor-insert-dialog {
     --el-dialog-border-radius: 8px;
+    --el-dialog-padding-primary: 0;
 }
 
 .zfy-editor-insert-dialog.el-dialog,
@@ -1806,6 +1854,93 @@ html,
     padding: 12px 16px;
     border-top: 1px solid var(--zfy-admin-line);
     background: #f8fbff;
+}
+
+.zfy-editor-symbol-dialog.el-dialog,
+.zfy-editor-symbol-dialog .el-dialog {
+    width: min(600px, calc(100vw - 20px));
+}
+
+.zfy-editor-symbol-dialog.el-dialog .el-dialog__body,
+.zfy-editor-symbol-dialog .el-dialog__body {
+    padding: 0;
+}
+
+.zfy-editor-symbol-body {
+    padding: 10px 12px 12px;
+    background: #fff;
+}
+
+.zfy-editor-symbol-tabs .el-tabs__header {
+    margin: 0 0 10px;
+}
+
+.zfy-editor-symbol-tabs .el-tabs__item {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.zfy-editor-symbol-tabs .el-tabs__nav-wrap::after {
+    height: 1px;
+    background-color: #edf1f6;
+}
+
+.zfy-editor-symbol-tabs .el-tabs__content {
+    overflow: visible;
+}
+
+.zfy-editor-symbol-grid {
+    display: grid;
+    max-height: 330px;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 6px;
+    overflow: auto;
+    padding: 1px 1px 5px;
+}
+
+.zfy-editor-symbol-item {
+    display: flex;
+    min-height: 40px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: 1px solid var(--zfy-admin-line);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--zfy-admin-text);
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.zfy-editor-symbol-item:hover,
+.zfy-editor-symbol-item:focus-visible {
+    border-color: #7aa7e8;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, .12);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.zfy-editor-symbol-value {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.zfy-editor-symbol-body.is-emoji .zfy-editor-symbol-value {
+    font-size: 21px;
+}
+
+.zfy-editor-symbol-item small {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--zfy-admin-muted);
+    font-size: 10px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .zfy-editor-image-dialog {
@@ -2460,8 +2595,15 @@ html,
     }
 
     .zfy-editor-toolbar {
-        gap: 6px;
-        padding: 8px;
+        gap: 0;
+    }
+
+    .zfy-editor-toolbar-row {
+        padding: 5px 8px;
+    }
+
+    .zfy-editor-toolbar-row.is-secondary {
+        padding: 0 8px 7px;
     }
 
     .zfy-markdown-editor-body.has-preview {
@@ -2478,6 +2620,16 @@ html,
         min-width: 32px;
         padding: 7px 9px;
         margin-left: 0;
+    }
+
+    .zfy-editor-symbol-grid {
+        max-height: 300px;
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+        gap: 5px;
+    }
+
+    .zfy-editor-symbol-item {
+        min-height: 38px;
     }
 
     .zfy-markdown-editor-host,

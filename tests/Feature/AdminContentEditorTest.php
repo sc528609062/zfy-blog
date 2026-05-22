@@ -168,7 +168,7 @@ class AdminContentEditorTest extends TestCase
 {zfy-html}
 <div class="zfy-custom-html">HTML 内容</div>
 {/zfy-html}
-{zfy-time label="2026-05-13 10:41" /}
+{zfy-time format="YYYY-MM-DD HH:mm:ss" /}
 ★ ☆ ✓ ✕ → ← ↑ ↓
 :smile: :rocket: :sparkles:
 {zfy-alert type="info" title="提示"}
@@ -247,6 +247,9 @@ MARKDOWN;
         $this->assertStringContainsString('zfy-shortcode-timeline', $html);
         $this->assertStringContainsString('zfy-shortcode-grid', $html);
         $this->assertStringContainsString('zfy-custom-html', $html);
+        $this->assertStringContainsString('zfy-shortcode-time', $html);
+        $this->assertStringContainsString('data-zfy-time-format="YYYY-MM-DD HH:mm:ss"', $html);
+        $this->assertMatchesRegularExpression('/<div class="zfy-shortcode zfy-shortcode-time"[^>]*>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}<\/div>/', $html);
         $this->assertStringNotContainsString('{zfy-', $html);
     }
 
@@ -579,6 +582,67 @@ MARKDOWN;
         $this->assertStringContainsString('<p align="right">居右</p>', $content->rendered_html);
         $this->assertStringContainsString('<font size="5" color="#FF0000">颜色大小</font>', $content->rendered_html);
         $this->assertTrue($content->block_json['raw_html']);
+    }
+
+    public function test_time_shortcode_renders_live_block_with_selected_format(): void
+    {
+        $admin = $this->seedAndAdmin();
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), [
+                'markdown' => '{zfy-time format="HH:mm:ss" /}',
+            ])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString('class="zfy-shortcode zfy-shortcode-time"', $html);
+        $this->assertStringContainsString('data-zfy-time-format="HH:mm:ss"', $html);
+        $this->assertMatchesRegularExpression('/>\d{2}:\d{2}:\d{2}<\/div>/', $html);
+    }
+
+    public function test_indent_toolbar_prefix_renders_as_indented_text_not_code_block(): void
+    {
+        $admin = $this->seedAndAdmin();
+
+        $this->actingAs($admin)
+            ->get('/admin/editor')
+            ->assertOk()
+            ->assertSee('"id":"indent"', false)
+            ->assertSee('"prefix":"\u0026emsp;\u0026emsp;"', false);
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), [
+                'markdown' => '&emsp;&emsp;缩进内容',
+            ])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString("\u{2003}\u{2003}缩进内容", $html);
+        $this->assertStringNotContainsString('<pre', $html);
+        $this->assertStringNotContainsString('<code', $html);
+    }
+
+    public function test_marked_html_followed_by_legacy_time_label_renders_time_as_block(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $markdown = <<<'MARKDOWN'
+{zfy-html}
+<div class="zfy-custom-html">HTML 内容</div>
+<p align="center">居中</p>
+<p align="right">居右</p>
+<font size="5" color="red">颜色大小</font>
+{/zfy-html}
+{zfy-time label="2026-05-22 13:39" /}
+MARKDOWN;
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), ['markdown' => $markdown])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString('<font size="5" color="#FF0000">颜色大小</font>', $html);
+        $this->assertStringContainsString('<div class="zfy-shortcode zfy-shortcode-time" data-zfy-time-format="YYYY-MM-DD HH:mm:ss">', $html);
+        $this->assertStringNotContainsString('{zfy-time', $html);
     }
 
     public function test_contents_table_exposes_edit_url_and_editor_loads_existing_content(): void

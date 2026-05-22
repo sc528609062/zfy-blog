@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
-import { nextTick, watch } from 'vue';
+import { nextTick, useTemplateRef, watch } from 'vue';
 import {
     copyEnlighterCode,
     getEnlighterBlock,
@@ -8,6 +8,7 @@ import {
     pulseEnlighterButton,
     toggleEnlighterRaw,
 } from '../../shared/enlighterBlocks';
+import { mountZfyTimes } from '../../shared/zfyTime';
 
 const props = defineProps<{
     html: string;
@@ -15,11 +16,23 @@ const props = defineProps<{
     loading?: boolean;
 }>();
 
+const previewArticleRef = useTemplateRef<HTMLElement>('previewArticle');
+
 watch(
     () => props.html,
-    () => {
+    (_html, _previousHtml, onCleanup) => {
+        let cleanupTimes: (() => void) | undefined;
+        let disposed = false;
+
         void nextTick(() => {
-            document.querySelectorAll<HTMLElement>('.zfy-editor-preview .zfy-shortcode-tabs').forEach((tabs) => {
+            if (disposed) {
+                return;
+            }
+
+            const preview = previewArticleRef.value;
+            cleanupTimes = mountZfyTimes(preview || document);
+
+            preview?.querySelectorAll<HTMLElement>('.zfy-shortcode-tabs').forEach((tabs) => {
                 const activeHead = tabs.querySelector('.zfy-tabs-head-item.is-active');
                 const activeBody = tabs.querySelector('.zfy-tabs-body-item.is-active');
 
@@ -31,6 +44,11 @@ watch(
                     tabs.querySelector('.zfy-tabs-body-item')?.classList.add('is-active');
                 }
             });
+        });
+
+        onCleanup(() => {
+            disposed = true;
+            cleanupTimes?.();
         });
     },
     { immediate: true },
@@ -114,6 +132,6 @@ async function handlePreviewClick(event: MouseEvent): Promise<void> {
 <template>
     <aside v-if="visible" class="zfy-editor-preview-pane" @click="handlePreviewClick">
         <el-skeleton v-if="loading && !html" :rows="8" animated />
-        <article v-else class="zfy-editor-preview" v-html="html || '<p>暂无预览内容</p>'" />
+        <article ref="previewArticle" v-else class="zfy-editor-preview" v-html="html || '<p>暂无预览内容</p>'" />
     </aside>
 </template>

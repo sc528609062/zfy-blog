@@ -21,6 +21,15 @@ const cloudOptions = [
     { label: '蓝奏云网盘', value: 'lz' },
 ];
 
+const timeFormatOptions = [
+    { label: '2026-05-22 13:39:08', value: 'YYYY-MM-DD HH:mm:ss' },
+    { label: '2026-05-22 13:39', value: 'YYYY-MM-DD HH:mm' },
+    { label: '2026-05-22', value: 'YYYY-MM-DD' },
+    { label: '2026年05月22日 13:39:08', value: 'YYYY年MM月DD日 HH:mm:ss' },
+    { label: '05月22日 13:39:08', value: 'MM月DD日 HH:mm:ss' },
+    { label: '13:39:08', value: 'HH:mm:ss' },
+];
+
 export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
     link: {
         id: 'link',
@@ -216,6 +225,13 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
             { name: 'password', label: '提取密码', type: 'text', defaultValue: '' },
         ],
     },
+    time: {
+        id: 'time',
+        title: '插入当前时间',
+        fields: [
+            { name: 'format', label: '显示格式', type: 'select', defaultValue: 'YYYY-MM-DD HH:mm:ss', options: timeFormatOptions },
+        ],
+    },
     'zfy-grid': {
         id: 'zfy-grid',
         title: '插入宫格',
@@ -306,6 +322,8 @@ function snippetFor(id: string, values: PromptValues): string {
             return `{zfy-dotted startColor="${value('startColor', '#ff6c6c')}" endColor="${value('endColor', '#1989fa')}" /}`;
         case 'zfy-cloud':
             return `{zfy-cloud title="${value('title', '下载资源')}" type="${value('type', 'default')}" url="${value('url', 'https://example.com')}" password="${value('password')}" /}`;
+        case 'time':
+            return `{zfy-time format="${value('format', 'YYYY-MM-DD HH:mm:ss')}" /}`;
         case 'zfy-grid':
             return `{zfy-grid column="${value('column', '3')}" gap="${value('gap', '15')}"}` + '\n{zfy-grid-item}\n宫格内容一\n{/zfy-grid-item}\n{zfy-grid-item}\n宫格内容二\n{/zfy-grid-item}\n{zfy-grid-item}\n宫格内容三\n{/zfy-grid-item}\n{/zfy-grid}';
         case 'zfy-copy':

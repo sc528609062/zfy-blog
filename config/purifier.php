@@ -22,7 +22,7 @@ return [
                 'video[src|class|controls|preload|poster]',
                 'source[src|type]',
                 'table[class],thead[class],tbody[class],tr[class],th[class|colspan|rowspan],td[class|colspan|rowspan]',
-                'div[class|style|data-color]',
+                'div[class|style|data-color|data-zfy-time-format]',
                 'span[class|style],font[color|size|face],small[class]',
             ]),
             'Attr.AllowedFrameTargets' => ['_blank'],
@@ -34,7 +34,7 @@ return [
         ],
         'custom_definition' => [
             'id' => 'zfy-html5-media',
-            'rev' => 3,
+            'rev' => 4,
             'debug' => false,
             'elements' => [
                 ['audio', 'Block', 'Optional: (source, Flow) | (Flow, source) | Flow', 'Common', [
@@ -55,6 +55,7 @@ return [
             ],
             'attributes' => [
                 ['div', 'data-color', 'Text'],
+                ['div', 'data-zfy-time-format', 'Text'],
                 ['pre', 'data-enlighter-language', 'Text'],
                 ['pre', 'data-enlighter-title', 'Text'],
                 ['code', 'data-enlighter-language', 'Text'],
