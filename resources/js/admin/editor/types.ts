@@ -16,7 +16,7 @@ export interface EditorTool {
     children?: EditorTool[];
 }
 
-export type EditorPromptFieldType = 'text' | 'textarea' | 'select' | 'color' | 'number';
+export type EditorPromptFieldType = 'text' | 'textarea' | 'select' | 'color' | 'number' | 'icon';
 
 export interface EditorPromptOption {
     value: string;

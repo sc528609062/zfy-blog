@@ -133,6 +133,73 @@ class AdminContentEditorTest extends TestCase
         $this->assertStringNotContainsString('{zfy-alert', $html);
     }
 
+    public function test_alert_shortcode_renders_zibll_style_color_and_icon(): void
+    {
+        $admin = $this->seedAndAdmin();
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), [
+                'markdown' => "{zfy-alert color=\"purple\" icon=\"lamp\"}\n测试提醒框\n{/zfy-alert}",
+            ])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString('wp-block-zibllblock-alert alert-dismissible fade in', $html);
+        $this->assertStringContainsString('zfy-shortcode-alert', $html);
+        $this->assertStringContainsString('class="alert jb-purple"', $html);
+        $this->assertStringContainsString('role="alert"', $html);
+        $this->assertStringContainsString('zfy-alert-icon-lamp', $html);
+        $this->assertStringContainsString('测试提醒框', $html);
+    }
+
+    public function test_alert_shortcode_renders_selected_svg_icon(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $svg = '<svg viewBox="0 0 1024 1024"><path fill="currentColor" d="M256 256h512v512H256z"/></svg>';
+        $encodedSvg = rtrim(strtr(base64_encode($svg), '+/', '-_'), '=');
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), [
+                'markdown' => "{zfy-alert color=\"green\" icon=\"svg:{$encodedSvg}\"}\nSVG 提示图标\n{/zfy-alert}",
+            ])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString('zfy-alert-icon-custom', $html);
+        $this->assertStringContainsString('zfy-shortcode-icon-svg', $html);
+        $this->assertStringContainsString('<svg', $html);
+        $this->assertStringContainsString('<path fill="currentColor"', $html);
+        $this->assertStringContainsString('SVG 提示图标', $html);
+    }
+
+    public function test_button_shortcode_renders_sanitized_svg_icon(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $svg = '<svg viewBox="0 0 1024 1024"><path fill="currentColor" d="M128 128h768v768H128z"/></svg>';
+        $unsafeSvg = '<svg viewBox="0 0 10 10" onload="alert(1)"><script>alert(1)</script><path d="M1 1h8v8z"/></svg>';
+        $encodedSvg = rtrim(strtr(base64_encode($svg), '+/', '-_'), '=');
+        $encodedUnsafeSvg = rtrim(strtr(base64_encode($unsafeSvg), '+/', '-_'), '=');
+
+        $html = $this->actingAs($admin)
+            ->postJson(route('admin.contents.preview'), [
+                'markdown' => implode("\n", [
+                    '{zfy-abtn icon="svg:'.$encodedSvg.'" title="SVG 按钮" url="https://example.com" /}',
+                    '{zfy-anote icon_svg="'.$encodedUnsafeSvg.'" title="危险图标" url="https://example.com" /}',
+                ]),
+            ])
+            ->assertOk()
+            ->json('html');
+
+        $this->assertStringContainsString('zfy-shortcode-icon-svg', $html);
+        $this->assertStringContainsString('<svg', $html);
+        $this->assertStringContainsString('<path fill="currentColor"', $html);
+        $this->assertStringContainsString('SVG 按钮', $html);
+        $this->assertStringContainsString('危险图标', $html);
+        $this->assertStringNotContainsString('<script', $html);
+        $this->assertStringNotContainsString('onload', $html);
+        $this->assertStringNotContainsString('alert(1)', $html);
+    }
+
     public function test_preview_matches_editor_line_breaks_lists_and_zfy_shortcodes(): void
     {
         $admin = $this->seedAndAdmin();

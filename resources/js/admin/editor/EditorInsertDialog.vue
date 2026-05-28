@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
 import ColorPalettePicker from './ColorPalettePicker.vue';
+import EditorIconPicker from './EditorIconPicker.vue';
 import type { EditorPromptSpec } from './types';
 
 const props = defineProps<{
@@ -91,6 +92,10 @@ function handleCancel(): void {
                         v-model="values[field.name]"
                         class="zfy-editor-color-field"
                         :placeholder="field.placeholder || '#00a2e3'"
+                    />
+                    <EditorIconPicker
+                        v-else-if="field.type === 'icon'"
+                        v-model="values[field.name]"
                     />
                     <el-input
                         v-else

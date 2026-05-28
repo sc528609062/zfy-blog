@@ -190,6 +190,7 @@ class ContentMarkdownRenderer
         $html = $this->cleanupRenderedHtml($html);
         $html = Purifier::clean($html);
         $html = $this->cleanupRenderedHtml($html);
+        $html = $this->restoreInlineSvgIcons($html);
         $html = $this->renderMarkdownBlockquotes($html);
         $html = $this->applyQuoteStyleVariables($html);
         $html = $this->normalizeMediaAssetUrls($html);
@@ -323,6 +324,8 @@ class ContentMarkdownRenderer
             'show_text' => 'showtext',
             'copyText' => 'copytext',
             'copy_text' => 'copytext',
+            'iconSvg' => 'iconsvg',
+            'icon_svg' => 'iconsvg',
             'startColor' => 'startcolor',
             'start_color' => 'startcolor',
             'endColor' => 'endcolor',
@@ -369,7 +372,7 @@ class ContentMarkdownRenderer
 
         return match ($name) {
             'zfy-html' => $this->renderMarkedHtmlBlock($innerMarkdown),
-            'zfy-alert' => $this->wrapShortcode('alert', $tone, $titleHtml.$this->bodyHtml($innerHtml)),
+            'zfy-alert' => $this->renderAlert($attributes, $innerHtml, $tone, $titleHtml),
             'zfy-callout' => $this->renderCallout($attributes, $innerHtml, $tone, $titleHtml),
             'zfy-quote' => $this->renderQuote($attributes, $innerHtml),
             'zfy-mtitle' => $this->renderMtitle($attributes, $innerHtml),
@@ -867,6 +870,27 @@ class ContentMarkdownRenderer
     /**
      * @param  array<string, string>  $attributes
      */
+    private function renderAlert(array $attributes, string $innerHtml, string $tone, string $titleHtml): string
+    {
+        $color = $this->alertColorToken($attributes['color'] ?? $attributes['type'] ?? $attributes['tone'] ?? $tone);
+        $customColor = $this->safeCssColor($attributes['color'] ?? '');
+        $isCustomColor = $color === 'custom' && $customColor !== '';
+        $colorClass = $isCustomColor ? 'jb-custom' : 'jb-'.$color;
+        $style = $isCustomColor ? ' style="--zfy-alert-color: '.$customColor.';"' : '';
+        $icon = $this->alertIconToken($attributes['icon'] ?? '', $color);
+        $iconClass = $icon ?? 'custom';
+        $iconHtml = match (true) {
+            $icon === 'none' => '',
+            $icon !== null => '<span class="zfy-alert-icon zfy-alert-icon-'.$icon.'" aria-hidden="true"></span>',
+            default => $this->renderInlineIcon($attributes, 'zfy-alert-icon zfy-alert-icon-custom'),
+        };
+
+        return '<div class="wp-block-zibllblock-alert alert-dismissible fade in zfy-shortcode zfy-shortcode-alert zfy-alert-color-'.$color.' zfy-alert-icon-'.$iconClass.'"><div class="alert '.$colorClass.'" data-isclose="" role="alert"'.$style.'>'.$iconHtml.'<div class="zfy-alert-content">'.$titleHtml.$innerHtml.'</div></div></div>';
+    }
+
+    /**
+     * @param  array<string, string>  $attributes
+     */
     private function renderCallout(array $attributes, string $innerHtml, string $tone, string $titleHtml): string
     {
         $color = $this->safeCssColor($attributes['color'] ?? '');
@@ -1149,8 +1173,7 @@ class ContentMarkdownRenderer
         $radius = $this->safeCssSize($attributes['radius'] ?? '');
         $style = trim($color !== '' ? 'background-color: '.$color.';' : '');
         $styleAttribute = $style !== '' ? ' style="'.$style.'"' : '';
-        $icon = trim($attributes['icon'] ?? '');
-        $iconHtml = $icon !== '' ? '<span class="zfy-shortcode-button-icon">'.e($icon).'</span>' : '';
+        $iconHtml = $this->renderInlineIcon($attributes, 'zfy-shortcode-button-icon');
 
         return '<p class="zfy-shortcode-button-wrap"><a class="zfy-shortcode-button" href="'.e($url).'" target="_blank" rel="noopener noreferrer nofollow"'.$styleAttribute.'>'.$iconHtml.e($title).'</a></p>';
     }
@@ -1163,10 +1186,133 @@ class ContentMarkdownRenderer
         $title = trim($attributes['title'] ?? $attributes['label'] ?? $attributes['content'] ?? '便条按钮');
         $url = $this->safeHref($attributes['url'] ?? $attributes['href'] ?? '');
         $type = $this->safeToken($attributes['type'] ?? 'secondary');
-        $icon = trim($attributes['icon'] ?? '');
-        $iconHtml = $icon !== '' ? '<span class="zfy-shortcode-note-icon">'.e($icon).'</span>' : '';
+        $iconHtml = $this->renderInlineIcon($attributes, 'zfy-shortcode-note-icon');
 
         return '<p class="zfy-shortcode-button-wrap"><a class="zfy-shortcode-note zfy-shortcode-note-'.$type.'" href="'.e($url).'" target="_blank" rel="noopener noreferrer nofollow">'.$iconHtml.e($title).'</a></p>';
+    }
+
+    /**
+     * @param  array<string, string>  $attributes
+     */
+    private function renderInlineIcon(array $attributes, string $class): string
+    {
+        $icon = trim($attributes['icon'] ?? '');
+        $encodedSvg = trim($attributes['iconsvg'] ?? '');
+
+        if ($encodedSvg === '' && Str::startsWith($icon, 'svg:')) {
+            $encodedSvg = substr($icon, 4);
+        }
+
+        if ($encodedSvg !== '') {
+            $svg = $this->sanitizeInlineSvgIcon($this->decodeSvgIconPayload($encodedSvg));
+
+            if ($svg !== '') {
+                return '<span class="'.$class.' zfy-shortcode-icon-svg" aria-hidden="true">'.$this->inlineSvgIconPlaceholder($svg).'</span>';
+            }
+        }
+
+        if (Str::startsWith(Str::lower($icon), '<svg')) {
+            $svg = $this->sanitizeInlineSvgIcon($icon);
+
+            if ($svg !== '') {
+                return '<span class="'.$class.' zfy-shortcode-icon-svg" aria-hidden="true">'.$this->inlineSvgIconPlaceholder($svg).'</span>';
+            }
+        }
+
+        if ($icon === '') {
+            return '';
+        }
+
+        $faName = $this->fontAwesomeIconName($icon);
+
+        if ($faName !== '') {
+            return '<span class="'.$class.' fa '.$faName.'" aria-hidden="true">'.e($this->fontAwesomeIconGlyph($faName)).'</span>';
+        }
+
+        return '<span class="'.$class.'">'.e($icon).'</span>';
+    }
+
+    private function fontAwesomeIconName(string $icon): string
+    {
+        if (! preg_match('/\bfa-([a-z0-9-]+)\b/i', $icon, $match)) {
+            return '';
+        }
+
+        return 'fa-'.$this->safeToken($match[1]);
+    }
+
+    private function fontAwesomeIconGlyph(string $icon): string
+    {
+        return [
+            'fa-search' => '⌕',
+            'fa-heart' => '♥',
+            'fa-heart-o' => '♡',
+            'fa-star' => '★',
+            'fa-star-o' => '☆',
+            'fa-user' => '👤',
+            'fa-home' => '⌂',
+            'fa-info-circle' => 'i',
+            'fa-check-circle' => '✓',
+            'fa-exclamation-triangle' => '!',
+            'fa-times-circle' => '×',
+            'fa-question-circle' => '?',
+            'fa-check' => '✓',
+            'fa-times' => '×',
+            'fa-plus' => '+',
+            'fa-minus' => '-',
+            'fa-eye' => '◉',
+            'fa-comment' => '💬',
+            'fa-fire' => '🔥',
+            'fa-gift' => '🎁',
+            'fa-shopping-cart' => '🛒',
+            'fa-download' => '↓',
+            'fa-upload' => '↑',
+            'fa-tag' => '🏷',
+            'fa-clock-o' => '◷',
+            'fa-lock' => '🔒',
+            'fa-bell' => '🔔',
+            'fa-handshake-o' => '🤝',
+            'fa-book' => '📘',
+            'fa-bookmark' => '🔖',
+            'fa-file-text-o' => '▤',
+            'fa-folder' => '▣',
+            'fa-image-o' => '▧',
+            'fa-picture-o' => '▧',
+            'fa-camera' => '◉',
+            'fa-music' => '♪',
+            'fa-play' => '▶',
+            'fa-pause' => 'Ⅱ',
+            'fa-code' => '</>',
+            'fa-calendar' => '□',
+            'fa-map-marker' => '⌖',
+            'fa-link' => '↗',
+            'fa-paperclip' => '⌘',
+            'fa-copy' => '⧉',
+            'fa-money' => '¥',
+            'fa-credit-card' => '▰',
+            'fa-diamond' => '◆',
+            'fa-trophy' => '🏆',
+            'fa-truck' => '▱',
+            'fa-archive' => '▥',
+            'fa-database' => '◫',
+            'fa-cloud' => '☁',
+            'fa-shield' => '⬟',
+            'fa-key' => '⚿',
+            'fa-cog' => '⚙',
+            'fa-wrench' => '⌘',
+            'fa-qq' => 'QQ',
+            'fa-weixin' => '微',
+            'fa-weibo' => 'W',
+            'fa-github' => 'GH',
+            'fa-wordpress' => 'W',
+            'fa-google' => 'G',
+            'fa-twitter' => 'X',
+            'fa-facebook' => 'f',
+            'fa-instagram' => '◎',
+            'fa-youtube-play' => '▶',
+            'fa-telegram' => '✈',
+            'fa-reddit' => 'R',
+        ][$icon] ?? 'FA';
     }
 
     /**
@@ -1219,6 +1365,161 @@ class ContentMarkdownRenderer
             ->all();
     }
 
+    private function restoreInlineSvgIcons(string $html): string
+    {
+        return preg_replace_callback(
+            '/%%ZFY_INLINE_SVG_([A-Za-z0-9_-]+)%%/',
+            fn (array $matches) => $this->sanitizeInlineSvgIcon($this->decodeSvgIconPayload($matches[1] ?? '')),
+            $html,
+        ) ?? $html;
+    }
+
+    private function inlineSvgIconPlaceholder(string $svg): string
+    {
+        return '%%ZFY_INLINE_SVG_'.$this->encodeSvgIconPayload($svg).'%%';
+    }
+
+    private function encodeSvgIconPayload(string $svg): string
+    {
+        return rtrim(strtr(base64_encode($svg), '+/', '-_'), '=');
+    }
+
+    private function decodeSvgIconPayload(string $payload): string
+    {
+        $payload = trim($payload);
+
+        if (Str::startsWith($payload, 'svg:')) {
+            $payload = substr($payload, 4);
+        }
+
+        if ($payload === '' || ! preg_match('/^[A-Za-z0-9_-]+$/', $payload)) {
+            return '';
+        }
+
+        $normalized = strtr($payload, '-_', '+/');
+        $normalized .= str_repeat('=', (4 - strlen($normalized) % 4) % 4);
+        $decoded = base64_decode($normalized, true);
+
+        return is_string($decoded) ? $decoded : '';
+    }
+
+    private function sanitizeInlineSvgIcon(string $svg): string
+    {
+        $svg = trim(html_entity_decode($svg, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
+        if ($svg === '' || strlen($svg) > 20000 || ! Str::startsWith(Str::lower($svg), '<svg')) {
+            return '';
+        }
+
+        if (preg_match('/<\s*(script|iframe|object|embed|foreignobject|style)\b/i', $svg) === 1) {
+            return '';
+        }
+
+        if (preg_match('/\son[a-z0-9_-]+\s*=/i', $svg) === 1 || preg_match('/(?:javascript|data)\s*:/i', $svg) === 1) {
+            return '';
+        }
+
+        $previous = libxml_use_internal_errors(true);
+        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $loaded = $dom->loadXML($svg, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if (! $loaded || ! $dom->documentElement || strtolower($dom->documentElement->tagName) !== 'svg') {
+            return '';
+        }
+
+        $this->sanitizeSvgNode($dom->documentElement);
+        $dom->documentElement->setAttribute('width', '1em');
+        $dom->documentElement->setAttribute('height', '1em');
+        $dom->documentElement->setAttribute('aria-hidden', 'true');
+        $dom->documentElement->setAttribute('focusable', 'false');
+
+        return $dom->saveXML($dom->documentElement) ?: '';
+    }
+
+    private function sanitizeSvgNode(\DOMNode $node): void
+    {
+        $allowedTags = ['svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse', 'title'];
+
+        for ($index = $node->childNodes->length - 1; $index >= 0; $index--) {
+            $child = $node->childNodes->item($index);
+
+            if ($child instanceof \DOMElement) {
+                if (! in_array(strtolower($child->tagName), $allowedTags, true)) {
+                    $node->removeChild($child);
+                    continue;
+                }
+
+                $this->sanitizeSvgElement($child);
+                $this->sanitizeSvgNode($child);
+                continue;
+            }
+
+            if ($child && ($child->nodeType !== XML_TEXT_NODE || trim((string) $child->textContent) === '')) {
+                $node->removeChild($child);
+            }
+        }
+
+        if ($node instanceof \DOMElement) {
+            $this->sanitizeSvgElement($node);
+        }
+    }
+
+    private function sanitizeSvgElement(\DOMElement $element): void
+    {
+        $allowedAttributes = [
+            'viewbox',
+            'width',
+            'height',
+            'fill',
+            'stroke',
+            'stroke-width',
+            'stroke-linecap',
+            'stroke-linejoin',
+            'fill-rule',
+            'clip-rule',
+            'opacity',
+            'transform',
+            'd',
+            'cx',
+            'cy',
+            'r',
+            'x',
+            'y',
+            'x1',
+            'y1',
+            'x2',
+            'y2',
+            'rx',
+            'ry',
+            'points',
+            'xmlns',
+        ];
+
+        for ($index = $element->attributes->length - 1; $index >= 0; $index--) {
+            $attribute = $element->attributes->item($index);
+
+            if (! $attribute) {
+                continue;
+            }
+
+            $name = strtolower($attribute->name);
+            if (! in_array($name, $allowedAttributes, true) || ! $this->safeSvgAttributeValue($attribute->value)) {
+                $element->removeAttributeNode($attribute);
+            }
+        }
+    }
+
+    private function safeSvgAttributeValue(string $value): bool
+    {
+        return strlen($value) <= 4000
+            && preg_match('/[<>]/', $value) !== 1
+            && preg_match('/(?:javascript|data)\s*:/i', $value) !== 1
+            && preg_match('/url\s*\(/i', $value) !== 1
+            && preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $value) !== 1;
+    }
+
     private function safeHref(string $url): string
     {
         $url = trim($url);
@@ -1234,6 +1535,55 @@ class ContentMarkdownRenderer
         $color = trim($color);
 
         return preg_match('/^#[0-9a-fA-F]{3,8}$/', $color) ? $color : '';
+    }
+
+    private function alertColorToken(string $color): string
+    {
+        $token = $this->safeToken($color);
+        $aliases = [
+            'info' => 'blue',
+            'primary' => 'blue',
+            'success' => 'green',
+            'warning' => 'yellow',
+            'warn' => 'yellow',
+            'error' => 'red',
+            'danger' => 'red',
+            'default' => 'blue',
+        ];
+        $token = $aliases[$token] ?? $token;
+
+        if (in_array($token, ['blue', 'cyan', 'green', 'yellow', 'red', 'purple', 'gray'], true)) {
+            return $token;
+        }
+
+        return $this->safeCssColor($color) !== '' ? 'custom' : 'blue';
+    }
+
+    private function alertIconToken(string $icon, string $color): ?string
+    {
+        $token = $this->safeToken($icon);
+        if ($token === 'default') {
+            $token = [
+                'green' => 'check',
+                'yellow' => 'warning',
+                'red' => 'error',
+            ][$color] ?? 'info';
+        }
+
+        $aliases = [
+            'success' => 'check',
+            'ok' => 'check',
+            'danger' => 'error',
+            'warn' => 'warning',
+            'notice' => 'info',
+            'light' => 'lamp',
+            'hot' => 'fire',
+        ];
+        $token = $aliases[$token] ?? $token;
+
+        return in_array($token, ['info', 'check', 'warning', 'error', 'bell', 'lamp', 'fire', 'star', 'none'], true)
+            ? $token
+            : null;
     }
 
     private function safeCssSize(string $size): string

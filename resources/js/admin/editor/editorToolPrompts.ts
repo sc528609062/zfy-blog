@@ -4,10 +4,25 @@ import type { EditorPromptSpec, EditorTool } from './types';
 type PromptValues = Record<string, string>;
 
 const toneOptions = [
-    { label: 'info', value: 'info' },
-    { label: 'success', value: 'success' },
-    { label: 'warning', value: 'warning' },
-    { label: 'error', value: 'error' },
+    { label: '信息', value: 'info' },
+    { label: '成功', value: 'success' },
+    { label: '警告', value: 'warning' },
+    { label: '错误', value: 'error' },
+];
+
+const alertColorOptions = [
+    { label: '蓝色', value: 'blue' },
+    { label: '青色', value: 'cyan' },
+    { label: '绿色', value: 'green' },
+    { label: '黄色', value: 'yellow' },
+    { label: '红色', value: 'red' },
+    { label: '紫色', value: 'purple' },
+    { label: '灰色', value: 'gray' },
+];
+
+const quotePromptFields: EditorPromptSpec['fields'] = [
+    { name: 'color', label: '引用颜色', type: 'color', defaultValue: '#af870d' },
+    { name: 'content', label: '引用内容', type: 'textarea', defaultValue: '引用内容', placeholder: '请输入引用内容' },
 ];
 
 const cloudOptions = [
@@ -66,18 +81,15 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
     quote: {
         id: 'quote',
         title: '彩色引用',
-        fields: [
-            { name: 'color', label: '引用颜色', type: 'color', defaultValue: '#af870d' },
-            { name: 'content', label: '引用内容', type: 'textarea', defaultValue: '引用内容', placeholder: '请输入引用内容' },
-        ],
+        fields: quotePromptFields,
     },
     'zfy-alert': {
         id: 'zfy-alert',
-        title: '警告提示',
+        title: '插入提示',
         fields: [
-            { name: 'type', label: '提示类型', type: 'select', defaultValue: 'info', options: toneOptions },
-            { name: 'title', label: '提示标题', type: 'text', defaultValue: '提示' },
-            { name: 'content', label: '提示内容', type: 'textarea', defaultValue: '提示内容' },
+            { name: 'color', label: '提示颜色', type: 'select', defaultValue: 'blue', options: alertColorOptions },
+            { name: 'icon', label: '提示图标', type: 'icon', defaultValue: 'info' },
+            { name: 'content', label: '提示内容', type: 'textarea', defaultValue: '测试提醒框' },
         ],
     },
     'zfy-callout': {
@@ -91,10 +103,7 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
     'zfy-quote': {
         id: 'zfy-quote',
         title: '彩色引用',
-        fields: [
-            { name: 'color', label: '引用颜色', type: 'color', defaultValue: '#af870d' },
-            { name: 'content', label: '引用内容', type: 'textarea', defaultValue: '引用内容' },
-        ],
+        fields: quotePromptFields,
     },
     'zfy-mtitle': {
         id: 'zfy-mtitle',
@@ -177,7 +186,7 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
         fields: [
             { name: 'title', label: '按钮内容', type: 'text', defaultValue: '按钮内容' },
             { name: 'url', label: '跳转链接', type: 'text', defaultValue: 'https://example.com' },
-            { name: 'icon', label: '按钮图标', type: 'text', defaultValue: 'fa-handshake-o' },
+            { name: 'icon', label: '按钮图标', type: 'icon', defaultValue: 'fa fa-handshake-o' },
             { name: 'color', label: '按钮颜色', type: 'color', defaultValue: '#ff6800' },
             { name: 'radius', label: '按钮圆角', type: 'text', defaultValue: '8px' },
         ],
@@ -198,7 +207,7 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
         fields: [
             { name: 'title', label: '按钮内容', type: 'text', defaultValue: '按钮内容' },
             { name: 'url', label: '跳转链接', type: 'text', defaultValue: 'https://example.com' },
-            { name: 'icon', label: '按钮图标', type: 'text', defaultValue: 'fa-handshake-o' },
+            { name: 'icon', label: '按钮图标', type: 'icon', defaultValue: 'fa fa-handshake-o' },
             { name: 'type', label: '按钮类型', type: 'select', defaultValue: 'secondary', options: [
                 { label: 'secondary', value: 'secondary' },
                 { label: 'success', value: 'success' },
@@ -287,13 +296,13 @@ function snippetFor(id: string, values: PromptValues): string {
         case 'code-block':
             return `\`\`\`${value('language')}\n${text('content', '代码内容')}\n\`\`\``;
         case 'quote':
-            return `{zfy-quote color="${value('color', '#af870d')}"}` + `\n${text('content', '引用内容')}\n{/zfy-quote}`;
+            return quoteSnippet(value('color', '#af870d'), text('content', '引用内容'));
         case 'zfy-alert':
-            return `{zfy-alert type="${value('type', 'info')}" title="${value('title', '提示')}"}` + `\n${text('content', '提示内容')}\n{/zfy-alert}`;
+            return `{zfy-alert color="${value('color', 'blue')}" icon="${value('icon') || 'none'}"}` + `\n${text('content', '测试提醒框')}\n{/zfy-alert}`;
         case 'zfy-callout':
             return `{zfy-callout color="${value('color', '#f0ad4e')}"}` + `\n${text('content', '标注内容')}\n{/zfy-callout}`;
         case 'zfy-quote':
-            return `{zfy-quote color="${value('color', '#af870d')}"}` + `\n${text('content', '引用内容')}\n{/zfy-quote}`;
+            return quoteSnippet(value('color', '#af870d'), text('content', '引用内容'));
         case 'zfy-mtitle':
             return `{zfy-mtitle title="${value('title', '居中标题')}" /}`;
         case 'zfy-card-default':
@@ -313,11 +322,11 @@ function snippetFor(id: string, values: PromptValues): string {
         case 'zfy-mp3':
             return `{zfy-mp3 title="${value('title', '音频名称')}" url="${value('url', '/audio/demo.mp3')}" cover="${value('cover')}" color="${value('color', '#f0ad4e')}" /}`;
         case 'zfy-abtn':
-            return `{zfy-abtn icon="${value('icon', 'fa-handshake-o')}" color="${value('color', '#ff6800')}" url="${value('url', 'https://example.com')}" radius="${value('radius', '8px')}" title="${value('title', '按钮内容')}" /}`;
+            return `{zfy-abtn icon="${value('icon', 'fa fa-handshake-o')}" color="${value('color', '#ff6800')}" url="${value('url', 'https://example.com')}" radius="${value('radius', '8px')}" title="${value('title', '按钮内容')}" /}`;
         case 'zfy-button':
             return `{zfy-button color="${value('color', '#1989fa')}" url="${value('url', 'https://example.com')}" radius="${value('radius', '8px')}" title="${value('title', '访问链接')}" /}`;
         case 'zfy-anote':
-            return `{zfy-anote icon="${value('icon', 'fa-handshake-o')}" url="${value('url', 'https://example.com')}" type="${value('type', 'secondary')}" title="${value('title', '按钮内容')}" /}`;
+            return `{zfy-anote icon="${value('icon', 'fa fa-handshake-o')}" url="${value('url', 'https://example.com')}" type="${value('type', 'secondary')}" title="${value('title', '按钮内容')}" /}`;
         case 'zfy-dotted':
             return `{zfy-dotted startColor="${value('startColor', '#ff6c6c')}" endColor="${value('endColor', '#1989fa')}" /}`;
         case 'zfy-cloud':
@@ -331,6 +340,10 @@ function snippetFor(id: string, values: PromptValues): string {
         default:
             return '';
     }
+}
+
+function quoteSnippet(color: string, content: string): string {
+    return `{zfy-quote color="${color}"}` + `\n${content}\n{/zfy-quote}`;
 }
 
 function buildTable(columns: number, rows: number): string {
