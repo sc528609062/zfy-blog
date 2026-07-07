@@ -59,6 +59,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureBackendAccess:
     Route::get('/', [AdminController::class, 'page'])->defaults('section', 'dashboard')->name('dashboard');
     Route::post('/contents', [AdminContentController::class, 'store'])->name('contents.store');
     Route::patch('/contents/{content}', [AdminContentController::class, 'update'])->name('contents.update');
+    Route::patch('/contents/{content}/settings', [AdminContentController::class, 'settings'])->name('contents.settings');
+    Route::patch('/contents/{content}/status', [AdminContentController::class, 'status'])->name('contents.status');
+    Route::delete('/contents/{content}', [AdminContentController::class, 'destroy'])->name('contents.destroy');
     Route::post('/contents/preview', [AdminContentController::class, 'preview'])->name('contents.preview');
     Route::get('/media/library', [AdminMediaController::class, 'index'])->name('media.library');
     Route::post('/media/upload', [AdminMediaController::class, 'store'])->name('media.upload');

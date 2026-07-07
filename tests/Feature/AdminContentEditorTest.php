@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Content;
+use App\Models\Category;
+use App\Models\Order;
 use App\Models\User;
 use Database\Seeders\CoreInstallSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,6 +63,94 @@ class AdminContentEditorTest extends TestCase
         $content = Content::where('slug', 'hello-world-2')->firstOrFail();
 
         $this->assertNotNull($content->published_at);
+    }
+
+    public function test_admin_can_toggle_content_status_from_table_action(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $content = Content::create([
+            'author_id' => $admin->id,
+            'type' => 'post',
+            'status' => 'published',
+            'title' => '已发布文章',
+            'slug' => 'published-post',
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->patchJson(route('admin.contents.status', $content), [
+                'status' => 'draft',
+            ])
+            ->assertOk()
+            ->assertJsonPath('content.status', 'draft');
+
+        $content->refresh();
+
+        $this->assertSame('draft', $content->status);
+        $this->assertNull($content->published_at);
+    }
+
+    public function test_admin_can_delete_content_from_table_action(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $content = Content::create([
+            'author_id' => $admin->id,
+            'type' => 'post',
+            'status' => 'draft',
+            'title' => '待删除文章',
+            'slug' => 'deleted-post',
+        ]);
+
+        $this->actingAs($admin)
+            ->deleteJson(route('admin.contents.destroy', $content))
+            ->assertOk()
+            ->assertJsonPath('message', '内容已删除');
+
+        $this->assertSoftDeleted('contents', ['id' => $content->id]);
+    }
+
+    public function test_admin_can_save_quick_content_settings_without_touching_body(): void
+    {
+        $admin = $this->seedAndAdmin();
+        $category = Category::create([
+            'name' => '教程',
+            'slug' => 'tutorials',
+            'type' => 'post',
+        ]);
+        $content = Content::create([
+            'author_id' => $admin->id,
+            'type' => 'post',
+            'status' => 'draft',
+            'title' => '原始标题',
+            'slug' => 'quick-settings-post',
+            'markdown_cache' => '**正文**',
+            'rendered_html' => '<strong>正文</strong>',
+            'block_json' => ['mode' => 'markdown'],
+        ]);
+
+        $this->actingAs($admin)
+            ->patchJson(route('admin.contents.settings', $content), [
+                'title' => '快捷设置标题',
+                'type' => 'images',
+                'status' => 'published',
+                'category_id' => $category->id,
+                'topic' => '运营专题',
+                'tags' => 'Laravel, Vue',
+                'cover_url' => '/covers/demo.jpg',
+                'excerpt' => '快捷摘要',
+            ])
+            ->assertOk()
+            ->assertJsonPath('content.title', '快捷设置标题')
+            ->assertJsonPath('content.status', 'published');
+
+        $content->refresh();
+
+        $this->assertSame('images', $content->type);
+        $this->assertSame($category->id, $content->category_id);
+        $this->assertSame('运营专题', $content->block_json['topic']);
+        $this->assertSame('**正文**', $content->markdown_cache);
+        $this->assertSame('<strong>正文</strong>', $content->rendered_html);
+        $this->assertSame(['Laravel', 'Vue'], $content->tags()->orderBy('name')->pluck('name')->all());
     }
 
     public function test_unauthorized_user_cannot_save_content(): void
@@ -721,20 +811,78 @@ MARKDOWN;
             'status' => 'draft',
             'title' => '可编辑文章',
             'slug' => 'editable-post',
+            'view_count' => 12,
+            'comment_count' => 3,
+            'like_count' => 4,
+            'download_count' => 5,
+            'block_json' => ['topic' => '运营专题'],
             'markdown_cache' => '编辑内容',
             'rendered_html' => '<p>编辑内容</p>',
+        ]);
+        $order = Order::create([
+            'user_id' => $admin->id,
+            'order_no' => 'ZFTEST0001',
+            'type' => 'content',
+            'status' => 'paid',
+            'pay_channel' => 'balance',
+            'total_amount' => 20,
+            'paid_amount' => 20,
+            'paid_at' => now(),
+        ]);
+        $order->items()->create([
+            'item_type' => 'content',
+            'item_id' => $content->id,
+            'title' => $content->title,
+            'quantity' => 2,
+            'unit_price' => 10,
         ]);
 
         $this->actingAs($admin)
             ->get('/admin/contents')
             ->assertOk()
-            ->assertSee('editor?content='.$content->id, false);
+            ->assertSee('editor?content='.$content->id, false)
+            ->assertSee('"key":"view_count"', false)
+            ->assertSee('"key":"comment_count"', false)
+            ->assertSee('"key":"like_count"', false)
+            ->assertSee('"key":"favorite_count"', false)
+            ->assertSee('"key":"download_count"', false)
+            ->assertSee('"key":"purchase_count"', false)
+            ->assertSee('"purchase_count":2', false)
+            ->assertSee('"topic_name":"\u8fd0\u8425\u4e13\u9898"', false);
 
         $this->actingAs($admin)
             ->get('/admin/editor?content='.$content->id)
             ->assertOk()
             ->assertSee('"id":'.$content->id, false)
             ->assertSee('editable-post', false);
+    }
+
+    public function test_admin_section_ajax_request_returns_payload_for_fast_navigation(): void
+    {
+        $admin = $this->seedAndAdmin();
+        Content::create([
+            'author_id' => $admin->id,
+            'type' => 'post',
+            'status' => 'draft',
+            'title' => 'Ajax 导航文章',
+            'slug' => 'ajax-navigation-post',
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson('/admin/contents')
+            ->assertOk()
+            ->assertJsonPath('payload.section', 'contents')
+            ->assertJsonPath('payload.current_page.kind', 'table')
+            ->assertJsonPath('payload.data_rows.0.title', 'Ajax 导航文章')
+            ->assertJsonStructure([
+                'payload' => [
+                    'csrf',
+                    'admin_menu',
+                    'current_page',
+                    'data_rows',
+                    'routes',
+                ],
+            ]);
     }
 
     public function test_front_content_rerenders_stale_shortcode_cache_from_markdown(): void

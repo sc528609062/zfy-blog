@@ -36,6 +36,96 @@ class AdminContentController extends Controller
         return $this->contentResponse($content, '内容已更新');
     }
 
+    public function settings(Request $request, Content $content): JsonResponse
+    {
+        $this->authorizeWriting($request, $content);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+            'type' => ['required', 'string', Rule::in(config('zfy.content_types', ['post', 'images', 'files', 'page']))],
+            'status' => ['required', 'string', Rule::in(['draft', 'published'])],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'tags' => ['nullable'],
+            'topic' => ['nullable', 'string', 'max:120'],
+            'cover_url' => ['nullable', 'string', 'max:2048'],
+            'excerpt' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $wasPublished = $content->status === 'published';
+        $isPublished = $data['status'] === 'published';
+        $blockJson = Arr::wrap($content->block_json);
+        $topic = trim((string) ($data['topic'] ?? ''));
+
+        if ($topic !== '') {
+            $blockJson['topic'] = $topic;
+        } else {
+            unset($blockJson['topic']);
+        }
+
+        $attributes = [
+            'title' => $data['title'],
+            'type' => $data['type'],
+            'status' => $data['status'],
+            'category_id' => $data['category_id'] ?? null,
+            'cover_url' => $data['cover_url'] ?? null,
+            'excerpt' => $data['excerpt'] ?? null,
+            'block_json' => $blockJson,
+            'published_at' => $isPublished ? ($content->published_at ?: now()) : null,
+        ];
+
+        zfy_emit('zfy_content_saving', $attributes, $content, $request->user());
+
+        $content->update($attributes);
+        $this->syncTags($content, $data['tags'] ?? null);
+
+        zfy_emit('zfy_content_saved', $content, $attributes, $request->user());
+
+        if ($isPublished && ! $wasPublished) {
+            zfy_emit('zfy_content_published', $content, $attributes, $request->user());
+        }
+
+        return $this->contentResponse($content->refresh(), '快捷设置已保存');
+    }
+
+    public function status(Request $request, Content $content): JsonResponse
+    {
+        $this->authorizeWriting($request, $content);
+
+        $data = $request->validate([
+            'status' => ['required', 'string', Rule::in(['draft', 'published'])],
+        ]);
+
+        $wasPublished = $content->status === 'published';
+        $isPublished = $data['status'] === 'published';
+        $attributes = [
+            'status' => $data['status'],
+            'published_at' => $isPublished ? ($content->published_at ?: now()) : null,
+        ];
+
+        zfy_emit('zfy_content_saving', $attributes, $content, $request->user());
+
+        $content->update($attributes);
+
+        zfy_emit('zfy_content_saved', $content, $attributes, $request->user());
+
+        if ($isPublished && ! $wasPublished) {
+            zfy_emit('zfy_content_published', $content, $attributes, $request->user());
+        }
+
+        return $this->contentResponse($content->refresh(), $isPublished ? '内容已发布' : '内容已设为草稿');
+    }
+
+    public function destroy(Request $request, Content $content): JsonResponse
+    {
+        $this->authorizeWriting($request, $content);
+
+        $content->delete();
+
+        return response()->json([
+            'message' => '内容已删除',
+        ]);
+    }
+
     public function preview(Request $request): JsonResponse
     {
         $this->authorizeWriting($request);

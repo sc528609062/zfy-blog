@@ -1,6 +1,6 @@
 @php
     $section = $section ?? 'dashboard';
-    $payload = [
+    $payload = $payload ?? [
         'section' => $section,
         'csrf' => csrf_token(),
         'today' => now()->format('Y-m-d'),
@@ -10,15 +10,7 @@
         'settings_schema' => $settingsSchema ?? [],
         'theme_capabilities' => $themeCapabilities ?? [],
         'stats' => $stats ?? [],
-        'contents' => collect($contents ?? [])->map(fn ($content) => [
-            'id' => $content->id,
-            'title' => $content->title,
-            'status' => $content->status,
-            'type' => $content->type,
-            'created_at' => optional($content->created_at)->format('Y-m-d H:i'),
-            'editable' => true,
-            'edit_url' => '/admin/editor?content='.$content->id,
-        ])->values(),
+        'contents' => collect($contents ?? [])->values(),
         'orders' => collect($orders ?? [])->map(fn ($order) => [
             'id' => $order->id,
             'title' => $order->order_no,
@@ -60,6 +52,9 @@
             'theme_activate' => route('admin.themes.activate', [], false),
             'content_store' => route('admin.contents.store', [], false),
             'content_update' => '/admin/contents/__CONTENT__',
+            'content_settings' => '/admin/contents/__CONTENT__/settings',
+            'content_status' => '/admin/contents/__CONTENT__/status',
+            'content_destroy' => '/admin/contents/__CONTENT__',
             'content_preview' => route('admin.contents.preview', [], false),
             'media_library' => route('admin.media.library', [], false),
             'media_upload' => route('admin.media.upload', [], false),

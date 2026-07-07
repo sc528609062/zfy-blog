@@ -26,7 +26,9 @@ use App\Services\ThemeManager;
 use App\Support\Zfy\AdminRegistry;
 use App\Support\Zfy\SettingsRegistry;
 use App\Support\Zfy\ThemeRegistry;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -41,9 +43,26 @@ class AdminController extends Controller
 
     public function page(Request $request, string $section = 'dashboard')
     {
-        $page = $this->admin->pageOrFallback($section);
+        $data = $this->pageData($request, $section);
+        $payload = $this->adminPayload($data);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'payload' => $payload,
+            ]);
+        }
 
         return view('admin.shell', [
+            ...$data,
+            'payload' => $payload,
+        ]);
+    }
+
+    private function pageData(Request $request, string $section): array
+    {
+        $page = $this->admin->pageOrFallback($section);
+
+        return [
             'section' => $section,
             'adminMenu' => $this->admin->menuFor($request->user()),
             'currentPage' => $page,
@@ -58,7 +77,7 @@ class AdminController extends Controller
                 'products' => Product::count(),
                 'links' => Link::count(),
             ],
-            'contents' => Content::latest()->take(12)->get(),
+            'contents' => $this->contentRows(Content::with($this->contentListRelations())->latest()->take(12)->get()),
             'orders' => Order::latest()->take(12)->get(),
             'dataRows' => $this->rowsFor($section),
             'themes' => Theme::all(),
@@ -67,7 +86,73 @@ class AdminController extends Controller
             'themeManifests' => $this->packages->themes(),
             'pluginManifests' => $this->packages->plugins(),
             'editor' => $this->editorPayload($request),
-        ]);
+        ];
+    }
+
+    private function adminPayload(array $data): array
+    {
+        $section = $data['section'] ?? 'dashboard';
+
+        return [
+            'section' => $section,
+            'csrf' => csrf_token(),
+            'today' => now()->format('Y-m-d'),
+            'current_user' => auth()->user()?->only(['id', 'name', 'username', 'email', 'avatar_url']),
+            'admin_menu' => $data['adminMenu'] ?? [],
+            'current_page' => $data['currentPage'] ?? null,
+            'settings_schema' => $data['settingsSchema'] ?? [],
+            'theme_capabilities' => $data['themeCapabilities'] ?? [],
+            'stats' => $data['stats'] ?? [],
+            'contents' => collect($data['contents'] ?? [])->values(),
+            'orders' => collect($data['orders'] ?? [])->map(fn ($order) => [
+                'id' => $order->id,
+                'title' => $order->order_no,
+                'status' => $order->status,
+                'type' => $order->pay_channel,
+                'created_at' => optional($order->created_at)->format('Y-m-d H:i'),
+            ])->values(),
+            'data_rows' => collect($data['dataRows'] ?? [])->values(),
+            'themes' => collect($data['themes'] ?? [])->map(fn ($themeItem) => [
+                'id' => $themeItem->id,
+                'name' => $themeItem->name,
+                'slug' => $themeItem->slug,
+                'version' => $themeItem->version,
+                'preview' => $themeItem->preview,
+                'is_active' => (bool) $themeItem->is_active,
+                'settings_url' => route('admin.themes.settings', $themeItem, false),
+            ])->values(),
+            'plugins' => collect($data['plugins'] ?? [])->map(fn ($plugin) => [
+                'id' => $plugin->id,
+                'name' => $plugin->name,
+                'slug' => $plugin->slug,
+                'version' => $plugin->version,
+                'enabled' => (bool) $plugin->enabled,
+                'permissions' => $plugin->permissions ?? [],
+                'toggle_url' => route('admin.plugins.toggle', $plugin, false),
+                'settings_url' => route('admin.plugins.settings', $plugin, false),
+            ])->values(),
+            'layouts' => collect($data['layouts'] ?? [])->map(fn ($layout) => [
+                'id' => $layout->id,
+                'title' => $layout->title,
+                'status' => $layout->status,
+                'schema' => json_encode($layout->schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+                'save_url' => route('admin.page-builder.save', $layout, false),
+            ])->values(),
+            'editor' => $data['editor'] ?? [],
+            'theme_manifests' => $data['themeManifests'] ?? [],
+            'plugin_manifests' => $data['pluginManifests'] ?? [],
+            'routes' => [
+                'theme_activate' => route('admin.themes.activate', [], false),
+                'content_store' => route('admin.contents.store', [], false),
+                'content_update' => '/admin/contents/__CONTENT__',
+                'content_settings' => '/admin/contents/__CONTENT__/settings',
+                'content_status' => '/admin/contents/__CONTENT__/status',
+                'content_destroy' => '/admin/contents/__CONTENT__',
+                'content_preview' => route('admin.contents.preview', [], false),
+                'media_library' => route('admin.media.library', [], false),
+                'media_upload' => route('admin.media.upload', [], false),
+            ],
+        ];
     }
 
     public function activateTheme(Request $request)
@@ -144,6 +229,7 @@ class AdminController extends Controller
     private function rowsFor(string $section)
     {
         return match ($section) {
+            'contents' => $this->contentRows(Content::with($this->contentListRelations())->latest()->take(20)->get()),
             'orders' => Order::latest()->take(20)->get()->map(fn (Order $order) => [
                 'id' => $order->id,
                 'title' => $order->order_no,
@@ -228,15 +314,135 @@ class AdminController extends Controller
                 'type' => 'card',
                 'created_at' => optional($card->created_at)->format('Y-m-d H:i'),
             ]),
-            default => Content::latest()->take(20)->get()->map(fn (Content $content) => [
-                'id' => $content->id,
-                'title' => $content->title,
-                'status' => $content->status,
-                'type' => $content->type,
-                'created_at' => optional($content->created_at)->format('Y-m-d H:i'),
-                'editable' => true,
-                'edit_url' => '/admin/editor?content='.$content->id,
-            ]),
+            default => $this->contentRows(Content::with($this->contentListRelations())->latest()->take(20)->get()),
+        };
+    }
+
+    private function contentListRelations(): array
+    {
+        return [
+            'author:id,name,username,avatar_url',
+            'category:id,name,slug',
+            'tags:id,name,slug,color',
+        ];
+    }
+
+    private function contentRows(EloquentCollection $contents)
+    {
+        $purchaseCounts = $this->contentPurchaseCounts($contents->pluck('id')->all());
+
+        return $contents->map(fn (Content $content) => $this->contentRow($content, $purchaseCounts));
+    }
+
+    private function contentPurchaseCounts(array $contentIds): array
+    {
+        if ($contentIds === []) {
+            return [];
+        }
+
+        return DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', 'paid')
+            ->where('order_items.item_type', 'content')
+            ->whereIn('order_items.item_id', $contentIds)
+            ->groupBy('order_items.item_id')
+            ->selectRaw('order_items.item_id, SUM(order_items.quantity) as purchases')
+            ->pluck('purchases', 'item_id')
+            ->map(fn ($count) => (int) $count)
+            ->all();
+    }
+
+    private function contentRow(Content $content, array $purchaseCounts = []): array
+    {
+        $authorName = $content->author?->name ?: $content->author?->username;
+        $favoriteCount = (int) data_get($content->meta, 'favorite_count', 0);
+        $purchaseCount = (int) ($purchaseCounts[$content->id] ?? 0);
+        $topicName = $this->contentTopicName($content);
+
+        return [
+            'id' => $content->id,
+            'title' => $content->title,
+            'status' => $content->status,
+            'status_label' => $this->contentStatusLabel($content->status),
+            'status_tag_type' => match ($content->status) {
+                'published' => 'success',
+                'draft', 'pending' => 'warning',
+                default => 'info',
+            },
+            'type' => $content->type,
+            'type_label' => $this->contentTypeLabel($content->type),
+            'cover_url' => $content->cover_url ?: '/assets/zfy/placeholders/cover-blue.svg',
+            'cover_url_raw' => $content->cover_url,
+            'excerpt' => str($content->excerpt ?: '暂无摘要')->limit(96)->toString(),
+            'excerpt_raw' => $content->excerpt,
+            'author_name' => $authorName ?: '未设置作者',
+            'author_avatar' => $content->author?->avatar_url ?: '/assets/zfy/placeholders/avatar.svg',
+            'category_id' => $content->category_id,
+            'category_name' => $content->category?->name ?: '未分类',
+            'topic_name' => $topicName,
+            'tags' => $content->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'color' => $tag->color,
+            ])->values(),
+            'tags_text' => $content->tags->pluck('name')->implode(', '),
+            'view_count' => $content->view_count,
+            'comment_count' => $content->comment_count,
+            'like_count' => $content->like_count,
+            'favorite_count' => $favoriteCount,
+            'download_count' => $content->download_count,
+            'purchase_count' => $purchaseCount,
+            'metrics' => [
+                ['key' => 'view_count', 'label' => '阅读', 'value' => $content->view_count],
+                ['key' => 'comment_count', 'label' => '评论', 'value' => $content->comment_count],
+                ['key' => 'like_count', 'label' => '点赞', 'value' => $content->like_count],
+                ['key' => 'favorite_count', 'label' => '收藏', 'value' => $favoriteCount],
+                ['key' => 'download_count', 'label' => '下载', 'value' => $content->download_count],
+                ['key' => 'purchase_count', 'label' => '购买', 'value' => $purchaseCount],
+            ],
+            'published_at' => optional($content->published_at)->format('Y-m-d H:i'),
+            'created_at' => optional($content->created_at)->format('Y-m-d H:i'),
+            'editable' => true,
+            'edit_url' => '/admin/editor?content='.$content->id,
+            'settings_url' => '/admin/editor?content='.$content->id.'&panel=settings',
+        ];
+    }
+
+    private function contentTopicName(Content $content): string
+    {
+        $topic = data_get($content->block_json, 'topic')
+            ?? data_get($content->block_json, 'topics.0')
+            ?? data_get($content->seo, 'topic')
+            ?? data_get($content->seo, 'topics.0');
+
+        if (is_array($topic)) {
+            $topic = $topic['name'] ?? $topic['title'] ?? $topic['label'] ?? null;
+        }
+
+        $topic = trim((string) $topic);
+
+        return $topic !== '' ? $topic : '未归入专题';
+    }
+
+    private function contentStatusLabel(?string $status): string
+    {
+        return match ($status) {
+            'published' => '已发布',
+            'draft' => '草稿',
+            'pending' => '待审核',
+            'archived' => '已归档',
+            default => $status ?: '未知',
+        };
+    }
+
+    private function contentTypeLabel(?string $type): string
+    {
+        return match ($type) {
+            'post' => '文章',
+            'images' => '图集',
+            'files' => '资源',
+            'page' => '页面',
+            default => $type ?: '内容',
         };
     }
 

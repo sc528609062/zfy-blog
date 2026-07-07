@@ -19,10 +19,11 @@ const props = defineProps<{
 const emit = defineEmits<{
     navigate: [section: string];
     openMenu: [];
+    refresh: [];
 }>();
 
 function reloadPage() {
-    window.location.reload();
+    emit('refresh');
 }
 
 function visitSite() {
