@@ -109,7 +109,7 @@ class ZfyServiceProvider extends ServiceProvider
     {
         return [
             ['key' => 'dashboard', 'label' => '首页', 'description' => '站点运营、内容和商城概览', 'group' => 'dashboard', 'kind' => 'dashboard', 'status' => 'ready', 'position' => 10],
-            ['key' => 'updater', 'label' => '更新', 'description' => '显示系统核心、插件、主题更新', 'group' => 'dashboard', 'kind' => 'placeholder', 'position' => 20],
+            ['key' => 'updater', 'label' => '更新', 'description' => '通过 Gitee 版本标签在线更新系统核心', 'group' => 'dashboard', 'kind' => 'updater', 'permission' => 'manage system', 'status' => 'ready', 'position' => 20],
             ['key' => 'contents', 'label' => '所有文章', 'description' => '管理网站文章和资源内容', 'group' => 'content', 'kind' => 'table', 'permission' => 'manage contents', 'status' => 'ready', 'position' => 10],
             ['key' => 'editor', 'label' => '写文章', 'description' => '新增文章、图集或资源内容', 'group' => 'content', 'kind' => 'editor', 'permission' => 'publish contents', 'status' => 'ready', 'position' => 20],
             ['key' => 'categories', 'label' => '分类目录', 'description' => '管理内容分类层级', 'group' => 'content', 'kind' => 'placeholder', 'permission' => 'manage contents', 'position' => 30],

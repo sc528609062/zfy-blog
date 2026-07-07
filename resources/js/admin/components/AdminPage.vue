@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import AdminEditorPage from '../editor/AdminEditorPage.vue';
 import AdminDataTable from './AdminDataTable.vue';
+import AdminUpdaterPage from './updater/AdminUpdaterPage.vue';
 import SettingsForm from './SettingsForm.vue';
 import BitsGradientText from './bits/BitsGradientText.vue';
 import BitsMetricCard from './bits/BitsMetricCard.vue';
@@ -144,6 +145,10 @@ function editRow(row: Record<string, any>) {
 
         <template v-else-if="pageKind === 'editor'">
             <AdminEditorPage :payload="payload" />
+        </template>
+
+        <template v-else-if="pageKind === 'updater'">
+            <AdminUpdaterPage :payload="payload" />
         </template>
 
         <template v-else-if="pageKind === 'themes'">

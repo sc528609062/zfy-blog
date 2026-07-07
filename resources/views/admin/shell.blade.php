@@ -63,6 +63,9 @@
             'content_preview' => route('admin.contents.preview', [], false),
             'media_library' => route('admin.media.library', [], false),
             'media_upload' => route('admin.media.upload', [], false),
+            'updater_status' => route('admin.updater.status', [], false),
+            'updater_run' => route('admin.updater.run', [], false),
+            'updater_log' => '/admin/updater/logs/__LOG__',
         ],
     ];
 @endphp
