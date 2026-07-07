@@ -3,7 +3,6 @@
 use App\Http\Controllers\Admin\AdminContentController;
 use App\Http\Controllers\Admin\AdminMediaController;
 use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\AdminUpdaterController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Middleware\EnsureBackendAccess;
@@ -63,9 +62,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureBackendAccess:
     Route::post('/contents/preview', [AdminContentController::class, 'preview'])->name('contents.preview');
     Route::get('/media/library', [AdminMediaController::class, 'index'])->name('media.library');
     Route::post('/media/upload', [AdminMediaController::class, 'store'])->name('media.upload');
-    Route::get('/updater/status', [AdminUpdaterController::class, 'status'])->name('updater.status');
-    Route::post('/updater/run', [AdminUpdaterController::class, 'run'])->name('updater.run');
-    Route::get('/updater/logs/{log}', [AdminUpdaterController::class, 'log'])->name('updater.log');
     Route::get('/{section}', [AdminController::class, 'page'])
         ->where('section', '[A-Za-z0-9-]+')
         ->name('section');
