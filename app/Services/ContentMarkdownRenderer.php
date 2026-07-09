@@ -190,6 +190,7 @@ class ContentMarkdownRenderer
         $html = $this->cleanupRenderedHtml($html);
         $html = Purifier::clean($html);
         $html = $this->cleanupRenderedHtml($html);
+        $html = $this->restoreDottedStyles($html);
         $html = $this->restoreInlineSvgIcons($html);
         $html = $this->renderMarkdownBlockquotes($html);
         $html = $this->applyQuoteStyleVariables($html);
@@ -228,14 +229,57 @@ class ContentMarkdownRenderer
     public function shouldRefreshCachedHtml(?string $html): bool
     {
         $html = (string) ($html ?? '');
+        $lowerHtml = Str::lower($html);
 
         if (trim($html) === '') {
             return true;
         }
 
         return preg_match($this->shortcodeTokenPattern(), $html) === 1
-            || Str::contains(Str::lower($html), ['<joe-', 'joe_', '<blockquote', 'zfy-shortcode-quote zfy-quote quote_q', '/storage/media/'])
+            || Str::contains($lowerHtml, ['<blockquote', 'zfy-shortcode-quote zfy-quote quote_q', '/storage/media/'])
+            || $this->containsStaleJoeElementMarkup($lowerHtml)
+            || $this->containsStaleJoeClassMarkup($lowerHtml)
+            || $this->containsStaleNeteaseMarkup($lowerHtml)
             || preg_match('/<pre\b(?![^>]*\bwp-block-zibllblock-enlighter\b)[^>]*>\s*<code\b/i', $html) === 1;
+    }
+
+    private function containsStaleJoeElementMarkup(string $html): bool
+    {
+        if (! Str::contains($html, '<joe-')) {
+            return false;
+        }
+
+        return ! Str::contains($html, ['<joe-mlist', '<joe-music']);
+    }
+
+    private function containsStaleJoeClassMarkup(string $html): bool
+    {
+        if (! Str::contains($html, 'joe_')) {
+            return false;
+        }
+
+        if (Str::contains($html, 'joe_dotted')) {
+            return ! Str::contains($html, 'background-image: repeating-linear-gradient(90deg');
+        }
+
+        return true;
+    }
+
+    private function containsStaleNeteaseMarkup(string $html): bool
+    {
+        if (Str::contains($html, ['zfy-shortcode-netease-music-list', 'zfy-shortcode-netease-music', 'zfy-netease-frame'])) {
+            return true;
+        }
+
+        if (Str::contains($html, 'zfy-shortcode-media-music-list')) {
+            return true;
+        }
+
+        if (Str::contains($html, 'zfy-shortcode-media-music')) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -386,6 +430,7 @@ class ContentMarkdownRenderer
             'zfy-copy' => $this->renderCopy($attributes, $innerHtml),
             'zfy-grid' => $this->renderGrid($attributes, $innerMarkdown, $innerHtml, $allowRawHtml),
             'zfy-hide' => $this->renderHide($attributes),
+            'zfy-dotted' => $this->renderDotted($attributes),
             default => $this->wrapShortcode($this->safeToken($type), $tone, $titleHtml.$this->bodyHtml($innerHtml)),
         };
     }
@@ -1122,13 +1167,51 @@ class ContentMarkdownRenderer
         }
 
         if (in_array($name, ['zfy-music', 'zfy-music-list'], true)) {
-            $id = trim($attributes['id'] ?? '');
+            $id = $this->neteaseMusicId($attributes);
             $meta = $id !== '' ? '网易云 ID：'.$id : ($url === '#' ? '未填写地址' : $url);
+
+            if ($id !== '') {
+                return $this->renderJoeMusicElement($type, $id, $attributes);
+            }
 
             return '<div class="zfy-shortcode zfy-shortcode-media zfy-shortcode-media-'.$type.'"><span class="zfy-media-icon">'.$this->mediaIcon($type).'</span><div><div class="zfy-shortcode-title">'.e($title).'</div><small>'.e($meta).'</small></div>'.($url !== '#' ? '<a href="'.e($url).'" target="_blank" rel="noopener noreferrer nofollow">打开</a>' : '').'</div>';
         }
 
         return '<div class="zfy-shortcode zfy-shortcode-media zfy-shortcode-media-'.$type.'"><span class="zfy-media-icon">'.$this->mediaIcon($type).'</span><div><div class="zfy-shortcode-title">'.e($title).'</div><small>'.e($url === '#' ? '未填写地址' : $url).'</small></div><a href="'.e($url).'" target="_blank" rel="noopener noreferrer nofollow">打开</a></div>';
+    }
+
+    /**
+     * @param  array<string, string>  $attributes
+     */
+    private function renderJoeMusicElement(string $type, string $id, array $attributes): string
+    {
+        $tag = $type === 'music-list' ? 'joe-mlist' : 'joe-music';
+        $color = $this->safeCssColor($attributes['color'] ?? '') ?: '#1989fa';
+        $autoplay = $this->truthyAttribute($attributes['autoplay'] ?? $attributes['auto'] ?? '') ? ' autoplay="autoplay"' : '';
+
+        return '<'.$tag.' id="'.e($id).'" color="'.e($color).'"'.$autoplay.'></'.$tag.'>';
+    }
+
+    /**
+     * @param  array<string, string>  $attributes
+     */
+    private function neteaseMusicId(array $attributes): string
+    {
+        $source = trim($attributes['id'] ?? '');
+
+        if ($source === '') {
+            $source = trim($attributes['url'] ?? $attributes['src'] ?? '');
+        }
+
+        if ($source === '') {
+            return '';
+        }
+
+        if (preg_match('/(?:id=|playlist\/|song\/)(\d+)/i', $source, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return preg_match('/^\d+$/', $source) === 1 ? $source : '';
     }
 
     /**
@@ -1322,8 +1405,9 @@ class ContentMarkdownRenderer
     {
         $start = $this->safeCssColor($attributes['startcolor'] ?? '#ff6c6c') ?: '#ff6c6c';
         $end = $this->safeCssColor($attributes['endcolor'] ?? '#1989fa') ?: '#1989fa';
+        $gradient = $this->dottedGradient($start, $end);
 
-        return '<div class="zfy-shortcode zfy-shortcode-dotted"><span style="background-image: repeating-linear-gradient(-45deg, '.$start.' 0, '.$start.' 20%, transparent 0, transparent 25%, '.$end.' 0, '.$end.' 45%, transparent 0, transparent 50%);"></span></div>';
+        return '<div class="zfy-shortcode zfy-shortcode-dotted" data-start-color="'.e($start).'" data-end-color="'.e($end).'"><span class="joe_dotted" style="background-image: '.$gradient.';"></span></div>';
     }
 
     /**
@@ -1537,6 +1621,35 @@ class ContentMarkdownRenderer
         return preg_match('/^#[0-9a-fA-F]{3,8}$/', $color) ? $color : '';
     }
 
+    private function dottedGradient(string $start, string $end): string
+    {
+        return 'repeating-linear-gradient(90deg, '.$end.' 0, '.$end.' 14px, transparent 14px, transparent 18px, '.$start.' 18px, '.$start.' 32px, transparent 32px, transparent 36px)';
+    }
+
+    private function restoreDottedStyles(string $html): string
+    {
+        return preg_replace_callback(
+            '/(<div\b[^>]*\bzfy-shortcode-dotted\b[^>]*>)(\s*<span\b[^>]*\bjoe_dotted\b[^>]*)(><\/span>\s*<\/div>)/i',
+            function (array $matches): string {
+                $start = $this->safeCssColor($this->htmlAttributeValue($matches[1], 'data-start-color')) ?: '#ff6c6c';
+                $end = $this->safeCssColor($this->htmlAttributeValue($matches[1], 'data-end-color')) ?: '#1989fa';
+                $span = preg_replace('/\sstyle=(["\']).*?\1/i', '', $matches[2]) ?? $matches[2];
+
+                return $matches[1].$span.' style="background-image: '.$this->dottedGradient($start, $end).';"'.$matches[3];
+            },
+            $html
+        ) ?? $html;
+    }
+
+    private function htmlAttributeValue(string $tag, string $attribute): string
+    {
+        if (preg_match('/\s'.preg_quote($attribute, '/').'=(["\'])(.*?)\1/i', $tag, $matches) !== 1) {
+            return '';
+        }
+
+        return html_entity_decode($matches[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
     private function alertColorToken(string $color): string
     {
         $token = $this->safeToken($color);
@@ -1598,6 +1711,13 @@ class ContentMarkdownRenderer
         $format = trim($format);
 
         return in_array($format, self::TIME_FORMATS, true) ? $format : self::DEFAULT_TIME_FORMAT;
+    }
+
+    private function truthyAttribute(string $value): bool
+    {
+        $value = Str::lower(trim($value));
+
+        return in_array($value, ['1', 'true', 'yes', 'on', 'autoplay'], true);
     }
 
     private function formatCurrentTime(string $format): string

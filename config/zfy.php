@@ -34,7 +34,7 @@ return [
             'library_per_page' => 24,
             'upload_max_kb' => 20480,
             'directories' => [
-                ['value' => 'editor/images', 'label' => '正文图片'],
+                ['value' => 'editor/images', 'label' => '正文媒体'],
                 ['value' => 'editor/covers', 'label' => '文章封面'],
                 ['value' => 'editor/files', 'label' => '资源附件'],
             ],

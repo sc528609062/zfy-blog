@@ -56,10 +56,10 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
     },
     image: {
         id: 'image',
-        title: '插入图片',
+        title: '插入媒体',
         fields: [
-            { name: 'title', label: '图片名称', type: 'text', defaultValue: '图片描述' },
-            { name: 'url', label: '图片地址', type: 'text', defaultValue: '/assets/zfy/placeholders/blue.svg' },
+            { name: 'title', label: '媒体名称', type: 'text', defaultValue: '图片描述' },
+            { name: 'url', label: '媒体地址', type: 'text', defaultValue: '/assets/zfy/placeholders/blue.svg' },
         ],
     },
     table: {

@@ -6,6 +6,7 @@ import {
     pulseEnlighterButton,
     toggleEnlighterRaw,
 } from './shared/enlighterBlocks';
+import { mountJoeNeteasePlayers } from './shared/joeNeteasePlayer';
 import { mountZfyTimes } from './shared/zfyTime';
 
 // 搜索功能
@@ -46,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 编辑器短代码交互
     initZfyShortcodes();
     mountZfyTimes();
+    mountJoeNeteasePlayers();
 });
 
 // 防抖函数

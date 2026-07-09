@@ -15,6 +15,7 @@ use App\Models\Theme;
 use App\Models\User;
 use App\Models\VipLevel;
 use App\Services\DemoContentRepository;
+use App\Services\NeteaseMusicService;
 use App\Services\OrderService;
 use App\Services\SystemHealthService;
 use App\Services\ThemeManager;
@@ -294,6 +295,21 @@ class PlatformController extends Controller
     public function health(SystemHealthService $health)
     {
         return $this->ok($health->report());
+    }
+
+    public function neteasePlaylist(string $id, NeteaseMusicService $music)
+    {
+        return $this->ok($music->playlist($id));
+    }
+
+    public function neteaseSong(string $id, NeteaseMusicService $music)
+    {
+        return $this->ok($music->song($id));
+    }
+
+    public function neteaseSongStream(string $id, NeteaseMusicService $music)
+    {
+        return redirect($music->streamUrl($id));
     }
 
     public function upgrade()

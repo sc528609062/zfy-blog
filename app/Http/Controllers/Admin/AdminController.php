@@ -151,6 +151,7 @@ class AdminController extends Controller
                 'content_preview' => route('admin.contents.preview', [], false),
                 'media_library' => route('admin.media.library', [], false),
                 'media_upload' => route('admin.media.upload', [], false),
+                'media_destroy' => '/admin/media/__MEDIA__',
             ],
         ];
     }
@@ -561,7 +562,7 @@ class AdminController extends Controller
             ['id' => 'task-list', 'label' => '任务列表', 'icon' => 'Finished', 'action' => 'blockInsert', 'snippet' => "- [ ] 待办事项\n- [x] 已完成事项", 'group' => 'block'],
             ['id' => 'hr', 'label' => '分割线', 'icon' => 'Minus', 'action' => 'blockInsert', 'snippet' => '---', 'group' => 'insert'],
             ['id' => 'link', 'label' => '链接', 'icon' => 'Link', 'action' => 'wrap', 'prefix' => '[', 'suffix' => '](https://example.com)', 'placeholder' => '链接文字', 'group' => 'insert'],
-            ['id' => 'image', 'label' => '图片', 'icon' => 'Picture', 'action' => 'blockInsert', 'snippet' => '![图片描述](/assets/zfy/placeholders/blue.svg)', 'group' => 'insert'],
+            ['id' => 'image', 'label' => '媒体库', 'icon' => 'Picture', 'action' => 'blockInsert', 'snippet' => '![图片描述](/assets/zfy/placeholders/blue.svg)', 'group' => 'insert'],
             ['id' => 'table', 'label' => '表格', 'icon' => 'Grid', 'action' => 'blockInsert', 'snippet' => "| 标题 | 内容 |\n| --- | --- |\n| 示例 | 文本 |", 'group' => 'insert'],
             ['id' => 'code-block', 'label' => '代码块', 'icon' => 'DocumentCopy', 'action' => 'blockWrap', 'prefix' => "```\n", 'suffix' => "\n```", 'placeholder' => '代码内容', 'group' => 'insert'],
             ['id' => 'html', 'label' => 'HTML', 'icon' => 'Collection', 'action' => 'blockInsert', 'snippet' => "{zfy-html}\n<div class=\"zfy-custom-html\">HTML 内容</div>\n{/zfy-html}", 'requiresRawHtml' => true, 'group' => 'insert'],

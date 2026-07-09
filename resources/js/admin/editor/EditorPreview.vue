@@ -8,6 +8,7 @@ import {
     pulseEnlighterButton,
     toggleEnlighterRaw,
 } from '../../shared/enlighterBlocks';
+import { mountJoeNeteasePlayers } from '../../shared/joeNeteasePlayer';
 import { mountZfyTimes } from '../../shared/zfyTime';
 
 const props = defineProps<{
@@ -22,6 +23,7 @@ watch(
     () => props.html,
     (_html, _previousHtml, onCleanup) => {
         let cleanupTimes: (() => void) | undefined;
+        let cleanupNetease: (() => void) | undefined;
         let disposed = false;
 
         void nextTick(() => {
@@ -31,6 +33,7 @@ watch(
 
             const preview = previewArticleRef.value;
             cleanupTimes = mountZfyTimes(preview || document);
+            cleanupNetease = mountJoeNeteasePlayers(preview || document);
 
             preview?.querySelectorAll<HTMLElement>('.zfy-shortcode-tabs').forEach((tabs) => {
                 const activeHead = tabs.querySelector('.zfy-tabs-head-item.is-active');
@@ -49,6 +52,7 @@ watch(
         onCleanup(() => {
             disposed = true;
             cleanupTimes?.();
+            cleanupNetease?.();
         });
     },
     { immediate: true },

@@ -52,6 +52,9 @@ export interface EditorCategory {
     type?: string;
 }
 
+export type MediaLibraryType = 'all' | 'image' | 'video' | 'audio' | 'archive' | 'file';
+export type MediaItemType = Exclude<MediaLibraryType, 'all'>;
+
 export interface MediaLibraryItem {
     id: number;
     name: string;
@@ -59,7 +62,7 @@ export interface MediaLibraryItem {
     url: string;
     thumbUrl: string;
     disk: string;
-    type: string;
+    type: MediaItemType;
     mime?: string | null;
     size: number;
     directory: string;

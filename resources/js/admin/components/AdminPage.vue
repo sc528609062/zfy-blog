@@ -2,6 +2,7 @@
 import { computed, reactive, shallowRef, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AdminEditorPage from '../editor/AdminEditorPage.vue';
+import CoverImageField from '../editor/CoverImageField.vue';
 import AdminDataTable from './AdminDataTable.vue';
 import SettingsForm from './SettingsForm.vue';
 import BitsGradientText from './bits/BitsGradientText.vue';
@@ -281,6 +282,8 @@ async function toggleContentStatus(row: Record<string, any>) {
             type: nextStatus === 'published' ? 'success' : 'warning',
             confirmButtonText: actionLabel,
             cancelButtonText: '取消',
+            closeOnClickModal: true,
+            lockScroll: false,
         });
 
         const json = await requestJson(contentRoute('content_status', row), 'PATCH', { status: nextStatus });
@@ -311,7 +314,9 @@ async function deleteContent(row: Record<string, any>) {
             type: 'warning',
             confirmButtonText: '删除',
             cancelButtonText: '取消',
+            closeOnClickModal: true,
             confirmButtonClass: 'el-button--danger',
+            lockScroll: false,
         });
 
         await requestJson(contentRoute('content_destroy', row), 'DELETE');
@@ -555,7 +560,7 @@ async function saveQuickSettings() {
             </BitsSpotlightCard>
         </template>
 
-        <el-dialog v-model="quickSettingsVisible" title="快捷设置" width="680px" destroy-on-close>
+        <el-dialog v-model="quickSettingsVisible" title="快捷设置" width="680px" destroy-on-close :close-on-click-modal="true" :lock-scroll="false">
             <el-form label-position="top">
                 <el-form-item label="标题" required>
                     <el-input v-model="quickSettingsForm.title" maxlength="180" show-word-limit />
@@ -600,7 +605,11 @@ async function saveQuickSettings() {
                 </div>
 
                 <el-form-item label="封面">
-                    <el-input v-model="quickSettingsForm.cover_url" placeholder="/assets/zfy/placeholders/cover-blue.svg" />
+                    <CoverImageField
+                        v-model="quickSettingsForm.cover_url"
+                        :media="editorPayload.media"
+                        :routes="payload.routes"
+                    />
                 </el-form-item>
 
                 <el-form-item label="摘要">

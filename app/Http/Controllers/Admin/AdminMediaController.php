@@ -7,11 +7,22 @@ use App\Models\Media;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AdminMediaController extends Controller
 {
+    private const MEDIA_TYPES = ['all', 'image', 'video', 'audio', 'archive', 'file'];
+
+    private const MEDIA_EXTENSIONS = [
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg',
+        'mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv',
+        'mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac',
+        'zip', 'rar', '7z', 'tar', 'gz',
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'json',
+    ];
+
     public function index(Request $request): JsonResponse
     {
         $this->authorizeMedia($request);
@@ -20,15 +31,15 @@ class AdminMediaController extends Controller
             'q' => ['nullable', 'string', 'max:120'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'type' => ['nullable', 'string', Rule::in(['all', 'image'])],
+            'type' => ['nullable', 'string', Rule::in(self::MEDIA_TYPES)],
         ]);
 
-        $type = (string) ($data['type'] ?? 'image');
+        $type = (string) ($data['type'] ?? 'all');
         $query = trim((string) ($data['q'] ?? ''));
         $perPage = (int) ($data['per_page'] ?? $this->mediaLibraryPerPage());
 
         $builder = Media::query()
-            ->when($type !== 'all', fn ($mediaQuery) => $mediaQuery->where('type', 'image'))
+            ->when($type !== 'all', fn ($mediaQuery) => $mediaQuery->where('type', $type))
             ->when($query !== '', function ($mediaQuery) use ($query) {
                 $mediaQuery->where(function ($nested) use ($query) {
                     $nested->where('name', 'like', "%{$query}%")
@@ -57,27 +68,33 @@ class AdminMediaController extends Controller
         $this->authorizeMedia($request);
 
         $data = $request->validate([
-            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp,avif,svg', 'max:'.$this->mediaUploadMaxKb()],
+            'file' => [
+                'required',
+                'file',
+                'mimes:'.implode(',', self::MEDIA_EXTENSIONS),
+                'max:'.$this->mediaUploadMaxKb(),
+            ],
             'directory' => ['nullable', 'string', 'max:120'],
         ]);
 
         $file = $request->file('file');
-        abort_unless($file instanceof UploadedFile, 422, '请选择有效图片');
+        abort_unless($file instanceof UploadedFile, 422, '请选择有效媒体文件');
 
         $directory = $this->normalizeDirectory((string) ($data['directory'] ?? $this->mediaDefaultDirectory()));
         $relativeDirectory = trim($directory.'/'.now()->format('Y/m'), '/');
         $storageDirectory = trim($this->mediaStorageRoot().'/'.$relativeDirectory, '/');
-        $extension = $file->guessExtension() ?: $file->extension() ?: 'bin';
-        $filename = (string) Str::ulid().'.'.$extension;
+        $extension = $this->mediaExtension($file);
+        $type = $this->mediaType($file);
+        $filename = $this->mediaFilename($file, $relativeDirectory, $extension);
         $path = $file->storePubliclyAs($relativeDirectory, $filename, $this->mediaDisk());
 
-        abort_unless(is_string($path) && $path !== '', 422, '图片上传失败');
+        abort_unless(is_string($path) && $path !== '', 422, '媒体上传失败');
 
         $media = Media::create([
             'folder_id' => null,
             'user_id' => $request->user()?->id,
             'disk' => $this->mediaDisk(),
-            'type' => 'image',
+            'type' => $type,
             'name' => pathinfo((string) $file->getClientOriginalName(), PATHINFO_FILENAME) ?: pathinfo($filename, PATHINFO_FILENAME),
             'path' => $path,
             'mime' => $file->getClientMimeType(),
@@ -92,9 +109,32 @@ class AdminMediaController extends Controller
         ]);
 
         return response()->json([
-            'message' => '图片已上传',
+            'message' => '媒体已上传',
             'media' => $this->mediaPayload($media),
         ], 201);
+    }
+
+    public function destroy(Request $request, Media $media): JsonResponse
+    {
+        $this->authorizeMedia($request);
+
+        $disk = Storage::disk($media->disk ?: $this->mediaDisk());
+        $paths = collect([
+            trim((string) $media->path, '/'),
+            $this->mediaRelativePath((string) $media->path),
+        ])->filter()->unique()->values();
+
+        foreach ($paths as $path) {
+            if ($disk->exists($path)) {
+                $disk->delete($path);
+            }
+        }
+
+        $media->delete();
+
+        return response()->json([
+            'message' => '媒体已永久删除',
+        ]);
     }
 
     private function authorizeMedia(Request $request): void
@@ -117,7 +157,7 @@ class AdminMediaController extends Controller
             'name' => $media->name,
             'path' => $media->path,
             'url' => $url,
-            'thumb_url' => $url,
+            'thumb_url' => $media->type === 'image' ? $url : null,
             'disk' => $media->disk,
             'type' => $media->type,
             'mime' => $media->mime,
@@ -137,6 +177,103 @@ class AdminMediaController extends Controller
         $directory = trim($directory, '/');
 
         return $directory !== '' ? $directory : $this->mediaDefaultDirectory();
+    }
+
+    private function mediaExtension(UploadedFile $file): string
+    {
+        $clientExtension = strtolower($file->getClientOriginalExtension() ?: '');
+        $guessedExtension = strtolower($file->guessExtension() ?: $file->extension() ?: '');
+
+        foreach ([$clientExtension, $guessedExtension] as $extension) {
+            if (in_array($extension, self::MEDIA_EXTENSIONS, true)) {
+                return $extension;
+            }
+        }
+
+        return 'bin';
+    }
+
+    private function mediaFilename(UploadedFile $file, string $relativeDirectory, string $fallbackExtension): string
+    {
+        $filename = $this->normalizeFilename((string) $file->getClientOriginalName());
+
+        if ($filename === '') {
+            $filename = 'media.'.$fallbackExtension;
+        }
+
+        $filename = $this->ensureAllowedFilenameExtension($filename, $fallbackExtension);
+
+        return $this->uniqueMediaFilename($relativeDirectory, $filename);
+    }
+
+    private function normalizeFilename(string $filename): string
+    {
+        $filename = basename(str_replace('\\', '/', trim($filename)));
+        $filename = preg_replace('#[<>:"|?*\x00-\x1F]#u', '', $filename) ?? '';
+        $filename = preg_replace('#/+#', '', $filename) ?? '';
+        $filename = trim($filename, " \t\n\r\0\x0B.");
+
+        return $filename;
+    }
+
+    private function ensureAllowedFilenameExtension(string $filename, string $fallbackExtension): string
+    {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        if (in_array($extension, self::MEDIA_EXTENSIONS, true)) {
+            return $filename;
+        }
+
+        $base = trim(pathinfo($filename, PATHINFO_FILENAME), " \t\n\r\0\x0B.");
+
+        return ($base !== '' ? $base : 'media').'.'.$fallbackExtension;
+    }
+
+    private function uniqueMediaFilename(string $relativeDirectory, string $filename): string
+    {
+        $disk = Storage::disk($this->mediaDisk());
+
+        if (! $disk->exists(trim($relativeDirectory.'/'.$filename, '/'))) {
+            return $filename;
+        }
+
+        $base = pathinfo($filename, PATHINFO_FILENAME);
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+
+        for ($index = 1; $index < 1000; $index++) {
+            $candidate = $base.' ('.$index.')'.($extension !== '' ? '.'.$extension : '');
+
+            if (! $disk->exists(trim($relativeDirectory.'/'.$candidate, '/'))) {
+                return $candidate;
+            }
+        }
+
+        return $base.'-'.Str::ulid().($extension !== '' ? '.'.$extension : '');
+    }
+
+    private function mediaType(UploadedFile $file): string
+    {
+        $mime = strtolower((string) $file->getClientMimeType());
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: $file->guessExtension() ?: '');
+
+        if (Str::startsWith($mime, 'image/') || in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg'], true)) {
+            return 'image';
+        }
+
+        if (Str::startsWith($mime, 'video/') || in_array($extension, ['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv'], true)) {
+            return 'video';
+        }
+
+        if (Str::startsWith($mime, 'audio/') || in_array($extension, ['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac'], true)) {
+            return 'audio';
+        }
+
+        if (in_array($extension, ['zip', 'rar', '7z', 'tar', 'gz'], true)
+            || in_array($mime, ['application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/gzip'], true)) {
+            return 'archive';
+        }
+
+        return 'file';
     }
 
     /**
@@ -159,7 +296,9 @@ class AdminMediaController extends Controller
 
     private function mediaPublicUrl(string $path): string
     {
-        return url('/'.$this->mediaStorageRoot().'/'.$this->mediaRelativePath($path));
+        $relativePath = implode('/', array_map('rawurlencode', explode('/', $this->mediaRelativePath($path))));
+
+        return url('/'.$this->mediaStorageRoot().'/'.$relativePath);
     }
 
     private function mediaRelativePath(string $path): string

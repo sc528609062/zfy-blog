@@ -5,7 +5,7 @@ const fallbackToolbar: EditorTool[] = [
     { id: 'italic', label: '斜体', icon: 'Edit', action: 'wrap', prefix: '*', suffix: '*', placeholder: '斜体文字' },
     { id: 'quote', label: '彩色引用', icon: 'ChatLineSquare', action: 'blockWrap', prefix: '{zfy-quote color="#af870d"}\n', suffix: '\n{/zfy-quote}', placeholder: '引用内容' },
     { id: 'link', label: '链接', icon: 'Link', action: 'wrap', prefix: '[', suffix: '](https://example.com)', placeholder: '链接文字' },
-    { id: 'image', label: '图片', icon: 'Picture', action: 'insert', snippet: '![图片描述](/assets/zfy/placeholders/blue.svg)' },
+    { id: 'image', label: '媒体库', icon: 'Picture', action: 'insert', snippet: '![图片描述](/assets/zfy/placeholders/blue.svg)' },
     { id: 'preview', label: '预览', icon: 'View', action: 'preview' },
 ];
 

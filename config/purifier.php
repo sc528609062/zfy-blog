@@ -18,6 +18,8 @@ return [
                 'a[href|title|target|rel|class]',
                 'img[src|alt|title|width|height|class]',
                 'iframe[src|class|width|height]',
+                'joe-music[id|color|autoplay]',
+                'joe-mlist[id|color|autoplay]',
                 'audio[src|class|controls|preload]',
                 'video[src|class|controls|preload|poster]',
                 'source[src|type]',
@@ -34,9 +36,19 @@ return [
         ],
         'custom_definition' => [
             'id' => 'zfy-html5-media',
-            'rev' => 5,
+            'rev' => 7,
             'debug' => false,
             'elements' => [
+                ['joe-music', 'Block', 'Flow', 'Common', [
+                    'id' => 'Text',
+                    'color' => 'Text',
+                    'autoplay' => 'Text',
+                ]],
+                ['joe-mlist', 'Block', 'Flow', 'Common', [
+                    'id' => 'Text',
+                    'color' => 'Text',
+                    'autoplay' => 'Text',
+                ]],
                 ['audio', 'Block', 'Optional: (source, Flow) | (Flow, source) | Flow', 'Common', [
                     'src' => 'URI',
                     'preload' => 'Enum#auto,metadata,none',
@@ -55,6 +67,8 @@ return [
             ],
             'attributes' => [
                 ['div', 'data-color', 'Text'],
+                ['div', 'data-start-color', 'Text'],
+                ['div', 'data-end-color', 'Text'],
                 ['div', 'data-zfy-time-format', 'Text'],
                 ['div', 'data-isclose', 'Text'],
                 ['div', 'role', 'Text'],

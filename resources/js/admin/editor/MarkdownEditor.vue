@@ -51,6 +51,8 @@ async function cleanEditor(): Promise<void> {
         await ElMessageBox.confirm('确定清空当前编辑内容？', '清空编辑器', {
             confirmButtonText: '清空',
             cancelButtonText: '取消',
+            closeOnClickModal: true,
+            lockScroll: false,
             type: 'warning',
         });
     } catch {
@@ -61,7 +63,7 @@ async function cleanEditor(): Promise<void> {
 }
 
 async function handleTool(tool: EditorTool): Promise<void> {
-    if (tool.id === 'image') {
+    if (tool.id === 'image' || tool.id === 'media') {
         imageVisible.value = true;
         return;
     }
@@ -129,8 +131,8 @@ function handleImageSubmit(snippet: string): void {
     }
 
     applyTool({
-        id: 'image-inline',
-        label: '图片',
+        id: 'media-inline',
+        label: '媒体',
         action: 'insert',
         snippet,
     });
@@ -169,8 +171,11 @@ function handleSymbolSubmit(snippet: string): void {
         <EditorImageDialog
             v-model:visible="imageVisible"
             :media="props.media"
+            :destroy-url="String(props.routes?.media_destroy || '/admin/media/__MEDIA__')"
             :library-url="String(props.routes?.media_library || '/admin/media/library')"
             :upload-url="String(props.routes?.media_upload || '/admin/media/upload')"
+            confirm-text="插入媒体"
+            title="媒体库"
             @submit="handleImageSubmit"
         />
     </section>

@@ -1,12 +1,12 @@
 import { ref, shallowRef, toValue } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
-import type { MediaLibraryItem, MediaLibraryMeta } from './types';
+import type { MediaItemType, MediaLibraryItem, MediaLibraryMeta, MediaLibraryType } from './types';
 
-interface MediaQueryOptions {
+export interface MediaQueryOptions {
     query?: string;
     page?: number;
     perPage?: number;
-    type?: 'all' | 'image';
+    type?: MediaLibraryType;
 }
 
 interface MediaLibraryResponse {
@@ -23,7 +23,11 @@ interface UploadResponse {
     };
 }
 
-export function useMediaLibrary(libraryUrl: MaybeRefOrGetter<string>, uploadUrl: MaybeRefOrGetter<string>) {
+export function useMediaLibrary(
+    libraryUrl: MaybeRefOrGetter<string>,
+    uploadUrl: MaybeRefOrGetter<string>,
+    destroyUrl?: MaybeRefOrGetter<string | undefined>,
+) {
     const items = ref<MediaLibraryItem[]>([]);
     const meta = shallowRef<MediaLibraryMeta>({
         currentPage: 1,
@@ -40,7 +44,7 @@ export function useMediaLibrary(libraryUrl: MaybeRefOrGetter<string>, uploadUrl:
         const query = (options.query || '').trim();
         const page = Math.max(1, options.page || 1);
         const perPage = Math.max(1, options.perPage || meta.value.perPage || 24);
-        const type = options.type || 'image';
+        const type = options.type || 'all';
 
         if (query) {
             url.searchParams.set('q', query);
@@ -77,7 +81,7 @@ export function useMediaLibrary(libraryUrl: MaybeRefOrGetter<string>, uploadUrl:
         const endpoint = resolveUrl(uploadUrl);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('directory', directory || 'editor/images');
+        formData.append('directory', directory || 'editor/files');
 
         uploading.value = true;
 
@@ -100,6 +104,20 @@ export function useMediaLibrary(libraryUrl: MaybeRefOrGetter<string>, uploadUrl:
         }
     }
 
+    async function deleteMedia(media: MediaLibraryItem): Promise<void> {
+        const endpoint = resolveMediaActionUrl(destroyUrl, media.id, libraryUrl);
+
+        await requestJson<Record<string, unknown>>(endpoint, {
+            method: 'DELETE',
+        });
+
+        items.value = items.value.filter((item) => item.id !== media.id);
+        meta.value = {
+            ...meta.value,
+            total: Math.max(0, meta.value.total - 1),
+        };
+    }
+
     return {
         items,
         meta,
@@ -107,6 +125,7 @@ export function useMediaLibrary(libraryUrl: MaybeRefOrGetter<string>, uploadUrl:
         uploading,
         loadMedia,
         uploadMedia,
+        deleteMedia,
     };
 }
 
@@ -135,6 +154,25 @@ function resolveUrl(source: MaybeRefOrGetter<string>): string {
     }
 
     return value;
+}
+
+function resolveMediaActionUrl(
+    source: MaybeRefOrGetter<string | undefined> | undefined,
+    mediaId: number,
+    fallbackLibraryUrl: MaybeRefOrGetter<string>,
+): string {
+    const pattern = String(source ? toValue(source) || '' : '').trim();
+    const id = encodeURIComponent(String(mediaId));
+
+    if (pattern) {
+        return pattern.replace('__MEDIA__', id);
+    }
+
+    const url = new URL(resolveUrl(fallbackLibraryUrl), window.location.origin);
+    url.pathname = url.pathname.replace(/\/library\/?$/, `/${id}`);
+    url.search = '';
+
+    return url.toString();
 }
 
 async function requestJson<T>(url: string, init: RequestInit = {}): Promise<T> {
@@ -175,12 +213,12 @@ function normalizeItem(raw: unknown): MediaLibraryItem {
 
     return {
         id: Number(item.id || 0),
-        name: String(item.name || item.title || item.original_name || '未命名图片'),
+        name: String(item.name || item.title || item.original_name || '未命名媒体'),
         path: String(item.path || ''),
         url,
         thumbUrl: String(item.thumb_url || url),
         disk: String(item.disk || 'public'),
-        type: String(item.type || 'image'),
+        type: normalizeMediaType(item.type),
         mime: item.mime ? String(item.mime) : null,
         size: Number(item.size || 0),
         directory: String(item.directory || item.metadata?.directory || ''),
@@ -196,4 +234,14 @@ function getMetaValue(meta: Record<string, unknown> | undefined, key: string, fa
 
     const value = meta[key];
     return Number(value ?? fallback);
+}
+
+function normalizeMediaType(value: unknown): MediaItemType {
+    const type = String(value || 'file');
+
+    if (type === 'image' || type === 'video' || type === 'audio' || type === 'archive' || type === 'file') {
+        return type;
+    }
+
+    return 'file';
 }

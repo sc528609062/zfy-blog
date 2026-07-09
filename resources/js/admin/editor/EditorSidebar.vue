@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import type { EditorCategory, EditorForm, EditorOption, SavedContent } from './types';
+import CoverImageField from './CoverImageField.vue';
+import type { EditorCategory, EditorForm, EditorMediaConfig, EditorOption, SavedContent } from './types';
 
 const props = defineProps<{
     contentTypes: EditorOption[];
     categories: EditorCategory[];
+    routes?: Record<string, string>;
+    media?: EditorMediaConfig;
     busy?: boolean;
     previewLoading?: boolean;
     savedContent?: SavedContent | null;
@@ -49,7 +52,7 @@ function visitSavedContent(): void {
                     <el-input v-model="form.tags" placeholder="多个标签用英文逗号分隔" />
                 </el-form-item>
                 <el-form-item label="封面">
-                    <el-input v-model="form.cover_url" placeholder="/assets/..." />
+                    <CoverImageField v-model="form.cover_url" :media="media" :routes="routes" />
                 </el-form-item>
                 <el-form-item label="摘要">
                     <el-input v-model="form.excerpt" :rows="4" type="textarea" />

@@ -42,7 +42,8 @@ function handleCancel(): void {
         v-model="visible"
         append-to-body
         class="zfy-editor-insert-dialog zfy-editor-symbol-dialog"
-        :close-on-click-modal="false"
+        :close-on-click-modal="true"
+        :lock-scroll="false"
         :show-close="false"
         width="600px"
     >

@@ -58,6 +58,7 @@
             'content_preview' => route('admin.contents.preview', [], false),
             'media_library' => route('admin.media.library', [], false),
             'media_upload' => route('admin.media.upload', [], false),
+            'media_destroy' => '/admin/media/__MEDIA__',
         ],
     ];
 @endphp

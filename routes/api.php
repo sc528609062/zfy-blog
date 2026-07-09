@@ -22,6 +22,9 @@ Route::prefix('v1')->name('api.v1.')->middleware([EnsureInstalled::class, 'throt
     Route::get('/page-builder/{scope?}', [PlatformController::class, 'pageBuilder']);
     Route::get('/system/health', [PlatformController::class, 'health']);
     Route::get('/system/upgrade', [PlatformController::class, 'upgrade']);
+    Route::get('/netease/playlist/{id}', [PlatformController::class, 'neteasePlaylist'])->whereNumber('id');
+    Route::get('/netease/song/{id}', [PlatformController::class, 'neteaseSong'])->whereNumber('id');
+    Route::get('/netease/song/{id}/stream', [PlatformController::class, 'neteaseSongStream'])->whereNumber('id');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [PlatformController::class, 'me']);
