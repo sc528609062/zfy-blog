@@ -190,6 +190,10 @@ async function requestJson<T>(url: string, init: RequestInit = {}): Promise<T> {
     const json = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+        if (response.status === 413) {
+            throw new Error('文件超过服务器上传限制');
+        }
+
         const firstError = Object.values(json.errors || {})[0];
         const message = Array.isArray(firstError) ? firstError[0] : json.message;
         throw new Error(message || `请求失败：${response.status}`);

@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
 import ColorPalettePicker from './ColorPalettePicker.vue';
+import EditorCloudResourcesField from './EditorCloudResourcesField.vue';
 import EditorIconPicker from './EditorIconPicker.vue';
-import type { EditorPromptSpec } from './types';
+import EditorMediaUrlField from './EditorMediaUrlField.vue';
+import type { EditorMediaConfig, EditorPromptSpec } from './types';
 
 const props = defineProps<{
     spec: EditorPromptSpec | null;
+    routes?: Record<string, string>;
+    media?: EditorMediaConfig;
 }>();
 
 const emit = defineEmits<{
@@ -45,7 +49,7 @@ function handleCancel(): void {
         v-model="visible"
         :width="spec?.width || '520px'"
         append-to-body
-        class="zfy-editor-insert-dialog"
+        :class="['zfy-editor-insert-dialog', { 'is-repeatable': spec?.id === 'zfy-cloud' }]"
         :close-on-click-modal="true"
         :lock-scroll="false"
         :show-close="false"
@@ -63,7 +67,12 @@ function handleCancel(): void {
                     <el-select
                         v-if="field.type === 'select'"
                         v-model="values[field.name]"
+                        :allow-create="field.allowCreate"
                         class="zfy-editor-insert-control"
+                        :clearable="field.clearable"
+                        :default-first-option="field.allowCreate"
+                        :filterable="field.filterable"
+                        :placeholder="field.placeholder"
                     >
                         <el-option
                             v-for="option in field.options || []"
@@ -97,6 +106,19 @@ function handleCancel(): void {
                     <EditorIconPicker
                         v-else-if="field.type === 'icon'"
                         v-model="values[field.name]"
+                    />
+                    <EditorMediaUrlField
+                        v-else-if="field.type === 'media'"
+                        v-model="values[field.name]"
+                        :library-type="field.mediaType || 'all'"
+                        :media="media"
+                        :placeholder="field.placeholder"
+                        :routes="routes"
+                    />
+                    <EditorCloudResourcesField
+                        v-else-if="field.type === 'cloud-list'"
+                        v-model="values[field.name]"
+                        :options="field.options || []"
                     />
                     <el-input
                         v-else

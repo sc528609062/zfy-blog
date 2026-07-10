@@ -17,7 +17,7 @@ class AdminMediaController extends Controller
 
     private const MEDIA_EXTENSIONS = [
         'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg',
-        'mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv',
+        'mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv', 'm3u8',
         'mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac',
         'zip', 'rar', '7z', 'tar', 'gz',
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'json',
@@ -260,7 +260,7 @@ class AdminMediaController extends Controller
             return 'image';
         }
 
-        if (Str::startsWith($mime, 'video/') || in_array($extension, ['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv'], true)) {
+        if (Str::startsWith($mime, 'video/') || in_array($extension, ['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv', 'm3u8'], true)) {
             return 'video';
         }
 

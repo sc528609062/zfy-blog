@@ -166,7 +166,13 @@ function handleSymbolSubmit(snippet: string): void {
             <div ref="hostRef" class="zfy-markdown-editor-host" />
             <slot name="preview" />
         </div>
-        <EditorInsertDialog v-model:visible="promptVisible" :spec="promptSpec" @submit="handlePromptSubmit" />
+        <EditorInsertDialog
+            v-model:visible="promptVisible"
+            :media="props.media"
+            :routes="props.routes"
+            :spec="promptSpec"
+            @submit="handlePromptSubmit"
+        />
         <EditorSymbolDialog v-model:visible="symbolVisible" :kind="symbolKind" @submit="handleSymbolSubmit" />
         <EditorImageDialog
             v-model:visible="imageVisible"

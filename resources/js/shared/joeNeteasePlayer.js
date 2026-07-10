@@ -5,12 +5,14 @@ let aplayerLoader;
 
 export function mountJoeNeteasePlayers(root = document) {
     const scope = root || document;
-    const elements = [...scope.querySelectorAll('joe-mlist, joe-music')]
+    const elements = [...scope.querySelectorAll('joe-mlist, joe-mp3, joe-music')]
         .filter((element) => element instanceof HTMLElement && element.dataset.zfyMounted !== 'true');
 
     elements.forEach((element) => {
         element.dataset.zfyMounted = 'true';
-        void mountJoeNeteasePlayer(element);
+        void (element.tagName.toLowerCase() === 'joe-mp3'
+            ? mountJoeMp3Player(element)
+            : mountJoeNeteasePlayer(element));
     });
 
     return () => {
@@ -19,6 +21,41 @@ export function mountJoeNeteasePlayers(root = document) {
             delete element.__zfyAPlayer;
         });
     };
+}
+
+async function mountJoeMp3Player(element) {
+    const url = (element.getAttribute('url') || '').trim();
+    const name = (element.getAttribute('name') || '').trim() || '音频名称';
+    const cover = (element.getAttribute('cover') || '').trim();
+    const theme = (element.getAttribute('theme') || '#1989fa').trim();
+    const autoplay = element.hasAttribute('autoplay');
+
+    if (!url) {
+        renderError(element, '音频地址未填写');
+        return;
+    }
+
+    const container = document.createElement('span');
+    container.className = '_content';
+    container.style.display = 'block';
+    element.replaceChildren(container);
+
+    try {
+        const APlayer = await loadAPlayer();
+        element.__zfyAPlayer = new APlayer({
+            container,
+            theme,
+            autoplay,
+            audio: [{
+                url,
+                name,
+                cover,
+            }],
+        });
+    } catch (error) {
+        console.error('本地音频播放器加载失败:', error);
+        renderError(element, error?.message || '音频播放器加载失败');
+    }
 }
 
 async function mountJoeNeteasePlayer(element) {

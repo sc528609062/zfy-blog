@@ -8,6 +8,7 @@ import {
 } from './shared/enlighterBlocks';
 import { mountJoeNeteasePlayers } from './shared/joeNeteasePlayer';
 import { mountZfyTimes } from './shared/zfyTime';
+import { copyTextToClipboard } from './shared/clipboard';
 
 // 搜索功能
 document.addEventListener('DOMContentLoaded', () => {
@@ -372,6 +373,23 @@ function initZfyShortcodes() {
             return;
         }
 
+        const cloudPassword = target.closest('.zfy-cloud-password[data-copy-text]');
+        if (cloudPassword) {
+            const text = cloudPassword.dataset.copyText || '';
+
+            try {
+                if (await copyTextToClipboard(text)) {
+                    cloudPassword.classList.add('is-copied');
+                    window.setTimeout(() => {
+                        cloudPassword.classList.remove('is-copied');
+                    }, 1200);
+                }
+            } catch (error) {
+                console.error('复制失败:', error);
+            }
+            return;
+        }
+
         const copyTrigger = target.closest('.zfy-copy-trigger');
         if (copyTrigger) {
             const body = copyTrigger.closest('.zfy-shortcode-copy')?.querySelector('.zfy-copy-body');
@@ -382,11 +400,12 @@ function initZfyShortcodes() {
             }
 
             try {
-                await navigator.clipboard.writeText(text);
-                copyTrigger.textContent = '已复制';
-                window.setTimeout(() => {
-                    copyTrigger.textContent = '复制';
-                }, 1200);
+                if (await copyTextToClipboard(text)) {
+                    copyTrigger.textContent = '已复制';
+                    window.setTimeout(() => {
+                        copyTrigger.textContent = '复制';
+                    }, 1200);
+                }
             } catch (error) {
                 console.error('复制失败:', error);
             }

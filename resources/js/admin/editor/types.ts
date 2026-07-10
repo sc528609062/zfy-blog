@@ -16,7 +16,7 @@ export interface EditorTool {
     children?: EditorTool[];
 }
 
-export type EditorPromptFieldType = 'text' | 'textarea' | 'select' | 'color' | 'number' | 'icon';
+export type EditorPromptFieldType = 'text' | 'textarea' | 'select' | 'color' | 'number' | 'icon' | 'media' | 'cloud-list';
 
 export interface EditorPromptOption {
     value: string;
@@ -30,6 +30,10 @@ export interface EditorPromptField {
     placeholder?: string;
     defaultValue?: string;
     options?: EditorPromptOption[];
+    filterable?: boolean;
+    allowCreate?: boolean;
+    clearable?: boolean;
+    mediaType?: MediaLibraryType;
     min?: number;
     max?: number;
 }

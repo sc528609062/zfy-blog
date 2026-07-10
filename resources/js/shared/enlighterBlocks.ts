@@ -1,3 +1,5 @@
+import { copyTextToClipboard } from './clipboard';
+
 export function getEnlighterBlock(target: HTMLElement | null): HTMLElement | null {
     return target?.closest<HTMLElement>('.wp-block-zibllblock-enlighter') || null;
 }
@@ -13,8 +15,7 @@ export async function copyEnlighterCode(block: HTMLElement): Promise<boolean> {
         return false;
     }
 
-    await navigator.clipboard.writeText(text);
-    return true;
+    return copyTextToClipboard(text);
 }
 
 export function openEnlighterWindow(block: HTMLElement): void {

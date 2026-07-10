@@ -65,12 +65,36 @@ const uploadMaxText = computed(() => (uploadMaxKb.value >= 1024 ? `${Math.round(
 const useCustomDirectory = computed(() => directoryMode.value === 'custom' || !directoryPresetValues.value.has(normalizeDirectory(directoryMode.value)));
 const canFilterType = computed(() => props.libraryType === 'all');
 const visibleLibraryTypeOptions = computed(() => (canFilterType.value ? libraryTypeOptions : libraryTypeOptions.filter((option) => option.value === props.libraryType)));
-const uploadAccept = computed(() => (props.libraryType === 'image'
-    ? 'image/*,.svg'
-    : 'image/*,video/*,audio/*,.zip,.rar,.7z,.tar,.gz,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.json'));
-const uploadSupportText = computed(() => (props.libraryType === 'image'
-    ? '支持 JPG、PNG、WebP、GIF、AVIF、SVG'
-    : '支持图片、视频、音频、压缩包和常见文档'));
+const uploadAccept = computed(() => {
+    if (props.libraryType === 'image') {
+        return 'image/*,.svg';
+    }
+
+    if (props.libraryType === 'video') {
+        return 'video/*,.m3u8';
+    }
+
+    if (props.libraryType === 'audio') {
+        return 'audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac';
+    }
+
+    return 'image/*,video/*,audio/*,.m3u8,.zip,.rar,.7z,.tar,.gz,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.json';
+});
+const uploadSupportText = computed(() => {
+    if (props.libraryType === 'image') {
+        return '支持 JPG、PNG、WebP、GIF、AVIF、SVG';
+    }
+
+    if (props.libraryType === 'video') {
+        return '支持 MP4、WebM、MOV、M3U8 等视频文件';
+    }
+
+    if (props.libraryType === 'audio') {
+        return '支持 MP3、WAV、OGG、M4A、AAC、FLAC';
+    }
+
+    return '支持图片、视频、音频、压缩包和常见文档';
+});
 const isProcessTab = computed(() => activeTab.value === 'process');
 const bodyClasses = computed(() => ['zfy-editor-image-body', { 'is-process-mode': isProcessTab.value }]);
 const hasPreviewUrl = computed(() => imageUrl.value.trim() !== '');
@@ -204,6 +228,11 @@ async function handleUploadFile(file: File): Promise<void> {
         return;
     }
 
+    if (uploadMaxKb.value > 0 && file.size > uploadMaxKb.value * 1024) {
+        ElMessage.error(`文件超过上传限制 ${uploadMaxText.value}`);
+        return;
+    }
+
     try {
         const media = await uploadMedia(file, directory.value);
         selectedId.value = media.id;
@@ -298,7 +327,10 @@ async function handleDeleteSelectedMedia(): Promise<void> {
 function handleConfirm(): void {
     const url = imageUrl.value.trim();
     if (!url) {
-        ElMessage.error(props.output === 'url' ? '请先选择或上传一张图片' : '请先选择、上传或填写媒体地址');
+        const typeName = ({ image: '图片', video: '视频', audio: '音频' } as Record<string, string>)[props.libraryType] || '媒体';
+        ElMessage.error(props.output === 'url'
+            ? `请先选择、上传或填写${typeName}地址`
+            : '请先选择、上传或填写媒体地址');
         return;
     }
 
@@ -391,7 +423,7 @@ function inferMediaTypeFromUrl(url: string): MediaItemType {
         return 'image';
     }
 
-    if (['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv'].includes(extension)) {
+    if (['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv', 'm3u8'].includes(extension)) {
         return 'video';
     }
 
@@ -611,7 +643,7 @@ function isMediaLibraryType(value: unknown): value is MediaLibraryType {
                         </div>
                     </el-tab-pane>
 
-                    <el-tab-pane label="图片处理" name="process">
+                    <el-tab-pane v-if="props.libraryType === 'all' || props.libraryType === 'image'" label="图片处理" name="process">
                         <ImageProcessPanel
                             :selected-media="processMedia"
                             :uploading="uploading"

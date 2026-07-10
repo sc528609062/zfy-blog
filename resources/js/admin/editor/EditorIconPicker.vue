@@ -241,6 +241,7 @@ function isSafeSvgAttributeValue(value: string): boolean {
             class="zfy-editor-insert-dialog zfy-editor-icon-dialog"
             :close-on-click-modal="true"
             :lock-scroll="false"
+            modal-class="zfy-editor-icon-overlay"
             :show-close="false"
             width="760px"
         >

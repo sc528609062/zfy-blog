@@ -32,9 +32,20 @@ const cloudOptions = [
     { label: '天翼网盘', value: 'ty' },
     { label: '城通网盘', value: 'ct' },
     { label: '微云网盘', value: 'wy' },
-    { label: 'Github 仓库', value: 'github' },
+    { label: 'GitHub 仓库', value: 'github' },
     { label: '蓝奏云网盘', value: 'lz' },
 ];
+
+const defaultCloudItems = JSON.stringify([
+    {
+        id: 'cloud-resource-1',
+        type: 'default',
+        title: '下载资源',
+        url: 'https://example.com',
+        password: '',
+        attributes: [],
+    },
+]);
 
 const timeFormatOptions = [
     { label: '2026-05-22 13:39:08', value: 'YYYY-MM-DD HH:mm:ss' },
@@ -43,6 +54,43 @@ const timeFormatOptions = [
     { label: '2026年05月22日 13:39:08', value: 'YYYY年MM月DD日 HH:mm:ss' },
     { label: '05月22日 13:39:08', value: 'MM月DD日 HH:mm:ss' },
     { label: '13:39:08', value: 'HH:mm:ss' },
+];
+
+const codeLanguageOptions = [
+    { label: '纯文本 (plaintext)', value: 'plaintext' },
+    { label: 'JavaScript (js)', value: 'javascript' },
+    { label: 'TypeScript (ts)', value: 'typescript' },
+    { label: 'HTML', value: 'html' },
+    { label: 'CSS', value: 'css' },
+    { label: 'Vue', value: 'vue' },
+    { label: 'React JSX', value: 'jsx' },
+    { label: 'React TSX', value: 'tsx' },
+    { label: 'PHP', value: 'php' },
+    { label: 'Python', value: 'python' },
+    { label: 'Java', value: 'java' },
+    { label: 'C', value: 'c' },
+    { label: 'C++ (cpp)', value: 'cpp' },
+    { label: 'C# (csharp)', value: 'csharp' },
+    { label: 'Go', value: 'go' },
+    { label: 'Rust', value: 'rust' },
+    { label: 'Kotlin', value: 'kotlin' },
+    { label: 'Swift', value: 'swift' },
+    { label: 'Dart', value: 'dart' },
+    { label: 'Ruby', value: 'ruby' },
+    { label: 'Shell / Bash', value: 'bash' },
+    { label: 'PowerShell', value: 'powershell' },
+    { label: 'SQL', value: 'sql' },
+    { label: 'JSON', value: 'json' },
+    { label: 'YAML', value: 'yaml' },
+    { label: 'XML', value: 'xml' },
+    { label: 'Markdown', value: 'markdown' },
+    { label: 'Laravel Blade', value: 'blade' },
+    { label: 'Dockerfile', value: 'dockerfile' },
+    { label: 'Nginx', value: 'nginx' },
+    { label: 'INI', value: 'ini' },
+    { label: 'TOML', value: 'toml' },
+    { label: 'Diff', value: 'diff' },
+    { label: 'GraphQL', value: 'graphql' },
 ];
 
 export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
@@ -74,7 +122,17 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
         id: 'code-block',
         title: '插入代码块',
         fields: [
-            { name: 'language', label: '语言', type: 'text', defaultValue: '' },
+            {
+                name: 'language',
+                label: '语言',
+                type: 'select',
+                defaultValue: '',
+                placeholder: '搜索或输入代码语言',
+                options: codeLanguageOptions,
+                filterable: true,
+                allowCreate: true,
+                clearable: true,
+            },
             { name: 'content', label: '代码内容', type: 'textarea', defaultValue: '代码内容' },
         ],
     },
@@ -151,7 +209,14 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
         title: 'M3U8/MP4 视频',
         fields: [
             { name: 'title', label: '显示标题', type: 'text', defaultValue: '视频' },
-            { name: 'url', label: '视频地址', type: 'text', defaultValue: '/video/demo.mp4' },
+            {
+                name: 'url',
+                label: '视频地址',
+                type: 'media',
+                defaultValue: '/video/demo.mp4',
+                placeholder: '选择媒体库视频或粘贴 M3U8/MP4 地址',
+                mediaType: 'video',
+            },
         ],
     },
     'zfy-music-list': {
@@ -175,9 +240,33 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
         title: '外部音乐',
         fields: [
             { name: 'title', label: '音频名称', type: 'text', defaultValue: '音频名称' },
-            { name: 'url', label: '音频地址', type: 'text', defaultValue: '/audio/demo.mp3' },
-            { name: 'cover', label: '音频封面', type: 'text', defaultValue: '/assets/zfy/placeholders/blue.svg' },
+            {
+                name: 'url',
+                label: '音频地址',
+                type: 'media',
+                defaultValue: '/audio/demo.mp3',
+                placeholder: '选择媒体库音频或粘贴音频地址',
+                mediaType: 'audio',
+            },
+            {
+                name: 'cover',
+                label: '音频封面',
+                type: 'media',
+                defaultValue: '/assets/zfy/placeholders/blue.svg',
+                placeholder: '选择媒体库图片或粘贴封面地址',
+                mediaType: 'image',
+            },
             { name: 'color', label: '主题色', type: 'color', defaultValue: '#f0ad4e' },
+            {
+                name: 'autoplay',
+                label: '自动播放',
+                type: 'select',
+                defaultValue: '',
+                options: [
+                    { label: '关闭', value: '' },
+                    { label: '开启', value: 'autoplay' },
+                ],
+            },
         ],
     },
     'zfy-abtn': {
@@ -227,11 +316,9 @@ export const editorPromptSpecs: Record<string, EditorPromptSpec> = {
     'zfy-cloud': {
         id: 'zfy-cloud',
         title: '网盘下载',
+        width: '760px',
         fields: [
-            { name: 'type', label: '网盘类型', type: 'select', defaultValue: 'default', options: cloudOptions },
-            { name: 'title', label: '显示标题', type: 'text', defaultValue: '下载资源' },
-            { name: 'url', label: '下载地址', type: 'text', defaultValue: 'https://example.com' },
-            { name: 'password', label: '提取密码', type: 'text', defaultValue: '' },
+            { name: 'items', label: '下载资源', type: 'cloud-list', defaultValue: defaultCloudItems, options: cloudOptions },
         ],
     },
     time: {
@@ -320,7 +407,7 @@ function snippetFor(id: string, values: PromptValues): string {
         case 'zfy-music':
             return `{zfy-music id="${value('id', '歌曲ID')}" color="${value('color', '#1989fa')}" /}`;
         case 'zfy-mp3':
-            return `{zfy-mp3 title="${value('title', '音频名称')}" url="${value('url', '/audio/demo.mp3')}" cover="${value('cover')}" color="${value('color', '#f0ad4e')}" /}`;
+            return `{zfy-mp3 name="${value('title', '音频名称')}" url="${value('url', '/audio/demo.mp3')}" cover="${value('cover')}" theme="${value('color', '#f0ad4e')}"${value('autoplay') === 'autoplay' ? ' autoplay="autoplay"' : ''} /}`;
         case 'zfy-abtn':
             return `{zfy-abtn icon="${value('icon', 'fa fa-handshake-o')}" color="${value('color', '#ff6800')}" url="${value('url', 'https://example.com')}" radius="${value('radius', '8px')}" title="${value('title', '按钮内容')}" /}`;
         case 'zfy-button':
@@ -330,7 +417,7 @@ function snippetFor(id: string, values: PromptValues): string {
         case 'zfy-dotted':
             return `{zfy-dotted startColor="${value('startColor', '#ff6c6c')}" endColor="${value('endColor', '#1989fa')}" /}`;
         case 'zfy-cloud':
-            return `{zfy-cloud title="${value('title', '下载资源')}" type="${value('type', 'default')}" url="${value('url', 'https://example.com')}" password="${value('password')}" /}`;
+            return buildCloudSnippets(values.items);
         case 'time':
             return `{zfy-time format="${value('format', 'YYYY-MM-DD HH:mm:ss')}" /}`;
         case 'zfy-grid':
@@ -344,6 +431,51 @@ function snippetFor(id: string, values: PromptValues): string {
 
 function quoteSnippet(color: string, content: string): string {
     return `{zfy-quote color="${color}"}` + `\n${content}\n{/zfy-quote}`;
+}
+
+function buildCloudSnippets(rawItems: string): string {
+    let parsed: unknown;
+
+    try {
+        parsed = JSON.parse(rawItems || '[]');
+    } catch {
+        parsed = [];
+    }
+
+    const items = Array.isArray(parsed) ? parsed.slice(0, 20) : [];
+    const snippets = items
+        .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+        .map((item) => {
+            const title = cleanAttribute(String(item.title || '下载资源')) || '下载资源';
+            const type = cleanAttribute(String(item.type || 'default')) || 'default';
+            const url = cleanAttribute(String(item.url || ''));
+            const password = cleanAttribute(String(item.password || ''));
+            const attributes = cloudAttributesForSnippet(item.attributes);
+            const attributesToken = attributes.length
+                ? ` attributes="${encodeURIComponent(JSON.stringify(attributes))}"`
+                : '';
+
+            return `{zfy-cloud title="${title}" type="${type}" url="${url}" password="${password}"${attributesToken} /}`;
+        });
+
+    return snippets.length
+        ? snippets.join('\n\n')
+        : '{zfy-cloud title="下载资源" type="default" url="" password="" /}';
+}
+
+function cloudAttributesForSnippet(value: unknown): Array<{ name: string; value: string }> {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .slice(0, 30)
+        .filter((attribute): attribute is Record<string, unknown> => Boolean(attribute) && typeof attribute === 'object')
+        .map((attribute) => ({
+            name: String(attribute.name || '').trim().slice(0, 80),
+            value: String(attribute.value || '').trim().slice(0, 300),
+        }))
+        .filter((attribute) => attribute.name !== '');
 }
 
 function buildTable(columns: number, rows: number): string {

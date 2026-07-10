@@ -13,11 +13,13 @@ return [
                 'h1[class],h2[class],h3[class],h4[class],h5[class],h6[class]',
                 'p[class|style|align],br,hr[class]',
                 'strong[class],b[class],em[class],i[class],s[class],del[class]',
+                'button[type|class|data-copy-text|aria-label|title]',
                 'blockquote[class],pre[class|data-enlighter-language|data-enlighter-title],code[class|data-enlighter-language|data-enlighter-theme|data-enlighter-highlight|data-enlighter-linenumbers|data-enlighter-lineoffset|data-enlighter-title|data-enlighter-group]',
                 'ul[class],ol[class],li[class]',
                 'a[href|title|target|rel|class]',
                 'img[src|alt|title|width|height|class]',
                 'iframe[src|class|width|height]',
+                'joe-mp3[name|url|cover|theme|autoplay]',
                 'joe-music[id|color|autoplay]',
                 'joe-mlist[id|color|autoplay]',
                 'audio[src|class|controls|preload]',
@@ -36,12 +38,25 @@ return [
         ],
         'custom_definition' => [
             'id' => 'zfy-html5-media',
-            'rev' => 7,
+            'rev' => 10,
             'debug' => false,
             'elements' => [
+                ['button', 'Inline', 'Inline', 'Common', [
+                    'type' => 'Enum#button',
+                    'data-copy-text' => 'Text',
+                    'aria-label' => 'Text',
+                    'title' => 'Text',
+                ]],
                 ['joe-music', 'Block', 'Flow', 'Common', [
                     'id' => 'Text',
                     'color' => 'Text',
+                    'autoplay' => 'Text',
+                ]],
+                ['joe-mp3', 'Block', 'Flow', 'Common', [
+                    'name' => 'Text',
+                    'url' => 'URI',
+                    'cover' => 'URI',
+                    'theme' => 'Text',
                     'autoplay' => 'Text',
                 ]],
                 ['joe-mlist', 'Block', 'Flow', 'Common', [

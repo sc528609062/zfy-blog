@@ -19,6 +19,17 @@ class ContentMarkdownRenderer
         'HH:mm:ss',
     ];
 
+    private const CLOUD_TYPES = [
+        'default' => ['label' => '默认网盘', 'icon' => 'default'],
+        '360' => ['label' => '360 网盘', 'icon' => '360'],
+        'bd' => ['label' => '百度网盘', 'icon' => 'baidu'],
+        'ty' => ['label' => '天翼网盘', 'icon' => 'tianyi'],
+        'ct' => ['label' => '城通网盘', 'icon' => 'chengtong'],
+        'wy' => ['label' => '微云网盘', 'icon' => 'weiyun'],
+        'github' => ['label' => 'GitHub 仓库', 'icon' => 'github'],
+        'lz' => ['label' => '蓝奏云网盘', 'icon' => 'lanzou'],
+    ];
+
     private const SHORTCODE_NAMES = [
         'zfy-alert',
         'zfy-callout',
@@ -237,6 +248,8 @@ class ContentMarkdownRenderer
 
         return preg_match($this->shortcodeTokenPattern(), $html) === 1
             || Str::contains($lowerHtml, ['<blockquote', 'zfy-shortcode-quote zfy-quote quote_q', '/storage/media/'])
+            || $this->containsStaleCloudMarkup($lowerHtml)
+            || $this->containsStaleAudioMarkup($lowerHtml)
             || $this->containsStaleJoeElementMarkup($lowerHtml)
             || $this->containsStaleJoeClassMarkup($lowerHtml)
             || $this->containsStaleNeteaseMarkup($lowerHtml)
@@ -249,7 +262,7 @@ class ContentMarkdownRenderer
             return false;
         }
 
-        return ! Str::contains($html, ['<joe-mlist', '<joe-music']);
+        return ! Str::contains($html, ['<joe-mlist', '<joe-mp3', '<joe-music']);
     }
 
     private function containsStaleJoeClassMarkup(string $html): bool
@@ -280,6 +293,28 @@ class ContentMarkdownRenderer
         }
 
         return false;
+    }
+
+    private function containsStaleCloudMarkup(string $html): bool
+    {
+        if (! Str::contains($html, 'zfy-shortcode-cloud')) {
+            return false;
+        }
+
+        if (! Str::contains($html, 'zfy-cloud-provider-')
+            || Str::contains($html, '<span class="zfy-cloud-password">')
+            || Str::contains($html, 'zfy-cloud-copy-label')) {
+            return true;
+        }
+
+        return Str::contains($html, 'zfy-cloud-properties')
+            && preg_match('/<\/div>\s*<\/div>\s*<div class="zfy-cloud-properties">/', $html) !== 1;
+    }
+
+    private function containsStaleAudioMarkup(string $html): bool
+    {
+        return Str::contains($html, 'zfy-shortcode-audio')
+            && ! Str::contains($html, 'zfy-audio-content');
     }
 
     /**
@@ -334,11 +369,16 @@ class ContentMarkdownRenderer
      */
     private function parseAttributes(string $source): array
     {
-        preg_match_all('/([a-zA-Z0-9_-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))/', $source, $matches, PREG_SET_ORDER);
+        preg_match_all(
+            '/([a-zA-Z0-9_-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))/',
+            $source,
+            $matches,
+            PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL
+        );
 
         $attributes = [];
         foreach ($matches as $match) {
-            $attributes[strtolower($match[1])] = $match[2] !== '' ? $match[2] : ($match[3] !== '' ? $match[3] : ($match[4] ?? ''));
+            $attributes[strtolower($match[1])] = (string) ($match[2] ?? $match[3] ?? $match[4] ?? '');
         }
 
         $remaining = preg_replace('/([a-zA-Z0-9_-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))/', ' ', $source) ?? $source;
@@ -1157,13 +1197,14 @@ class ContentMarkdownRenderer
             return '<div class="zfy-shortcode zfy-shortcode-media zfy-shortcode-media-dplayer zfy-shortcode-video"><div class="zfy-shortcode-title">'.e($title).'</div><video class="zfy-media-player" src="'.e($url).'" controls preload="metadata"></video></div>';
         }
 
-        if ($name === 'zfy-mp3' && $url !== '#') {
+        if ($name === 'zfy-mp3') {
             $cover = $this->safeHref($attributes['cover'] ?? '');
-            $coverHtml = $cover !== '#'
-                ? '<img class="zfy-media-cover" src="'.e($cover).'" alt="'.e($title).'">'
-                : '<span class="zfy-media-icon">'.$this->mediaIcon($type).'</span>';
+            $theme = $this->safeCssColor($attributes['theme'] ?? $attributes['color'] ?? '') ?: '#1989fa';
+            $autoplay = $this->truthyAttribute($attributes['autoplay'] ?? $attributes['auto'] ?? '') ? ' autoplay="autoplay"' : '';
+            $coverAttribute = $cover !== '#' ? ' cover="'.e($cover).'"' : '';
+            $urlAttribute = $url !== '#' ? ' url="'.e($url).'"' : '';
 
-            return '<div class="zfy-shortcode zfy-shortcode-media zfy-shortcode-media-mp3 zfy-shortcode-audio">'.$coverHtml.'<div><div class="zfy-shortcode-title">'.e($title).'</div><small>'.e($url).'</small><audio class="zfy-audio-player" src="'.e($url).'" controls preload="metadata"></audio></div></div>';
+            return '<joe-mp3 name="'.e($title).'"'.$urlAttribute.$coverAttribute.' theme="'.e($theme).'"'.$autoplay.'></joe-mp3>';
         }
 
         if (in_array($name, ['zfy-music', 'zfy-music-list'], true)) {
@@ -1236,13 +1277,54 @@ class ContentMarkdownRenderer
      */
     private function renderCloud(array $attributes): string
     {
-        $title = trim($attributes['title'] ?? '下载资源');
+        $title = trim($attributes['title'] ?? '下载资源') ?: '下载资源';
         $url = $this->safeHref($attributes['url'] ?? '');
-        $type = $this->cloudTypeLabel($attributes['type'] ?? 'default');
+        $type = $this->cloudTypeKey($attributes['type'] ?? 'default');
+        $provider = self::CLOUD_TYPES[$type];
         $password = trim($attributes['password'] ?? $attributes['code'] ?? '');
-        $meta = $type.($password !== '' ? ' | 提取码：'.$password : '');
+        $passwordHtml = $password !== ''
+            ? '<button type="button" class="zfy-cloud-password" data-copy-text="'.e($password).'" aria-label="复制提取码 '.e($password).'" title="点击复制提取码"><span>提取码</span><code>'.e($password).'</code></button>'
+            : '<span class="zfy-cloud-password is-empty">无需提取码</span>';
+        $properties = $this->cloudProperties($attributes);
+        $propertiesHtml = $properties === []
+            ? ''
+            : '<div class="zfy-cloud-properties">'.implode('', array_map(
+                fn (array $property): string => '<div class="zfy-cloud-property"><span class="zfy-cloud-property-name">'.e($property['name']).'</span><span class="zfy-cloud-property-value">'.e($property['value']).'</span></div>',
+                $properties
+            )).'</div>';
+        $icon = '/assets/zfy/cloud/'.$provider['icon'].'.svg';
 
-        return '<div class="zfy-shortcode zfy-shortcode-cloud"><span class="zfy-cloud-logo">云</span><div><div class="zfy-shortcode-title">'.e($title).'</div><small>'.e($meta).'</small></div><a href="'.e($url).'" target="_blank" rel="noopener noreferrer nofollow">下载</a></div>';
+        return '<div class="zfy-shortcode zfy-shortcode-cloud zfy-cloud-provider-'.$type.'"><span class="zfy-cloud-logo" aria-hidden="true"><img src="'.e($icon).'" alt="" width="28" height="28"></span><div class="zfy-cloud-content"><div class="zfy-shortcode-title">'.e($title).'</div><div class="zfy-cloud-meta"><span class="zfy-cloud-provider">'.e($provider['label']).'</span>'.$passwordHtml.'</div></div>'.$propertiesHtml.'<a class="zfy-cloud-download" href="'.e($url).'" target="_blank" rel="noopener noreferrer nofollow"><span>立即下载</span><span class="zfy-cloud-download-arrow" aria-hidden="true">→</span></a></div>';
+    }
+
+    /**
+     * @param  array<string, string>  $attributes
+     * @return array<int, array{name: string, value: string}>
+     */
+    private function cloudProperties(array $attributes): array
+    {
+        $encoded = trim($attributes['attributes'] ?? $attributes['attrs'] ?? '');
+        if ($encoded === '' || strlen($encoded) > 24000) {
+            return [];
+        }
+
+        $decoded = json_decode(rawurldecode($encoded), true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return collect($decoded)
+            ->take(30)
+            ->filter(fn ($property): bool => is_array($property))
+            ->map(function (array $property): array {
+                $name = Str::limit(trim((string) ($property['name'] ?? $property['key'] ?? '')), 80, '');
+                $value = Str::limit(trim((string) ($property['value'] ?? '')), 300, '');
+
+                return compact('name', 'value');
+            })
+            ->filter(fn (array $property): bool => $property['name'] !== '')
+            ->values()
+            ->all();
     }
 
     /**
@@ -1532,11 +1614,13 @@ class ContentMarkdownRenderer
             if ($child instanceof \DOMElement) {
                 if (! in_array(strtolower($child->tagName), $allowedTags, true)) {
                     $node->removeChild($child);
+
                     continue;
                 }
 
                 $this->sanitizeSvgElement($child);
                 $this->sanitizeSvgNode($child);
+
                 continue;
             }
 
@@ -1741,18 +1825,11 @@ class ContentMarkdownRenderer
         return in_array(strtolower($value), ['1', 'true', 'yes', 'on', 'open'], true);
     }
 
-    private function cloudTypeLabel(string $type): string
+    private function cloudTypeKey(string $type): string
     {
-        return [
-            'default' => '默认网盘',
-            '360' => '360 网盘',
-            'bd' => '百度网盘',
-            'ty' => '天翼网盘',
-            'ct' => '城通网盘',
-            'wy' => '微云网盘',
-            'github' => 'Github 仓库',
-            'lz' => '蓝奏云网盘',
-        ][$this->safeToken($type)] ?? '默认网盘';
+        $type = $this->safeToken($type);
+
+        return array_key_exists($type, self::CLOUD_TYPES) ? $type : 'default';
     }
 
     private function mediaIcon(string $type): string

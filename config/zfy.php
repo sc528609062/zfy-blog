@@ -32,7 +32,7 @@ return [
             'storage_root' => 'media',
             'default_directory' => 'editor/images',
             'library_per_page' => 24,
-            'upload_max_kb' => 20480,
+            'upload_max_kb' => 102400,
             'directories' => [
                 ['value' => 'editor/images', 'label' => '正文媒体'],
                 ['value' => 'editor/covers', 'label' => '文章封面'],
