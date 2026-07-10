@@ -1,5 +1,6 @@
 @php
     $section = $section ?? 'dashboard';
+    $themeAccent = $theme['accent'] ?? '#4f8cff';
     $payload = $payload ?? [
         'section' => $section,
         'csrf' => csrf_token(),
@@ -70,6 +71,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>zfy-blog 后台</title>
     @vite(['resources/js/admin.js'])
+    <style>:root{--zfy-theme-primary:{{ $themeAccent }};}</style>
 </head>
 <body class="zfy-admin-body">
     <div id="admin-app"></div>

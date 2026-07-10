@@ -176,6 +176,7 @@ class AdminController extends Controller
             ['scope' => $data['scope'], 'key' => $data['key']],
             ['value' => ['raw' => $data['value']]]
         );
+        $this->themes->forgetActiveCache();
 
         return back()->with('status', '主题配置已保存');
     }
@@ -560,6 +561,7 @@ class AdminController extends Controller
             ['id' => 'ordered-list', 'label' => '有序列表', 'icon' => 'Sort', 'action' => 'linePrefix', 'prefix' => '1. ', 'placeholder' => '列表项目', 'group' => 'block'],
             ['id' => 'unordered-list', 'label' => '无序列表', 'icon' => 'List', 'action' => 'linePrefix', 'prefix' => '- ', 'placeholder' => '列表项目', 'group' => 'block'],
             ['id' => 'task-list', 'label' => '任务列表', 'icon' => 'Finished', 'action' => 'blockInsert', 'snippet' => "- [ ] 待办事项\n- [x] 已完成事项", 'group' => 'block'],
+            ['id' => 'zfy-card-list', 'label' => '卡片列表', 'icon' => 'Tickets', 'action' => 'blockInsert', 'snippet' => "{zfy-card-list}\n{zfy-card-list-item}\n列表一内容\n{/zfy-card-list-item}\n{zfy-card-list-item}\n列表二内容\n{/zfy-card-list-item}\n{/zfy-card-list}", 'group' => 'block'],
             ['id' => 'hr', 'label' => '分割线', 'icon' => 'Minus', 'action' => 'blockInsert', 'snippet' => '---', 'group' => 'insert'],
             ['id' => 'link', 'label' => '链接', 'icon' => 'Link', 'action' => 'wrap', 'prefix' => '[', 'suffix' => '](https://example.com)', 'placeholder' => '链接文字', 'group' => 'insert'],
             ['id' => 'image', 'label' => '媒体库', 'icon' => 'Picture', 'action' => 'blockInsert', 'snippet' => '![图片描述](/assets/zfy/placeholders/blue.svg)', 'group' => 'insert'],
@@ -575,7 +577,6 @@ class AdminController extends Controller
                 ['id' => 'zfy-callout', 'label' => '标注', 'icon' => 'InfoFilled', 'action' => 'blockWrap', 'prefix' => '{zfy-callout color="#f0ad4e"}'."\n", 'suffix' => "\n".'{/zfy-callout}', 'placeholder' => '标注内容'],
                 ['id' => 'zfy-mtitle', 'label' => '居中标题', 'icon' => 'DataLine', 'action' => 'blockInsert', 'snippet' => '{zfy-mtitle title="居中标题" /}'],
                 ['id' => 'zfy-card-default', 'label' => '默认卡片', 'icon' => 'Postcard', 'action' => 'blockWrap', 'prefix' => '{zfy-card-default title="卡片标题"}'."\n", 'suffix' => "\n".'{/zfy-card-default}', 'placeholder' => '卡片内容'],
-                ['id' => 'zfy-card-list', 'label' => '卡片列表', 'icon' => 'Tickets', 'action' => 'blockInsert', 'snippet' => "{zfy-card-list}\n{zfy-card-list-item}\n列表一内容\n{/zfy-card-list-item}\n{zfy-card-list-item}\n列表二内容\n{/zfy-card-list-item}\n{/zfy-card-list}"],
                 ['id' => 'zfy-card-describe', 'label' => '描述卡片', 'icon' => 'Document', 'action' => 'blockInsert', 'snippet' => "{zfy-card-describe title=\"卡片描述\"}\n卡片内容\n{/zfy-card-describe}"],
                 ['id' => 'zfy-message', 'label' => '消息条', 'icon' => 'Message', 'action' => 'blockWrap', 'prefix' => '{zfy-message type="warning"}'."\n", 'suffix' => "\n".'{/zfy-message}', 'placeholder' => '消息内容'],
                 ['id' => 'zfy-progress', 'label' => '进度条', 'icon' => 'Histogram', 'action' => 'blockInsert', 'snippet' => '{zfy-progress value="60" /}'],

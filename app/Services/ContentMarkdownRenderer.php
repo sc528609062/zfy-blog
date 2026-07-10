@@ -248,6 +248,7 @@ class ContentMarkdownRenderer
 
         return preg_match($this->shortcodeTokenPattern(), $html) === 1
             || Str::contains($lowerHtml, ['<blockquote', 'zfy-shortcode-quote zfy-quote quote_q', '/storage/media/'])
+            || (Str::contains($lowerHtml, 'zfy-taskbox') && ! Str::contains($lowerHtml, 'zfy-task-item'))
             || $this->containsStaleCloudMarkup($lowerHtml)
             || $this->containsStaleAudioMarkup($lowerHtml)
             || $this->containsStaleJoeElementMarkup($lowerHtml)
@@ -572,11 +573,23 @@ class ContentMarkdownRenderer
 
     private function replaceTaskListInputs(string $html): string
     {
-        return preg_replace_callback(
+        $html = preg_replace_callback(
             '/<input\b(?=[^>]*type=["\']?checkbox["\']?)[^>]*>/i',
             fn (array $matches): string => str_contains(strtolower($matches[0]), 'checked')
                 ? '<span class="zfy-taskbox is-checked"></span>'
                 : '<span class="zfy-taskbox"></span>',
+            $html
+        ) ?? $html;
+
+        $html = preg_replace(
+            '/<li>(\s*)(<span class="zfy-taskbox is-checked"><\/span>)/i',
+            '<li class="zfy-task-item is-checked">$1$2',
+            $html
+        ) ?? $html;
+
+        return preg_replace(
+            '/<li>(\s*)(<span class="zfy-taskbox"><\/span>)/i',
+            '<li class="zfy-task-item">$1$2',
             $html
         ) ?? $html;
     }
@@ -612,7 +625,7 @@ class ContentMarkdownRenderer
 
         return '<pre class="wp-block-zibllblock-enlighter">'
             .'<div class="enlighter-default enlighter-v-standard enlighter-t-enlighter enlighter-hover enlighter-linenumbers enlighter-overflow-scroll">'
-            .'<div class="enlighter-toolbar"><div class="enlighter-btn enlighter-btn-raw"></div><div class="enlighter-btn enlighter-btn-copy"></div><div class="enlighter-btn enlighter-btn-window"></div></div>'
+            .'<div class="enlighter-toolbar" role="toolbar"><button type="button" class="enlighter-btn enlighter-btn-raw" aria-label="原始代码"></button><button type="button" class="enlighter-btn enlighter-btn-copy" aria-label="复制代码"></button><button type="button" class="enlighter-btn enlighter-btn-window" aria-label="新窗口打开"></button></div>'
             .'<div class="enlighter" style="">'.$lines.'</div>'
             .'<pre class="enlighter-raw">'.$escapedRaw.'</pre>'
             .'</div>'

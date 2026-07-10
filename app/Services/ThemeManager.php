@@ -26,13 +26,16 @@ class ThemeManager
                 return $this->fallbackTheme($slug);
             }
 
+            $settings = $this->settingsFor($theme);
+            $fallbackAccent = data_get(config("zfy.themes.{$theme->slug}"), 'accent', '#1684ff');
+
             return [
                 'model' => $theme,
                 'slug' => $theme->slug,
                 'name' => $theme->name,
                 'view' => $theme->entry_view,
-                'accent' => data_get(config("zfy.themes.{$theme->slug}"), 'accent', '#1684ff'),
-                'settings' => $this->settingsFor($theme),
+                'accent' => $this->primaryColor($settings, $fallbackAccent),
+                'settings' => $settings,
             ];
         });
     }
@@ -47,6 +50,11 @@ class ThemeManager
             ['value' => ['slug' => $slug], 'autoload' => true]
         );
 
+        $this->forgetActiveCache();
+    }
+
+    public function forgetActiveCache(): void
+    {
         Cache::forget('zfy.active_theme');
     }
 
@@ -54,7 +62,9 @@ class ThemeManager
     {
         $settings = ThemeSetting::where('theme_id', $theme->id)->get()
             ->groupBy('scope')
-            ->map(fn ($items) => $items->pluck('value', 'key')->all())
+            ->map(fn ($items) => $items->mapWithKeys(fn (ThemeSetting $setting) => [
+                $setting->key => $this->settingValue($setting->value),
+            ])->all())
             ->all();
 
         return array_replace_recursive($this->defaultSettings($theme->slug), $settings);
@@ -109,5 +119,23 @@ class ThemeManager
             'accent' => data_get(config("zfy.themes.{$slug}"), 'accent', '#1684ff'),
             'settings' => $this->defaultSettings($slug),
         ];
+    }
+
+    private function settingValue(mixed $value): mixed
+    {
+        return is_array($value) && array_key_exists('raw', $value) ? $value['raw'] : $value;
+    }
+
+    private function primaryColor(array $settings, string $fallback): string
+    {
+        $color = data_get($settings, 'global.primary_color');
+
+        if (! is_string($color)) {
+            return $fallback;
+        }
+
+        $color = trim($color);
+
+        return preg_match('/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i', $color) ? $color : $fallback;
     }
 }

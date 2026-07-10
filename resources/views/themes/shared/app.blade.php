@@ -15,7 +15,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $content->title ?? ($theme['name'] ?? 'zfy-blog') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>:root{--theme-accent:{{ $accent }};}</style>
+    <style>:root{--theme-accent:{{ $accent }};--a-primary:{{ $accent }};}</style>
 </head>
 <body class="theme {{ $slug }}">
     <header class="site-header">
