@@ -40,6 +40,12 @@ return [
             ],
         ],
     ],
+    'netease' => [
+        'verify_ssl' => env('ZFY_NETEASE_VERIFY_SSL', env('APP_ENV', 'production') === 'production'),
+        'cookie' => env('ZFY_NETEASE_COOKIE', ''),
+        'proxy_stream' => env('ZFY_NETEASE_PROXY_STREAM', true),
+        'bitrate' => (int) env('ZFY_NETEASE_BITRATE', 320000),
+    ],
     'payment_gateways' => [
         'alipay_official' => '支付宝官方',
         'wechat_official' => '微信官方',

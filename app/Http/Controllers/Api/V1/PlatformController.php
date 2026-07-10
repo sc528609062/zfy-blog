@@ -307,9 +307,16 @@ class PlatformController extends Controller
         return $this->ok($music->song($id));
     }
 
-    public function neteaseSongStream(string $id, NeteaseMusicService $music)
+    public function neteaseSongStream(Request $request, string $id, NeteaseMusicService $music)
     {
-        return redirect($music->streamUrl($id));
+        return $music->stream($id, $request);
+    }
+
+    public function neteaseSongLyric(string $id, NeteaseMusicService $music)
+    {
+        return response($music->lyric($id), 200, [
+            'Content-Type' => 'text/plain; charset=UTF-8',
+        ]);
     }
 
     public function upgrade()

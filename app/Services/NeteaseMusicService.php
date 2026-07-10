@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Models\Media;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class NeteaseMusicService
 {
@@ -24,7 +27,7 @@ class NeteaseMusicService
         $payload = $this->readJson($this->playlistPath($id));
         $audio = $payload ? $this->audioList($payload) : [];
 
-        if ($payload === null || $audio === []) {
+        if ($payload === null || $audio === [] || $this->shouldFetchOfficialPlaylist($payload, $audio)) {
             $remotePayload = $this->fetchNeteasePlaylist($id, $payload === null);
 
             if ($remotePayload) {
@@ -50,8 +53,11 @@ class NeteaseMusicService
         abort_if($id === '', 404, '网易云歌曲 ID 不正确。');
 
         $audio = $this->findAudio($id);
-        $audio ??= $this->audioFromLocalTrack($this->fetchNeteaseSong($id, false) ?: []);
-        abort_if($audio === null, 404, '未找到本地歌曲数据，请先在本地歌单或歌曲 JSON 中配置音频文件。');
+        $audio ??= $this->audioFromLocalTrack($this->fetchNeteaseSong($id, false) ?: [
+            'id' => $id,
+            'name' => '网易云歌曲',
+        ]);
+        abort_if($audio === null, 404, '未找到网易云歌曲数据，请检查歌曲 ID。');
 
         return [
             'id' => $id,
@@ -66,9 +72,31 @@ class NeteaseMusicService
         $id = $this->musicId($id);
         abort_if($id === '', 404, '网易云歌曲 ID 不正确。');
 
-        $source = $this->findSourceUrl($id);
+        $url = $this->neteaseStreamUrl($id);
+        abort_if($url === '', 404, '网易云未返回可播放音频，请检查歌曲权限或配置网易云 Cookie。');
 
-        return $source !== '' ? $source : $this->neteaseStreamUrl($id);
+        return $url;
+    }
+
+    public function stream(string $id, Request $request): SymfonyResponse
+    {
+        $id = $this->musicId($id);
+        abort_if($id === '', 404, '网易云歌曲 ID 不正确。');
+
+        $remoteUrl = $this->neteaseStreamUrl($id);
+        abort_if($remoteUrl === '', 404, '网易云未返回可播放音频，请检查歌曲权限或配置网易云 Cookie。');
+
+        return $this->shouldProxyStream($remoteUrl)
+            ? $this->proxyAudio($remoteUrl, $request)
+            : redirect($remoteUrl);
+    }
+
+    public function lyric(string $id): string
+    {
+        $id = $this->musicId($id);
+        abort_if($id === '', 404, '网易云歌曲 ID 不正确。');
+
+        return $this->fetchNeteaseLyric($id);
     }
 
     /**
@@ -95,6 +123,17 @@ class NeteaseMusicService
             ->filter()
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<int, array<string, string>>  $audio
+     */
+    private function shouldFetchOfficialPlaylist(array $payload, array $audio): bool
+    {
+        $tracks = $this->tracksFromPayload($payload);
+
+        return $tracks !== [] && count($audio) < count($tracks);
     }
 
     /**
@@ -155,8 +194,11 @@ class NeteaseMusicService
     {
         $id = $this->trackId($track);
         $source = $this->sourceUrlFromTrack($track);
+        $neteaseId = $this->musicId((string) data_get($track, 'id', ''));
+        $hasDirectSource = $source !== '' && ! $this->isNeteaseOuterUrl($source);
+        $hasNeteaseSource = $neteaseId !== '';
 
-        if ($id === '' || $source === '') {
+        if ($id === '' || (! $hasDirectSource && ! $hasNeteaseSource)) {
             return null;
         }
 
@@ -164,9 +206,9 @@ class NeteaseMusicService
             'id' => $id,
             'name' => (string) (data_get($track, 'name') ?: data_get($track, 'title') ?: '本地歌曲'),
             'artist' => $this->artists($track),
-            'url' => '/api/v1/netease/song/'.$id.'/stream',
+            'url' => $hasNeteaseSource ? '/api/v1/netease/song/'.$neteaseId.'/stream' : $source,
             'cover' => $this->coverUrlFromTrack($track),
-            'lrc' => $this->lyricValue((string) (data_get($track, 'lrc') ?: data_get($track, 'lyric') ?: '')),
+            'lrc' => $this->lyricFromTrack($track, $id),
         ];
     }
 
@@ -187,7 +229,7 @@ class NeteaseMusicService
             'name' => $name,
             'artist' => $this->artists($track),
             'cover' => $this->coverUrlFromTrack($track),
-            'playable' => $this->sourceUrlFromTrack($track) !== '' ? '1' : '0',
+            'playable' => $this->sourceUrlFromTrack($track) !== '' || $this->musicId((string) data_get($track, 'id', '')) !== '' ? '1' : '0',
         ];
     }
 
@@ -226,9 +268,7 @@ class NeteaseMusicService
             return $source;
         }
 
-        $neteaseId = $this->musicId((string) data_get($track, 'id', ''));
-
-        return $neteaseId !== '' ? $this->neteaseStreamUrl($neteaseId) : '';
+        return '';
     }
 
     /**
@@ -254,6 +294,25 @@ class NeteaseMusicService
         }
 
         return $this->localUrl($trimmed);
+    }
+
+    /**
+     * @param  array<string, mixed>  $track
+     */
+    private function lyricFromTrack(array $track, string $id): string
+    {
+        $lyric = $this->lyricValue((string) (data_get($track, 'lrc') ?: data_get($track, 'lyric') ?: ''));
+
+        if ($lyric !== '') {
+            return $lyric;
+        }
+
+        return $this->musicId((string) data_get($track, 'id', '')) !== '' ? $this->lyricUrl($id) : '';
+    }
+
+    private function lyricUrl(string $id): string
+    {
+        return '/api/v1/netease/song/'.$id.'/lyric';
     }
 
     /**
@@ -296,20 +355,16 @@ class NeteaseMusicService
     private function fetchNeteasePlaylist(string $id, bool $abortOnFailure = true): ?array
     {
         $payload = Cache::remember(
-            'zfy.netease.official.playlist.'.$id,
+            'zfy.netease.official.playlist.v3.full.'.$id,
             now()->addDays(7),
-            fn (): array => $this->neteaseGet('https://music.163.com/api/playlist/detail', ['id' => $id], $abortOnFailure)
+            fn (): array => $this->neteaseGet('https://music.163.com/api/v3/playlist/detail', ['id' => $id], $abortOnFailure)
         );
 
         if (! $payload) {
             return null;
         }
 
-        $tracks = collect(data_get($payload, 'result.tracks', []))
-            ->map(fn ($track): ?array => is_array($track) ? $this->neteaseTrack($track) : null)
-            ->filter()
-            ->values()
-            ->all();
+        $tracks = $this->neteasePlaylistTracks($payload, $abortOnFailure);
 
         if ($tracks === []) {
             return null;
@@ -317,9 +372,41 @@ class NeteaseMusicService
 
         return [
             'id' => $id,
-            'name' => (string) data_get($payload, 'result.name', '网易云歌单'),
+            'name' => (string) (data_get($payload, 'result.name') ?: data_get($payload, 'playlist.name') ?: '网易云歌单'),
             'tracks' => $tracks,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<int, array<string, mixed>>
+     */
+    private function neteasePlaylistTracks(array $payload, bool $abortOnFailure): array
+    {
+        $tracks = collect(data_get($payload, 'result.tracks', data_get($payload, 'playlist.tracks', [])))
+            ->map(fn ($track): ?array => is_array($track) ? $this->neteaseTrack($track) : null)
+            ->filter()
+            ->values()
+            ->all();
+        $trackIds = collect(data_get($payload, 'result.trackIds', []))
+            ->whenEmpty(fn ($collection) => collect(data_get($payload, 'playlist.trackIds', [])))
+            ->map(fn ($track): string => is_array($track) ? $this->musicId((string) ($track['id'] ?? '')) : '')
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($trackIds === [] || count($tracks) >= count($trackIds)) {
+            return $tracks;
+        }
+
+        $fullTracks = collect($this->fetchNeteaseSongs($trackIds, $abortOnFailure))
+            ->keyBy('id');
+
+        return collect($trackIds)
+            ->map(fn (string $trackId): ?array => $fullTracks->get($trackId))
+            ->filter()
+            ->values()
+            ->all();
     }
 
     /**
@@ -339,6 +426,55 @@ class NeteaseMusicService
         $track = data_get($payload, 'songs.0', []);
 
         return is_array($track) ? $this->neteaseTrack($track) : null;
+    }
+
+    /**
+     * @param  array<int, string>  $ids
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchNeteaseSongs(array $ids, bool $abortOnFailure): array
+    {
+        return collect($ids)
+            ->filter()
+            ->unique()
+            ->chunk(100)
+            ->flatMap(function ($chunk) use ($abortOnFailure) {
+                $ids = array_values($chunk->all());
+                $cacheKey = 'zfy.netease.official.songs.'.md5(implode(',', $ids));
+                $payload = Cache::remember(
+                    $cacheKey,
+                    now()->addDays(7),
+                    fn (): array => $this->neteaseGet('https://music.163.com/api/song/detail', [
+                        'id' => $ids[0] ?? '',
+                        'ids' => json_encode($ids, JSON_UNESCAPED_UNICODE),
+                    ], $abortOnFailure)
+                );
+
+                return collect(data_get($payload, 'songs', []))
+                    ->map(fn ($track): ?array => is_array($track) ? $this->neteaseTrack($track) : null)
+                    ->filter()
+                    ->values();
+            })
+            ->values()
+            ->all();
+    }
+
+    private function fetchNeteaseLyric(string $id): string
+    {
+        return (string) Cache::remember(
+            'zfy.netease.official.lyric.'.$id,
+            now()->addDays(30),
+            function () use ($id): string {
+                $payload = $this->neteaseGet('https://music.163.com/api/song/lyric', [
+                    'id' => $id,
+                    'lv' => 1,
+                    'kv' => 1,
+                    'tv' => -1,
+                ], false);
+
+                return (string) (data_get($payload, 'lrc.lyric') ?: data_get($payload, 'tlyric.lyric') ?: data_get($payload, 'klyric.lyric') ?: '');
+            }
+        );
     }
 
     /**
@@ -367,13 +503,21 @@ class NeteaseMusicService
      */
     private function neteaseGet(string $url, array $query, bool $abortOnFailure): array
     {
-        $response = Http::timeout(12)
+        $request = Http::timeout(12)
             ->retry(1, 200)
-            ->withHeaders([
-                'User-Agent' => 'Mozilla/5.0',
-                'Referer' => 'https://music.163.com/',
-            ])
-            ->get($url, $query);
+            ->withHeaders($this->neteaseRequestHeaders());
+
+        if (! $this->verifyNeteaseSsl()) {
+            $request = $request->withoutVerifying();
+        }
+
+        try {
+            $response = $request->get($url, $query);
+        } catch (ConnectionException $exception) {
+            abort_if($abortOnFailure, 502, '网易云官方请求失败：'.$exception->getMessage());
+
+            return [];
+        }
 
         if (! $response->successful()) {
             abort_if($abortOnFailure, 502, '网易云官方数据获取失败。');
@@ -382,6 +526,11 @@ class NeteaseMusicService
         }
 
         return $response->json() ?: [];
+    }
+
+    private function verifyNeteaseSsl(): bool
+    {
+        return (bool) config('zfy.netease.verify_ssl', app()->environment('production'));
     }
 
     /**
@@ -496,7 +645,192 @@ class NeteaseMusicService
 
     private function neteaseStreamUrl(string $id): string
     {
+        return $this->neteasePlayableUrl($id);
+    }
+
+    private function neteasePlayableUrl(string $id): string
+    {
+        return $this->fetchNeteasePlayableUrls([$id])[$id] ?? '';
+    }
+
+    /**
+     * @param  array<int, string>  $ids
+     * @return array<string, string>
+     */
+    private function fetchNeteasePlayableUrls(array $ids): array
+    {
+        $ids = collect($ids)
+            ->map(fn (string $id): string => $this->musicId($id))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $urls = [];
+        $missingIds = [];
+
+        foreach ($ids as $id) {
+            $cacheKey = $this->neteasePlayableUrlCacheKey($id);
+
+            if (Cache::has($cacheKey)) {
+                $urls[$id] = (string) Cache::get($cacheKey, '');
+            } else {
+                $missingIds[] = $id;
+            }
+        }
+
+        collect($missingIds)
+            ->chunk(100)
+            ->each(function ($chunk) use (&$urls): void {
+                $chunkIds = array_values($chunk->all());
+                $payload = $this->neteaseGet('https://music.163.com/api/song/enhance/player/url', [
+                    'ids' => json_encode($chunkIds, JSON_UNESCAPED_UNICODE),
+                    'br' => $this->neteaseBitrate(),
+                ], false);
+                $remoteUrls = collect(data_get($payload, 'data', []))
+                    ->mapWithKeys(function ($item): array {
+                        if (! is_array($item)) {
+                            return [];
+                        }
+
+                        $id = $this->musicId((string) data_get($item, 'id', ''));
+                        $url = $this->trustedRemoteUrl((string) data_get($item, 'url', ''));
+
+                        if ($id === '' || $url === '' || $this->isNeteaseOuterUrl($url)) {
+                            return [];
+                        }
+
+                        return [$id => $url];
+                    })
+                    ->all();
+
+                foreach ($chunkIds as $id) {
+                    $url = (string) ($remoteUrls[$id] ?? '');
+                    $urls[$id] = $url;
+                    Cache::put($this->neteasePlayableUrlCacheKey($id), $url, now()->addMinutes($url !== '' ? 10 : 5));
+                }
+            });
+
+        return $urls;
+    }
+
+    private function neteasePlayableUrlCacheKey(string $id): string
+    {
+        return 'zfy.netease.official.stream.'.md5($this->neteaseCookie()).'.'.$this->neteaseBitrate().'.'.$id;
+    }
+
+    private function neteaseOuterUrl(string $id): string
+    {
         return 'https://music.163.com/song/media/outer/url?id='.$id.'.mp3';
+    }
+
+    private function proxyAudio(string $url, Request $request): SymfonyResponse
+    {
+        $headers = $this->neteaseRequestHeaders();
+        $range = trim((string) $request->header('Range', ''));
+
+        if ($range !== '') {
+            $headers['Range'] = $range;
+        }
+
+        $pendingRequest = Http::timeout(30)
+            ->withHeaders($headers)
+            ->withOptions(['stream' => true]);
+
+        if (! $this->verifyNeteaseSsl()) {
+            $pendingRequest = $pendingRequest->withoutVerifying();
+        }
+
+        try {
+            $remoteResponse = $pendingRequest->get($url);
+        } catch (ConnectionException $exception) {
+            abort(502, '网易云音频代理请求失败：'.$exception->getMessage());
+        }
+
+        abort_unless($remoteResponse->successful(), $remoteResponse->status(), '网易云音频不可播放。');
+
+        $contentType = strtolower(trim((string) $remoteResponse->header('Content-Type')));
+        $supportedContentTypes = ['application/octet-stream', 'application/force-download', 'binary/octet-stream'];
+        abort_unless(
+            $contentType === '' || str_starts_with($contentType, 'audio/') || str_starts_with($contentType, 'video/mp4') || in_array(strtok($contentType, ';'), $supportedContentTypes, true),
+            502,
+            '网易云返回的内容不是可播放音频。'
+        );
+
+        $body = $remoteResponse->toPsrResponse()->getBody();
+        $responseHeaders = [
+            'Content-Type' => $remoteResponse->header('Content-Type') ?: 'audio/mpeg',
+            'Accept-Ranges' => $remoteResponse->header('Accept-Ranges') ?: 'bytes',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        ];
+
+        foreach (['Content-Length', 'Content-Range', 'ETag', 'Last-Modified'] as $header) {
+            $value = $remoteResponse->header($header);
+
+            if ($value !== null && $value !== '') {
+                $responseHeaders[$header] = $value;
+            }
+        }
+
+        return response()->stream(function () use ($body): void {
+            while (! $body->eof()) {
+                echo $body->read(8192);
+
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+
+                flush();
+            }
+        }, $remoteResponse->status(), $responseHeaders);
+    }
+
+    private function shouldProxyStream(string $url): bool
+    {
+        return (bool) config('zfy.netease.proxy_stream', true) && ! $this->isSameSiteUrl($url);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function neteaseRequestHeaders(): array
+    {
+        $headers = [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',
+            'Referer' => 'https://music.163.com/',
+        ];
+
+        $cookie = $this->neteaseCookie();
+
+        if ($cookie !== '') {
+            $headers['Cookie'] = $cookie;
+        }
+
+        return $headers;
+    }
+
+    private function neteaseCookie(): string
+    {
+        $configured = trim((string) config('zfy.netease.cookie', ''), " \t\n\r\0\x0B;");
+
+        return implode('; ', array_filter([
+            'os=pc',
+            'appver=8.10.10',
+            $configured,
+        ])).';';
+    }
+
+    private function neteaseBitrate(): int
+    {
+        return max(96000, (int) config('zfy.netease.bitrate', 320000));
+    }
+
+    private function isNeteaseOuterUrl(string $url): bool
+    {
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        return $host === 'music.163.com' && $path === '/song/media/outer/url';
     }
 
     private function trustedRemoteUrl(string $url): string
@@ -649,6 +983,17 @@ class NeteaseMusicService
         $query = parse_url($url, PHP_URL_QUERY);
 
         return url('/'.$path.($query ? '?'.$query : ''));
+    }
+
+    private function isSameSiteUrl(string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        $allowedHosts = array_filter([
+            parse_url((string) config('app.url'), PHP_URL_HOST),
+            request()?->getHost(),
+        ]);
+
+        return $host !== null && in_array($host, $allowedHosts, true);
     }
 
     private function cleanPath(string $path): string

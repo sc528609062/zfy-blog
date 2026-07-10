@@ -25,6 +25,7 @@ Route::prefix('v1')->name('api.v1.')->middleware([EnsureInstalled::class, 'throt
     Route::get('/netease/playlist/{id}', [PlatformController::class, 'neteasePlaylist'])->whereNumber('id');
     Route::get('/netease/song/{id}', [PlatformController::class, 'neteaseSong'])->whereNumber('id');
     Route::get('/netease/song/{id}/stream', [PlatformController::class, 'neteaseSongStream'])->whereNumber('id');
+    Route::get('/netease/song/{id}/lyric', [PlatformController::class, 'neteaseSongLyric'])->whereNumber('id');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [PlatformController::class, 'me']);

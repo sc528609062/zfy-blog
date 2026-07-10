@@ -539,14 +539,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .a-article .zfy-shortcode-media a[href], .a-article .zfy-shortcode-cloud a[href], .a-article a.zfy-shortcode-button[href] { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 14px; border-radius: 8px; background: var(--a-primary); color: #fff; font-weight: 900; text-decoration: none; }
 .a-article .zfy-shortcode-media a[href]:is(:hover, :focus-visible), .a-article .zfy-shortcode-cloud a[href]:is(:hover, :focus-visible), .a-article a.zfy-shortcode-button[href]:is(:hover, :focus-visible) { color: #fff; text-decoration: none; }
 .a-article .zfy-shortcode-button-wrap { margin: 18px 0; }
-joe-music, joe-mlist { display: block; }
+joe-music, joe-mlist { display: block; margin: 18px 0; }
 .zfy-netease-error { display: block; padding: 12px 14px; border: 1px solid #fed7aa; border-radius: 8px; background: #fff7ed; color: #c2410c; font-weight: 800; }
+.zfy-netease-player { display: grid; gap: 10px; }
 .zfy-netease-local-list { border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; box-shadow: 0 4px 14px rgba(15, 23, 42, .06); overflow: hidden; }
 .zfy-netease-local-list__head { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #eef2f7; }
 .zfy-netease-local-list__dot { width: 10px; height: 10px; border-radius: 50%; }
 .zfy-netease-local-list__head strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zfy-netease-local-list__head small { color: #94a3b8; font-size: 12px; }
-.zfy-netease-local-list__items { max-height: 250px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.zfy-netease-local-list__items { margin: 0; padding: 0; overflow: visible; list-style: none; }
 .zfy-netease-local-list__items li { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(120px, .55fr); gap: 10px; align-items: center; min-height: 34px; padding: 0 14px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
 .zfy-netease-local-list__items li:last-child { border-bottom: 0; }
 .zfy-netease-local-list__index { color: #94a3b8; font-size: 12px; }
@@ -554,7 +555,7 @@ joe-music, joe-mlist { display: block; }
 .zfy-netease-local-list__artist { color: #64748b; text-align: right; }
 joe-music .aplayer, joe-mlist .aplayer { width: 100%; margin: 0; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 14px rgba(15, 23, 42, .06); overflow: hidden; font-family: inherit; }
 joe-music .aplayer.aplayer-withlist .aplayer-list, joe-mlist .aplayer.aplayer-withlist .aplayer-list { border-top: 1px solid #e5e7eb; }
-joe-music .aplayer .aplayer-list ol, joe-mlist .aplayer .aplayer-list ol { max-height: 250px !important; }
+joe-music .aplayer .aplayer-list ol, joe-mlist .aplayer .aplayer-list ol { max-height: none !important; }
 joe-music .aplayer .aplayer-list ol li, joe-mlist .aplayer .aplayer-list ol li { height: 34px; line-height: 34px; border-top-color: #f3f4f6; }
 joe-music .aplayer .aplayer-info, joe-mlist .aplayer .aplayer-info { min-height: 90px; }
 joe-music .aplayer .aplayer-pic, joe-mlist .aplayer .aplayer-pic { width: 90px; height: 90px; }

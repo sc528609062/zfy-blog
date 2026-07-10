@@ -1545,6 +1545,7 @@ html,
 joe-music,
 joe-mlist {
     display: block;
+    margin: 18px 0;
 }
 
 .zfy-netease-error {
@@ -1563,6 +1564,11 @@ joe-mlist {
     background: #fff;
     box-shadow: 0 4px 14px rgba(15, 23, 42, .06);
     overflow: hidden;
+}
+
+.zfy-netease-player {
+    display: grid;
+    gap: 10px;
 }
 
 .zfy-netease-local-list__head {
@@ -1593,10 +1599,9 @@ joe-mlist {
 }
 
 .zfy-netease-local-list__items {
-    max-height: 250px;
     margin: 0;
     padding: 0;
-    overflow: auto;
+    overflow: visible;
     list-style: none;
 }
 
@@ -1650,7 +1655,7 @@ joe-mlist .aplayer.aplayer-withlist .aplayer-list {
 
 joe-music .aplayer .aplayer-list ol,
 joe-mlist .aplayer .aplayer-list ol {
-    max-height: 250px !important;
+    max-height: none !important;
 }
 
 joe-music .aplayer .aplayer-list ol li,
