@@ -63,6 +63,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureBackendAccess:
     Route::patch('/contents/{content}/status', [AdminContentController::class, 'status'])->name('contents.status');
     Route::delete('/contents/{content}', [AdminContentController::class, 'destroy'])->name('contents.destroy');
     Route::post('/contents/preview', [AdminContentController::class, 'preview'])->name('contents.preview');
+    Route::get('/editor/autosave', [AdminContentController::class, 'autosaveState'])->name('editor.autosave.state');
+    Route::post('/editor/autosave', [AdminContentController::class, 'autosave'])->name('editor.autosave');
+    Route::delete('/editor/autosave/{revision}', [AdminContentController::class, 'discardAutosave'])->name('editor.autosave.discard');
+    Route::post('/editor/presentation-defaults', [AdminController::class, 'saveEditorPresentationDefaults'])->name('editor.presentation-defaults');
+    Route::get('/contents/{content}/revisions', [AdminContentController::class, 'revisions'])->name('contents.revisions');
+    Route::get('/contents/{content}/revisions/{revision}', [AdminContentController::class, 'revision'])->name('contents.revisions.show');
+    Route::post('/contents/{content}/revisions/{revision}/restore', [AdminContentController::class, 'restoreRevision'])->name('contents.revisions.restore');
     Route::get('/media/library', [AdminMediaController::class, 'index'])->name('media.library');
     Route::post('/media/upload', [AdminMediaController::class, 'store'])->name('media.upload');
     Route::delete('/media/{media}', [AdminMediaController::class, 'destroy'])->name('media.destroy');

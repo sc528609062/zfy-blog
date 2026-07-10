@@ -16,18 +16,21 @@ const props = defineProps<{
     html: string;
     visible: boolean;
     loading?: boolean;
+    markdownTheme?: string;
+    codeTheme?: string;
 }>();
 
 const previewArticleRef = useTemplateRef<HTMLElement>('previewArticle');
 
 watch(
-    () => props.html,
-    (_html, _previousHtml, onCleanup) => {
+    () => [props.html, props.markdownTheme, props.codeTheme, props.visible],
+    (_value, _previousValue, onCleanup) => {
         let cleanupTimes: (() => void) | undefined;
         let cleanupNetease: (() => void) | undefined;
+        let cleanupEnhancements: (() => void) | undefined;
         let disposed = false;
 
-        void nextTick(() => {
+        void nextTick(async () => {
             if (disposed) {
                 return;
             }
@@ -35,6 +38,21 @@ watch(
             const preview = previewArticleRef.value;
             cleanupTimes = mountZfyTimes(preview || document);
             cleanupNetease = mountJoeNeteasePlayers(preview || document);
+
+            if (preview) {
+                const { enhanceMarkdownContent } = await import('../../shared/markdownEnhancements');
+                const cleanup = await enhanceMarkdownContent(preview, {
+                    markdownTheme: props.markdownTheme,
+                    codeTheme: props.codeTheme,
+                });
+
+                if (disposed) {
+                    cleanup();
+                    return;
+                }
+
+                cleanupEnhancements = cleanup;
+            }
 
             preview?.querySelectorAll<HTMLElement>('.zfy-shortcode-tabs').forEach((tabs) => {
                 const activeHead = tabs.querySelector('.zfy-tabs-head-item.is-active');
@@ -54,6 +72,7 @@ watch(
             disposed = true;
             cleanupTimes?.();
             cleanupNetease?.();
+            cleanupEnhancements?.();
         });
     },
     { immediate: true },
@@ -156,6 +175,13 @@ async function handlePreviewClick(event: MouseEvent): Promise<void> {
 <template>
     <aside v-if="visible" class="zfy-editor-preview-pane" @click="handlePreviewClick">
         <el-skeleton v-if="loading && !html" :rows="8" animated />
-        <article ref="previewArticle" v-else class="zfy-editor-preview" v-html="html || '<p>暂无预览内容</p>'" />
+        <article
+            ref="previewArticle"
+            v-else
+            class="zfy-editor-preview markdown-body"
+            :data-code-theme="codeTheme"
+            :data-markdown-theme="markdownTheme"
+            v-html="html || '<p>暂无预览内容</p>'"
+        />
     </aside>
 </template>

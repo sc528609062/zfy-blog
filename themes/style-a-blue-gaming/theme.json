@@ -17,6 +17,6 @@
     "global": ["logo_text", "primary_color", "nav", "footer_text"],
     "home": ["hero_enabled", "channels_enabled", "feed_enabled", "sidebar_enabled", "module_order"],
     "channel": ["layout", "card_style", "filters", "sort_fields"],
-    "detail": ["show_author_card", "show_related", "show_paywall", "sidebar_blocks"]
+    "detail": ["show_author_card", "show_related", "show_paywall", "sidebar_blocks", "markdown_theme", "code_theme"]
   }
 }

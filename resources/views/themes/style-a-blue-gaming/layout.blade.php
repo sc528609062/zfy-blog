@@ -9,6 +9,9 @@
     $vipLevels = collect($vipLevels ?? []);
     $featured = $content ?? $featured ?? $contents->first() ?? $resources->first() ?? $posts->first() ?? $images->first();
     $accent = $theme['accent'] ?? '#1677ff';
+    $onAccent = $theme['on_accent'] ?? '#ffffff';
+    $accentHover = $theme['accent_hover'] ?? '#0f5ed7';
+    $accentText = $theme['accent_text'] ?? '#0f5ed7';
     $themeTone = 'blue';
 @endphp
 <!doctype html>
@@ -18,7 +21,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $content->title ?? ($theme['name'] ?? 'zfy-blog') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>:root{--a-primary:{{ $accent }};}</style>
+    <style>:root{--a-primary:{{ $accent }};--a-on-primary:{{ $onAccent }};--a-primary-dark:{{ $accentHover }};--a-primary-text:{{ $accentText }};}</style>
 </head>
 <body class="a-body">
     @include('themes.style-a-blue-gaming.partials.header')

@@ -51,6 +51,11 @@ class Content extends Model
         return $this->hasMany(Comment::class);
     }
 
+    public function revisions()
+    {
+        return $this->hasMany(ContentRevision::class);
+    }
+
     public function toSearchableArray(): array
     {
         return [

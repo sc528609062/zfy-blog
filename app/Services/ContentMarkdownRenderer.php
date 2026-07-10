@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\Content;
 use Illuminate\Support\Str;
+use League\CommonMark\Extension\Footnote\FootnoteExtension;
+use League\CommonMark\Extension\FrontMatter\FrontMatterExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use Mews\Purifier\Facades\Purifier;
 
 class ContentMarkdownRenderer
@@ -189,7 +192,7 @@ class ContentMarkdownRenderer
         $markdown = $this->extractSingleShortcodes($markdown, $shortcodes);
         $markdown = $this->escapeUnmarkedRawHtmlLines($markdown);
 
-        $html = Str::markdown($markdown, $this->markdownOptions($allowRawHtml));
+        $html = Str::markdown($markdown, $this->markdownOptions($allowRawHtml), $this->markdownExtensions());
 
         foreach ($shortcodes as $placeholder => $replacement) {
             $html = str_replace('<p>'.$placeholder.'</p>', $replacement, $html);
@@ -201,6 +204,7 @@ class ContentMarkdownRenderer
         $html = $this->cleanupRenderedHtml($html);
         $html = Purifier::clean($html);
         $html = $this->cleanupRenderedHtml($html);
+        $html = $this->ensureHeadingIds($html);
         $html = $this->restoreDottedStyles($html);
         $html = $this->restoreInlineSvgIcons($html);
         $html = $this->renderMarkdownBlockquotes($html);
@@ -251,6 +255,7 @@ class ContentMarkdownRenderer
             || (Str::contains($lowerHtml, 'zfy-taskbox') && ! Str::contains($lowerHtml, 'zfy-task-item'))
             || $this->containsStaleCloudMarkup($lowerHtml)
             || $this->containsStaleAudioMarkup($lowerHtml)
+            || $this->containsStaleBilibiliMarkup($lowerHtml)
             || $this->containsStaleJoeElementMarkup($lowerHtml)
             || $this->containsStaleJoeClassMarkup($lowerHtml)
             || $this->containsStaleNeteaseMarkup($lowerHtml)
@@ -316,6 +321,12 @@ class ContentMarkdownRenderer
     {
         return Str::contains($html, 'zfy-shortcode-audio')
             && ! Str::contains($html, 'zfy-audio-content');
+    }
+
+    private function containsStaleBilibiliMarkup(string $html): bool
+    {
+        return Str::contains($html, 'zfy-shortcode-bilibili')
+            && Str::contains($html, '<div class="zfy-shortcode-title">');
     }
 
     /**
@@ -511,12 +522,37 @@ class ContentMarkdownRenderer
             'renderer' => [
                 'soft_break' => "<br>\n",
             ],
+            'heading_permalink' => [
+                'insert' => 'none',
+                'apply_id_to_heading' => true,
+                'id_prefix' => 'heading',
+                'fragment_prefix' => 'heading',
+            ],
+            'footnote' => [
+                'backref_symbol' => '返回正文',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<int, object>
+     */
+    private function markdownExtensions(): array
+    {
+        return [
+            new FrontMatterExtension,
+            new FootnoteExtension,
+            new HeadingPermalinkExtension,
         ];
     }
 
     private function renderMarkdownFragment(string $markdown, bool $allowRawHtml): string
     {
-        return Str::markdown($this->replaceEmojiCodes($this->normalizeMarkdown($markdown)), $this->markdownOptions($allowRawHtml));
+        return Str::markdown(
+            $this->replaceEmojiCodes($this->normalizeMarkdown($markdown)),
+            $this->markdownOptions($allowRawHtml),
+            $this->markdownExtensions(),
+        );
     }
 
     private function renderMarkedHtmlBlock(string $html): string
@@ -564,6 +600,37 @@ class ContentMarkdownRenderer
     private function normalizeMarkdown(string $markdown): string
     {
         return str_replace(["\r\n", "\r", "\u{3000}"], ["\n", "\n", '&emsp;'], $markdown);
+    }
+
+    private function ensureHeadingIds(string $html): string
+    {
+        $used = [];
+        $index = 0;
+
+        return preg_replace_callback('/<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/i', function (array $matches) use (&$used, &$index): string {
+            $attributes = $matches[2];
+
+            if (preg_match("/\\sid=([\"'])([^\"']+)\\1/i", $attributes, $idMatch) === 1) {
+                $used[$idMatch[2]] = true;
+
+                return $matches[0];
+            }
+
+            $index++;
+            $text = trim(html_entity_decode(strip_tags($matches[3]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            $base = Str::slug($text) ?: 'section-'.$index;
+            $id = 'heading-'.$base;
+            $suffix = 2;
+
+            while (isset($used[$id])) {
+                $id = 'heading-'.$base.'-'.$suffix;
+                $suffix++;
+            }
+
+            $used[$id] = true;
+
+            return '<h'.$matches[1].$attributes.' id="'.e($id).'">'.$matches[3].'</h'.$matches[1].'>';
+        }, $html) ?? $html;
     }
 
     private function replaceEmojiCodes(string $markdown): string
@@ -1282,7 +1349,7 @@ class ContentMarkdownRenderer
 
         $src = 'https://player.bilibili.com/player.html?bvid='.rawurlencode($bvid).'&page='.$page.'&high_quality=1';
 
-        return '<div class="zfy-shortcode zfy-shortcode-bilibili"><div class="zfy-shortcode-title">'.e($title).'</div><iframe class="zfy-bilibili-frame" src="'.e($src).'" width="100%" height="420"></iframe></div>';
+        return '<div class="zfy-shortcode zfy-shortcode-bilibili"><iframe class="zfy-bilibili-frame" src="'.e($src).'" width="100%" height="420"></iframe></div>';
     }
 
     /**

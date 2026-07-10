@@ -4,6 +4,10 @@
     $isFile = $page === 'file-detail' || ($detail->type ?? '') === 'files';
     $isImages = $page === 'images-detail' || ($detail->type ?? '') === 'images';
     $tone = $themeTone ?? 'blue';
+    $markdownTheme = data_get($detail->block_json, 'presentation.markdown_theme')
+        ?: data_get($theme, 'settings.content-detail.markdown_theme', 'juejin');
+    $codeTheme = data_get($detail->block_json, 'presentation.code_theme')
+        ?: data_get($theme, 'settings.content-detail.code_theme', 'atom-one-dark');
 @endphp
 
 <section class="a-detail-layout">
@@ -59,7 +63,11 @@
             </section>
         @endif
 
-        <div class="a-article">
+        <div
+            class="a-article article-content markdown-body"
+            data-markdown-theme="{{ $markdownTheme }}"
+            data-code-theme="{{ $codeTheme }}"
+        >
             {!! $detail->rendered_html ?? '<p>这里是编辑器渲染后的内容。支持隐藏内容、下载块、提示块、代码块、图集和视频等复杂结构。</p>' !!}
         </div>
 

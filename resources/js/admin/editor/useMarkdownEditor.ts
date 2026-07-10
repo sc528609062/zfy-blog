@@ -1,15 +1,26 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo, undo } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { openSearchPanel, searchKeymap } from '@codemirror/search';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
-import { nextTick, onBeforeUnmount, onMounted, shallowRef, watch, type Ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch, type Ref } from 'vue';
 import { todayText } from './editorTools';
 import type { EditorTool } from './types';
 
-export function useMarkdownEditor(model: Ref<string>) {
-    const hostRef = shallowRef<HTMLElement | null>(null);
+interface MarkdownEditorOptions {
+    onSave?: () => void;
+    onFullscreen?: () => void;
+    uploadImage?: (file: File) => Promise<string>;
+}
+
+export function useMarkdownEditor(model: Ref<string>, options: MarkdownEditorOptions = {}) {
+    const hostRef = useTemplateRef<HTMLElement>('editorHost');
     const viewRef = shallowRef<EditorView | null>(null);
+    const cursorLine = shallowRef(1);
+    const cursorColumn = shallowRef(1);
+    const scrollListeners = new Set<(ratio: number) => void>();
+    let removeScrollListener: (() => void) | undefined;
 
     onMounted(() => {
         if (!hostRef.value) {
@@ -24,9 +35,23 @@ export function useMarkdownEditor(model: Ref<string>) {
                     history(),
                     markdown(),
                     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-                    keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+                    keymap.of([
+                        indentWithTab,
+                        ...editorKeymap(),
+                        ...searchKeymap,
+                        ...defaultKeymap,
+                        ...historyKeymap,
+                    ]),
                     cmPlaceholder('开始写作...'),
                     EditorView.lineWrapping,
+                    EditorView.domEventHandlers({
+                        paste(event) {
+                            return handleFileTransfer(event.clipboardData?.files);
+                        },
+                        drop(event) {
+                            return handleFileTransfer(event.dataTransfer?.files);
+                        },
+                    }),
                     EditorView.updateListener.of((update) => {
                         if (update.docChanged) {
                             const value = update.state.doc.toString();
@@ -34,13 +59,29 @@ export function useMarkdownEditor(model: Ref<string>) {
                                 model.value = value;
                             }
                         }
+
+                        if (update.selectionSet || update.docChanged) {
+                            updateCursor(update.state);
+                        }
                     }),
                 ],
             }),
         });
+
+        updateCursor(viewRef.value.state);
+        const scroller = viewRef.value.scrollDOM;
+        const handleScroll = () => {
+            const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+            const ratio = max > 0 ? scroller.scrollTop / max : 0;
+            scrollListeners.forEach((listener) => listener(ratio));
+        };
+        scroller.addEventListener('scroll', handleScroll, { passive: true });
+        removeScrollListener = () => scroller.removeEventListener('scroll', handleScroll);
     });
 
     onBeforeUnmount(() => {
+        removeScrollListener?.();
+        scrollListeners.clear();
         viewRef.value?.destroy();
         viewRef.value = null;
     });
@@ -55,6 +96,37 @@ export function useMarkdownEditor(model: Ref<string>) {
             changes: { from: 0, to: view.state.doc.length, insert: value || '' },
         });
     });
+
+    function editorKeymap() {
+        return [
+            { key: 'Mod-b', preventDefault: true, run: () => runWrap('**', '**', '加粗文字') },
+            { key: 'Mod-i', preventDefault: true, run: () => runWrap('*', '*', '斜体文字') },
+            { key: 'Mod-k', preventDefault: true, run: () => runWrap('[', '](https://)', '链接文字') },
+            { key: 'Mod-s', preventDefault: true, run: () => runCommand(options.onSave) },
+            { key: 'F11', preventDefault: true, run: () => runCommand(options.onFullscreen) },
+            { key: 'Shift-Mod-7', preventDefault: true, run: () => runPrefix('', '列表项', true) },
+            { key: 'Shift-Mod-8', preventDefault: true, run: () => runPrefix('- ', '列表项', false) },
+            { key: 'Shift-Mod-.', preventDefault: true, run: () => runPrefix('> ', '引用内容', false) },
+        ];
+    }
+
+    function runWrap(prefix: string, suffix: string, fallback: string): boolean {
+        wrapSelection(prefix, suffix, fallback);
+
+        return true;
+    }
+
+    function runPrefix(prefix: string, fallback: string, ordered: boolean): boolean {
+        prefixLines(prefix, fallback, ordered);
+
+        return true;
+    }
+
+    function runCommand(command?: () => void): boolean {
+        command?.();
+
+        return true;
+    }
 
     function applyTool(tool: EditorTool): void {
         const view = viewRef.value;
@@ -224,10 +296,91 @@ export function useMarkdownEditor(model: Ref<string>) {
         void nextTick(() => viewRef.value?.focus());
     }
 
+    function showSearch(): void {
+        const view = viewRef.value;
+        if (view) {
+            openSearchPanel(view);
+            view.focus();
+        }
+    }
+
+    function scrollToLine(lineNumber: number): void {
+        const view = viewRef.value;
+        if (!view) {
+            return;
+        }
+
+        const line = view.state.doc.line(Math.min(Math.max(1, lineNumber), view.state.doc.lines));
+        view.dispatch({
+            selection: { anchor: line.from },
+            effects: EditorView.scrollIntoView(line.from, { y: 'start', yMargin: 48 }),
+        });
+        focus();
+    }
+
+    function scrollToRatio(ratio: number): void {
+        const scroller = viewRef.value?.scrollDOM;
+        if (!scroller) {
+            return;
+        }
+
+        const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+        scroller.scrollTop = Math.min(1, Math.max(0, ratio)) * max;
+    }
+
+    function onScroll(listener: (ratio: number) => void): () => void {
+        scrollListeners.add(listener);
+
+        return () => scrollListeners.delete(listener);
+    }
+
+    function updateCursor(state: EditorState): void {
+        const position = state.selection.main.head;
+        const line = state.doc.lineAt(position);
+        cursorLine.value = line.number;
+        cursorColumn.value = position - line.from + 1;
+    }
+
+    function handleFileTransfer(files?: FileList | null): boolean {
+        if (!files || !options.uploadImage) {
+            return false;
+        }
+
+        const images = [...files].filter((file) => file.type.startsWith('image/'));
+        if (images.length === 0) {
+            return false;
+        }
+
+        void uploadImages(images);
+
+        return true;
+    }
+
+    async function uploadImages(files: File[]): Promise<void> {
+        for (const file of files) {
+            try {
+                const snippet = await options.uploadImage?.(file);
+                if (snippet) {
+                    insertBlock(snippet);
+                }
+            } catch {
+                // 上传组件负责显示具体失败原因，继续处理剩余图片。
+            }
+        }
+    }
+
     return {
         hostRef,
+        viewRef,
+        cursorLine,
+        cursorColumn,
         applyTool,
         setValue,
+        insertText,
         focus,
+        showSearch,
+        scrollToLine,
+        scrollToRatio,
+        onScroll,
     };
 }

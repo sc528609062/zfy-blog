@@ -9,6 +9,9 @@
     $vipLevels = collect($vipLevels ?? []);
     $featured = $content ?? $featured ?? $resources->first() ?? $contents->first() ?? $posts->first() ?? $images->first();
     $accent = $theme['accent'] ?? '#2563eb';
+    $onAccent = $theme['on_accent'] ?? '#ffffff';
+    $accentHover = $theme['accent_hover'] ?? '#1d4ed8';
+    $accentText = $theme['accent_text'] ?? '#1d4ed8';
     $themeTone = 'market';
 @endphp
 <!doctype html>
@@ -18,7 +21,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $content->title ?? ($theme['name'] ?? 'zfy-blog 资源商城') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>:root{--a-primary:{{ $accent }};}</style>
+    <style>:root{--a-primary:{{ $accent }};--a-on-primary:{{ $onAccent }};--a-primary-dark:{{ $accentHover }};--a-primary-text:{{ $accentText }};}</style>
 </head>
 <body class="a-body b-body">
     @include('themes.style-a-blue-gaming.partials.header')

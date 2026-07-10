@@ -10,12 +10,12 @@ return [
         'default' => [
             'HTML.Doctype' => 'HTML 4.01 Transitional',
             'HTML.Allowed' => implode(',', [
-                'h1[class],h2[class],h3[class],h4[class],h5[class],h6[class]',
+                'h1[id|class],h2[id|class],h3[id|class],h4[id|class],h5[id|class],h6[id|class]',
                 'p[class|style|align],br,hr[class]',
-                'strong[class],b[class],em[class],i[class],s[class],del[class]',
+                'strong[class],b[class],em[class],i[class],s[class],del[class],sup[id|class]',
                 'button[type|class|data-copy-text|aria-label|title]',
                 'blockquote[class],pre[class|data-enlighter-language|data-enlighter-title],code[class|data-enlighter-language|data-enlighter-theme|data-enlighter-highlight|data-enlighter-linenumbers|data-enlighter-lineoffset|data-enlighter-title|data-enlighter-group]',
-                'ul[class],ol[class],li[class]',
+                'ul[class],ol[class],li[id|class]',
                 'a[href|title|target|rel|class]',
                 'img[src|alt|title|width|height|class]',
                 'iframe[src|class|width|height]',
@@ -30,6 +30,7 @@ return [
                 'span[class|style|aria-hidden],font[color|size|face],small[class]',
             ]),
             'Attr.AllowedFrameTargets' => ['_blank'],
+            'Attr.EnableID' => true,
             'AutoFormat.AutoParagraph' => false,
             'AutoFormat.RemoveEmpty' => false,
             'CSS.AllowedProperties' => ['width', 'border-color', 'background-color', 'color', 'font-size', 'text-align'],

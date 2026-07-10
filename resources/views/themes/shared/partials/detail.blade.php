@@ -1,4 +1,10 @@
-@php($detail = $content ?? $featured)
+@php
+    $detail = $content ?? $featured;
+    $markdownTheme = data_get($detail->block_json, 'presentation.markdown_theme')
+        ?: data_get($settings ?? [], 'content-detail.markdown_theme', 'juejin');
+    $codeTheme = data_get($detail->block_json, 'presentation.code_theme')
+        ?: data_get($settings ?? [], 'content-detail.code_theme', 'atom-one-dark');
+@endphp
 <section class="detail-layout">
     <article class="detail-main">
         <img class="detail-cover" src="{{ $detail->cover_url }}" alt="">
@@ -8,7 +14,11 @@
             <p>{{ $detail->excerpt }}</p>
             <div class="meta"><span>{{ $detail->author->name ?? 'zfy作者' }}</span><span>{{ number_format($detail->view_count) }} 浏览</span><span>{{ $detail->comment_count }} 评论</span></div>
         </div>
-        <div class="article-content">{!! $detail->rendered_html !!}</div>
+        <div
+            class="article-content markdown-body"
+            data-markdown-theme="{{ $markdownTheme }}"
+            data-code-theme="{{ $codeTheme }}"
+        >{!! $detail->rendered_html !!}</div>
         @if(($detail->pricing['price'] ?? 0) > 0)
             <form method="post" action="/buy/{{ $detail->slug }}" class="paywall">
                 @csrf

@@ -149,6 +149,13 @@ class AdminController extends Controller
                 'content_status' => '/admin/contents/__CONTENT__/status',
                 'content_destroy' => '/admin/contents/__CONTENT__',
                 'content_preview' => route('admin.contents.preview', [], false),
+                'editor_autosave_state' => route('admin.editor.autosave.state', [], false),
+                'editor_autosave' => route('admin.editor.autosave', [], false),
+                'editor_autosave_discard' => '/admin/editor/autosave/__REVISION__',
+                'editor_presentation_defaults' => route('admin.editor.presentation-defaults', [], false),
+                'content_revisions' => '/admin/contents/__CONTENT__/revisions',
+                'content_revision' => '/admin/contents/__CONTENT__/revisions/__REVISION__',
+                'content_revision_restore' => '/admin/contents/__CONTENT__/revisions/__REVISION__/restore',
                 'media_library' => route('admin.media.library', [], false),
                 'media_upload' => route('admin.media.upload', [], false),
                 'media_destroy' => '/admin/media/__MEDIA__',
@@ -162,6 +169,29 @@ class AdminController extends Controller
         $this->themes->activate($data['slug']);
 
         return back()->with('status', '主题已切换为 '.$data['slug']);
+    }
+
+    public function saveEditorPresentationDefaults(Request $request)
+    {
+        abort_unless($request->user()?->can('manage themes'), 403);
+        $data = $request->validate([
+            'markdown_theme' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9-]+$/'],
+            'code_theme' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9\/-]+$/'],
+        ]);
+        $theme = data_get($this->themes->active(), 'model');
+
+        abort_unless($theme instanceof Theme, 422, '当前主题不支持保存默认编辑器样式');
+
+        foreach ($data as $key => $value) {
+            $theme->settings()->updateOrCreate(
+                ['scope' => 'content-detail', 'key' => $key],
+                ['value' => ['raw' => $value]],
+            );
+        }
+
+        $this->themes->forgetActiveCache();
+
+        return response()->json(['message' => '已设为全站默认样式']);
     }
 
     public function saveThemeSetting(Request $request, Theme $theme)
@@ -469,7 +499,12 @@ class AdminController extends Controller
             'categories' => Category::orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'type']),
             'media' => $this->editorMediaPayload(),
             'can_use_raw_html' => $this->canUseRawHtml($request),
+            'can_manage_theme_defaults' => (bool) $request->user()?->can('manage themes'),
             'default_status' => 'draft',
+            'presentation_defaults' => [
+                'markdown_theme' => (string) data_get($this->themes->active(), 'settings.content-detail.markdown_theme', 'juejin'),
+                'code_theme' => (string) data_get($this->themes->active(), 'settings.content-detail.code_theme', 'atom-one-dark'),
+            ],
             'content' => $this->editorContent($request),
         ];
     }
@@ -503,8 +538,10 @@ class AdminController extends Controller
             'cover_url' => $content->cover_url,
             'excerpt' => $content->excerpt,
             'markdown_cache' => $content->markdown_cache,
+            'block_json' => $content->block_json,
             'rendered_html' => $renderedHtml,
             'published_at' => optional($content->published_at)->toISOString(),
+            'updated_at' => optional($content->updated_at)->toISOString(),
             'show_url' => route('contents.show', $content->slug, false),
         ];
     }
@@ -567,6 +604,13 @@ class AdminController extends Controller
             ['id' => 'image', 'label' => '媒体库', 'icon' => 'Picture', 'action' => 'blockInsert', 'snippet' => '![图片描述](/assets/zfy/placeholders/blue.svg)', 'group' => 'insert'],
             ['id' => 'table', 'label' => '表格', 'icon' => 'Grid', 'action' => 'blockInsert', 'snippet' => "| 标题 | 内容 |\n| --- | --- |\n| 示例 | 文本 |", 'group' => 'insert'],
             ['id' => 'code-block', 'label' => '代码块', 'icon' => 'DocumentCopy', 'action' => 'blockWrap', 'prefix' => "```\n", 'suffix' => "\n```", 'placeholder' => '代码内容', 'group' => 'insert'],
+            ['id' => 'markdown-extensions', 'label' => 'Markdown 扩展', 'icon' => 'MagicStick', 'action' => 'dropdown', 'group' => 'insert', 'children' => [
+                ['id' => 'front-matter', 'label' => 'Front Matter', 'action' => 'blockInsert', 'snippet' => "---\ntitle: 文章标题\ndescription: 文章摘要\n---"],
+                ['id' => 'inline-math', 'label' => '行内公式', 'action' => 'wrap', 'prefix' => '$', 'suffix' => '$', 'placeholder' => 'E = mc^2'],
+                ['id' => 'block-math', 'label' => '块级公式', 'action' => 'blockWrap', 'prefix' => "$$\n", 'suffix' => "\n$$", 'placeholder' => '\\int_0^1 x^2 dx'],
+                ['id' => 'mermaid', 'label' => 'Mermaid 图表', 'action' => 'blockInsert', 'snippet' => "```mermaid\nflowchart LR\n    A[开始] --> B[完成]\n```"],
+                ['id' => 'footnote', 'label' => '脚注', 'action' => 'blockInsert', 'snippet' => "正文中的脚注[^1]\n\n[^1]: 脚注说明"],
+            ]],
             ['id' => 'html', 'label' => 'HTML', 'icon' => 'Collection', 'action' => 'blockInsert', 'snippet' => "{zfy-html}\n<div class=\"zfy-custom-html\">HTML 内容</div>\n{/zfy-html}", 'requiresRawHtml' => true, 'group' => 'insert'],
             ['id' => 'time', 'label' => '当前时间', 'icon' => 'Timer', 'action' => 'blockInsert', 'snippet' => '{zfy-time format="YYYY-MM-DD HH:mm:ss" /}', 'group' => 'insert'],
             ['id' => 'indent', 'label' => '缩进', 'icon' => 'DArrowRight', 'action' => 'linePrefix', 'prefix' => '&emsp;&emsp;', 'placeholder' => '缩进内容', 'group' => 'insert'],

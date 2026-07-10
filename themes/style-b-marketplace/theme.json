@@ -17,6 +17,6 @@
     "global": ["logo_text", "primary_color", "nav", "footer_text"],
     "home": ["market_stats", "coupon_panel", "category_menu", "module_order"],
     "channel": ["layout", "show_vip_price", "show_sales", "filters"],
-    "detail": ["show_license", "show_download_terms", "show_related", "show_paywall"]
+    "detail": ["show_license", "show_download_terms", "show_related", "show_paywall", "markdown_theme", "code_theme"]
   }
 }

@@ -74,7 +74,7 @@ function showToolText(_tool: EditorTool): boolean {
                             trigger="click"
                             @command="(child: EditorTool) => emit('tool', child)"
                         >
-                            <el-button class="zfy-editor-tool" :disabled="busy">
+                            <el-button class="zfy-editor-tool" :aria-label="toolLabel(tool)" :disabled="busy">
                                 <ZfyIcon :name="iconForEditorTool(tool)" />
                                 <span v-if="showToolText(tool)">{{ toolLabel(tool) }}</span>
                             </el-button>
@@ -99,6 +99,7 @@ function showToolText(_tool: EditorTool): boolean {
                                 },
                             ]"
                             :disabled="busy && !['preview', 'fullscreen', 'download'].includes(tool.action)"
+                            :aria-label="toolLabel(tool)"
                             :type="buttonType(tool)"
                             @click="emit('tool', tool)"
                         >

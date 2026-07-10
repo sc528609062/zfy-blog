@@ -28,13 +28,18 @@ class ThemeManager
 
             $settings = $this->settingsFor($theme);
             $fallbackAccent = data_get(config("zfy.themes.{$theme->slug}"), 'accent', '#1684ff');
+            $accent = $this->primaryColor($settings, $fallbackAccent);
+            $onAccent = $this->contrastingTextColor($accent);
 
             return [
                 'model' => $theme,
                 'slug' => $theme->slug,
                 'name' => $theme->name,
                 'view' => $theme->entry_view,
-                'accent' => $this->primaryColor($settings, $fallbackAccent),
+                'accent' => $accent,
+                'on_accent' => $onAccent,
+                'accent_hover' => $this->hoverAccent($accent, $onAccent),
+                'accent_text' => $this->foregroundAccent($accent),
                 'settings' => $settings,
             ];
         });
@@ -89,6 +94,8 @@ class ThemeManager
                 'show_author_card' => true,
                 'show_related' => true,
                 'show_paywall' => true,
+                'markdown_theme' => 'juejin',
+                'code_theme' => 'atom-one-dark',
             ],
             'files-channel' => [
                 'card_style' => 'commerce',
@@ -111,12 +118,18 @@ class ThemeManager
 
     private function fallbackTheme(string $slug): array
     {
+        $accent = data_get(config("zfy.themes.{$slug}"), 'accent', '#1684ff');
+        $onAccent = $this->contrastingTextColor($accent);
+
         return [
             'model' => null,
             'slug' => $slug,
             'name' => data_get(config("zfy.themes.{$slug}"), 'name', 'Default'),
             'view' => "themes.{$slug}.layout",
-            'accent' => data_get(config("zfy.themes.{$slug}"), 'accent', '#1684ff'),
+            'accent' => $accent,
+            'on_accent' => $onAccent,
+            'accent_hover' => $this->hoverAccent($accent, $onAccent),
+            'accent_text' => $this->foregroundAccent($accent),
             'settings' => $this->defaultSettings($slug),
         ];
     }
@@ -137,5 +150,95 @@ class ThemeManager
         $color = trim($color);
 
         return preg_match('/^#(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i', $color) ? $color : $fallback;
+    }
+
+    private function contrastingTextColor(string $color): string
+    {
+        $hex = $this->normalizedHex($color);
+
+        $backgroundLuminance = $this->relativeLuminance($hex);
+        $lightContrast = 1.05 / ($backgroundLuminance + 0.05);
+        $darkContrast = ($backgroundLuminance + 0.05) / ($this->relativeLuminance('101828') + 0.05);
+
+        return $lightContrast >= $darkContrast ? '#ffffff' : '#101828';
+    }
+
+    private function relativeLuminance(string $hex): float
+    {
+        $channels = [
+            hexdec(substr($hex, 0, 2)) / 255,
+            hexdec(substr($hex, 2, 2)) / 255,
+            hexdec(substr($hex, 4, 2)) / 255,
+        ];
+
+        [$red, $green, $blue] = array_map(
+            fn (float $channel): float => $channel <= 0.04045
+                ? $channel / 12.92
+                : (($channel + 0.055) / 1.055) ** 2.4,
+            $channels,
+        );
+
+        return 0.2126 * $red + 0.7152 * $green + 0.0722 * $blue;
+    }
+
+    private function hoverAccent(string $color, string $onAccent): string
+    {
+        $hex = $this->normalizedHex($color);
+        $target = $onAccent === '#ffffff' ? '101828' : 'ffffff';
+        $targetWeight = $onAccent === '#ffffff' ? 0.14 : 0.10;
+
+        return $this->mixHexColors($hex, $target, $targetWeight);
+    }
+
+    private function foregroundAccent(string $color): string
+    {
+        $hex = $this->normalizedHex($color);
+
+        if ($this->contrastRatio($hex, 'ffffff') >= 4.5) {
+            return '#'.$hex;
+        }
+
+        for ($weight = 0.05; $weight <= 0.95; $weight += 0.05) {
+            $candidate = $this->mixHexColors($hex, '101828', $weight);
+
+            if ($this->contrastRatio(ltrim($candidate, '#'), 'ffffff') >= 4.5) {
+                return $candidate;
+            }
+        }
+
+        return '#101828';
+    }
+
+    private function contrastRatio(string $first, string $second): float
+    {
+        $firstLuminance = $this->relativeLuminance($first);
+        $secondLuminance = $this->relativeLuminance($second);
+
+        return (max($firstLuminance, $secondLuminance) + 0.05)
+            / (min($firstLuminance, $secondLuminance) + 0.05);
+    }
+
+    private function normalizedHex(string $color): string
+    {
+        $hex = ltrim($color, '#');
+
+        if (strlen($hex) === 3 || strlen($hex) === 4) {
+            return $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        }
+
+        return substr($hex, 0, 6);
+    }
+
+    private function mixHexColors(string $base, string $target, float $targetWeight): string
+    {
+        $channels = [];
+
+        for ($index = 0; $index < 3; $index++) {
+            $baseChannel = hexdec(substr($base, $index * 2, 2));
+            $targetChannel = hexdec(substr($target, $index * 2, 2));
+            $channels[] = (int) round($baseChannel * (1 - $targetWeight) + $targetChannel * $targetWeight);
+        }
+
+        return sprintf('#%02x%02x%02x', ...$channels);
     }
 }

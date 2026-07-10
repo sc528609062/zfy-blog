@@ -105,6 +105,39 @@ export interface EditorForm {
     excerpt: string;
 }
 
+export interface EditorPresentation {
+    markdown_theme: string;
+    code_theme: string;
+}
+
+export interface EditorSnapshot {
+    title?: string;
+    type?: string;
+    status?: 'draft' | 'published';
+    category_id?: number | null;
+    tags?: string;
+    cover_url?: string;
+    excerpt?: string;
+    markdown_cache?: string;
+    block_json?: Record<string, any>;
+}
+
+export interface EditorRevision {
+    id: number;
+    content_id?: number | null;
+    kind: 'autosave' | 'revision';
+    draft_key?: string | null;
+    title: string;
+    summary: string;
+    source_updated_at?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    user?: { id: number; name?: string; username?: string } | null;
+    snapshot?: EditorSnapshot;
+}
+
+export type EditorSaveStatus = 'saved' | 'unsaved' | 'saving' | 'conflict' | 'error';
+
 export interface SavedContent {
     id: number;
     title: string;
@@ -112,5 +145,6 @@ export interface SavedContent {
     status: string;
     type: string;
     published_at?: string | null;
+    updated_at?: string | null;
     show_url?: string;
 }

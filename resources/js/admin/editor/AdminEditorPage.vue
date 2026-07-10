@@ -2,22 +2,33 @@
 import { ElMessage } from 'element-plus';
 import { computed, reactive, shallowRef, watch } from 'vue';
 import EditorPreview from './EditorPreview.vue';
+import EditorRevisionDrawer from './EditorRevisionDrawer.vue';
 import EditorSidebar from './EditorSidebar.vue';
 import MarkdownEditor from './MarkdownEditor.vue';
 import { normalizeToolbar } from './editorTools';
-import type { EditorCategory, EditorForm, EditorOption, SavedContent } from './types';
+import { useEditorAutosave } from './useEditorAutosave';
+import type {
+    EditorCategory,
+    EditorForm,
+    EditorOption,
+    EditorSnapshot,
+    SavedContent,
+} from './types';
+
+type EditorMode = 'edit' | 'split' | 'preview';
 
 const props = defineProps<{
     payload: Record<string, any>;
 }>();
 
 const editorPayload = computed(() => props.payload.editor || {});
-const routes = computed(() => props.payload.routes || {});
+const routes = computed<Record<string, string>>(() => props.payload.routes || {});
 const csrf = computed(() => props.payload.csrf || document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '');
 const tools = computed(() => normalizeToolbar(editorPayload.value.toolbar, Boolean(editorPayload.value.can_use_raw_html)));
 const contentTypes = computed<EditorOption[]>(() => editorPayload.value.content_types || [{ value: 'post', label: '文章' }]);
 const categories = computed<EditorCategory[]>(() => editorPayload.value.categories || []);
 const initialContent = editorPayload.value.content || null;
+const defaults = editorPayload.value.presentation_defaults || {};
 const initialStatus: 'draft' | 'published' = initialContent?.status === 'published' || editorPayload.value.default_status === 'published'
     ? 'published'
     : 'draft';
@@ -32,8 +43,12 @@ const form = reactive<EditorForm>({
     excerpt: initialContent?.excerpt || '',
 });
 
+const blockJson = shallowRef<Record<string, any>>({ ...(initialContent?.block_json || {}) });
 const markdown = shallowRef(initialContent?.markdown_cache || '');
+const markdownTheme = shallowRef(String(initialContent?.block_json?.presentation?.markdown_theme || defaults.markdown_theme || 'juejin'));
+const codeTheme = shallowRef(String(initialContent?.block_json?.presentation?.code_theme || defaults.code_theme || 'atom-one-dark'));
 const contentId = shallowRef<number | null>(initialContent?.id || null);
+const baseUpdatedAt = shallowRef<string | null>(initialContent?.updated_at || null);
 const savedContent = shallowRef<SavedContent | null>(initialContent ? {
     id: initialContent.id,
     title: initialContent.title,
@@ -41,14 +56,34 @@ const savedContent = shallowRef<SavedContent | null>(initialContent ? {
     status: initialContent.status,
     type: initialContent.type,
     published_at: initialContent.published_at,
+    updated_at: initialContent.updated_at,
     show_url: initialContent.show_url,
 } : null);
 const saving = shallowRef(false);
-const previewVisible = shallowRef(true);
+const editorMode = shallowRef<EditorMode>('split');
+const previewVisible = computed(() => editorMode.value !== 'edit');
 const previewLoading = shallowRef(false);
 const previewHtml = shallowRef(initialContent?.rendered_html || '');
 const fullscreen = shallowRef(false);
+const revisionsVisible = shallowRef(false);
 let previewTimer: number | undefined;
+
+const {
+    draftKey,
+    status: saveStatus,
+    statusLabel: saveStatusLabel,
+    recoverableDraft,
+    markSaved,
+    restoreRecoverableDraft,
+    discardRecoverableDraft,
+} = useEditorAutosave({
+    contentId,
+    baseUpdatedAt,
+    csrf,
+    routes,
+    getSnapshot,
+    applySnapshot,
+});
 
 watch(markdown, () => {
     if (!previewVisible.value) {
@@ -61,22 +96,53 @@ watch(markdown, () => {
     }, 500);
 });
 
-function contentPayload(status: 'draft' | 'published') {
+function currentBlockJson(): Record<string, any> {
+    return {
+        ...blockJson.value,
+        mode: 'markdown',
+        editor: 'zfy-markdown',
+        version: 2,
+        presentation: {
+            markdown_theme: markdownTheme.value,
+            code_theme: codeTheme.value,
+        },
+    };
+}
+
+function getSnapshot(): EditorSnapshot {
     return {
         title: form.title,
         type: form.type,
-        status,
+        status: form.status,
         category_id: form.category_id,
         tags: form.tags,
         cover_url: form.cover_url,
         excerpt: form.excerpt,
         markdown_cache: markdown.value,
-        block_json: {
-            mode: 'markdown',
-            editor: 'zfy-markdown',
-            version: 1,
-        },
+        block_json: currentBlockJson(),
     };
+}
+
+function contentPayload(status: 'draft' | 'published'): Record<string, any> {
+    return {
+        ...getSnapshot(),
+        status,
+        draft_key: draftKey.value,
+    };
+}
+
+function applySnapshot(snapshot: EditorSnapshot): void {
+    form.title = String(snapshot.title ?? form.title);
+    form.type = String(snapshot.type ?? form.type);
+    form.status = snapshot.status === 'published' ? 'published' : 'draft';
+    form.category_id = snapshot.category_id == null ? null : Number(snapshot.category_id);
+    form.tags = String(snapshot.tags ?? '');
+    form.cover_url = String(snapshot.cover_url ?? '');
+    form.excerpt = String(snapshot.excerpt ?? '');
+    markdown.value = String(snapshot.markdown_cache ?? '');
+    blockJson.value = { ...(snapshot.block_json || {}) };
+    markdownTheme.value = String(snapshot.block_json?.presentation?.markdown_theme || defaults.markdown_theme || 'juejin');
+    codeTheme.value = String(snapshot.block_json?.presentation?.code_theme || defaults.code_theme || 'atom-one-dark');
 }
 
 async function saveContent(status: 'draft' | 'published'): Promise<void> {
@@ -97,6 +163,8 @@ async function saveContent(status: 'draft' | 'published'): Promise<void> {
 
         savedContent.value = json.content;
         contentId.value = json.content.id;
+        baseUpdatedAt.value = json.content.updated_at || new Date().toISOString();
+        markSaved(baseUpdatedAt.value);
         ElMessage.success(status === 'published' ? '文章已发布' : '草稿已保存');
 
         if (previewVisible.value) {
@@ -110,7 +178,10 @@ async function saveContent(status: 'draft' | 'published'): Promise<void> {
 }
 
 async function refreshPreview(): Promise<void> {
-    previewVisible.value = true;
+    if (!previewVisible.value) {
+        return;
+    }
+
     previewLoading.value = true;
 
     try {
@@ -125,17 +196,39 @@ async function refreshPreview(): Promise<void> {
     }
 }
 
-function togglePreview(): void {
-    if (previewVisible.value) {
-        previewVisible.value = false;
-        return;
+function handlePreview(visible: boolean): void {
+    if (visible) {
+        void refreshPreview();
     }
-
-    void refreshPreview();
 }
 
 function toggleFullscreen(): void {
     fullscreen.value = !fullscreen.value;
+}
+
+async function savePresentationDefaults(): Promise<void> {
+    try {
+        const json = await requestJson(
+            String(routes.value.editor_presentation_defaults || '/admin/editor/presentation-defaults'),
+            'POST',
+            {
+                markdown_theme: markdownTheme.value,
+                code_theme: codeTheme.value,
+            },
+        );
+        ElMessage.success(json.message || '已设为全站默认样式');
+    } catch (error) {
+        ElMessage.error(error instanceof Error ? error.message : '默认样式保存失败');
+    }
+}
+
+function handleRevisionRestore(snapshot: EditorSnapshot, content: SavedContent): void {
+    applySnapshot(snapshot);
+    form.status = content.status === 'published' ? 'published' : 'draft';
+    savedContent.value = content;
+    baseUpdatedAt.value = content.updated_at || new Date().toISOString();
+    markSaved(baseUpdatedAt.value);
+    void refreshPreview();
 }
 
 async function requestJson(url: string, method: string, data: Record<string, any>): Promise<any> {
@@ -175,21 +268,51 @@ async function requestJson(url: string, method: string, data: Record<string, any
                     />
                 </el-card>
 
+                <el-alert
+                    v-if="recoverableDraft"
+                    class="zfy-editor-recovery"
+                    :closable="false"
+                    show-icon
+                    title="发现未恢复的自动保存"
+                    type="warning"
+                >
+                    <template #default>
+                        <span>{{ recoverableDraft.title }} · {{ recoverableDraft.summary || '空白正文' }}</span>
+                        <el-button size="small" type="warning" @click="restoreRecoverableDraft">恢复</el-button>
+                        <el-button size="small" @click="discardRecoverableDraft">丢弃</el-button>
+                    </template>
+                </el-alert>
+
                 <MarkdownEditor
                     v-model="markdown"
+                    v-model:code-theme="codeTheme"
+                    v-model:markdown-theme="markdownTheme"
+                    v-model:mode="editorMode"
                     :busy="saving"
+                    :can-history="Boolean(contentId)"
+                    :can-set-defaults="Boolean(editorPayload.can_manage_theme_defaults)"
                     :fullscreen="fullscreen"
                     :media="editorPayload.media"
-                    :preview-visible="previewVisible"
                     :routes="routes"
+                    :save-status="saveStatus"
+                    :save-status-label="saveStatusLabel"
+                    :title="form.title"
                     :tools="tools"
                     @fullscreen="toggleFullscreen"
-                    @preview="togglePreview"
+                    @history="revisionsVisible = true"
+                    @preview="handlePreview"
+                    @presentation-defaults="savePresentationDefaults"
                     @publish="saveContent"
                     @save="saveContent"
                 >
                     <template #preview>
-                        <EditorPreview :html="previewHtml" :loading="previewLoading" :visible="previewVisible" />
+                        <EditorPreview
+                            :code-theme="codeTheme"
+                            :html="previewHtml"
+                            :loading="previewLoading"
+                            :markdown-theme="markdownTheme"
+                            :visible="previewVisible"
+                        />
                     </template>
                 </MarkdownEditor>
             </div>
@@ -208,5 +331,13 @@ async function requestJson(url: string, method: string, data: Record<string, any
                 @save="saveContent('draft')"
             />
         </div>
+
+        <EditorRevisionDrawer
+            v-model:visible="revisionsVisible"
+            :content-id="contentId"
+            :csrf="csrf"
+            :routes="routes"
+            @restore="handleRevisionRestore"
+        />
     </section>
 </template>

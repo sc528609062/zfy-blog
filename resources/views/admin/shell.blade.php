@@ -1,6 +1,9 @@
 @php
     $section = $section ?? 'dashboard';
     $themeAccent = $theme['accent'] ?? '#4f8cff';
+    $themeOnAccent = $theme['on_accent'] ?? '#101828';
+    $themeAccentHover = $theme['accent_hover'] ?? '#2866e8';
+    $themeAccentText = $theme['accent_text'] ?? '#2866e8';
     $payload = $payload ?? [
         'section' => $section,
         'csrf' => csrf_token(),
@@ -57,6 +60,13 @@
             'content_status' => '/admin/contents/__CONTENT__/status',
             'content_destroy' => '/admin/contents/__CONTENT__',
             'content_preview' => route('admin.contents.preview', [], false),
+            'editor_autosave_state' => route('admin.editor.autosave.state', [], false),
+            'editor_autosave' => route('admin.editor.autosave', [], false),
+            'editor_autosave_discard' => '/admin/editor/autosave/__REVISION__',
+            'editor_presentation_defaults' => route('admin.editor.presentation-defaults', [], false),
+            'content_revisions' => '/admin/contents/__CONTENT__/revisions',
+            'content_revision' => '/admin/contents/__CONTENT__/revisions/__REVISION__',
+            'content_revision_restore' => '/admin/contents/__CONTENT__/revisions/__REVISION__/restore',
             'media_library' => route('admin.media.library', [], false),
             'media_upload' => route('admin.media.upload', [], false),
             'media_destroy' => '/admin/media/__MEDIA__',
@@ -71,7 +81,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>zfy-blog 后台</title>
     @vite(['resources/js/admin.js'])
-    <style>:root{--zfy-theme-primary:{{ $themeAccent }};}</style>
+    <style>:root{--zfy-theme-primary:{{ $themeAccent }};--zfy-theme-on-primary:{{ $themeOnAccent }};--zfy-theme-primary-hover:{{ $themeAccentHover }};--zfy-theme-primary-text:{{ $themeAccentText }};}</style>
 </head>
 <body class="zfy-admin-body">
     <div id="admin-app"></div>

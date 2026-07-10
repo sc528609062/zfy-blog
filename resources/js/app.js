@@ -49,6 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initZfyShortcodes();
     mountZfyTimes();
     mountJoeNeteasePlayers();
+    document.querySelectorAll('.markdown-body').forEach((article) => {
+        void import('./shared/markdownEnhancements').then(({ enhanceMarkdownContent }) => {
+            void enhanceMarkdownContent(article, {
+                markdownTheme: article.dataset.markdownTheme,
+                codeTheme: article.dataset.codeTheme,
+            });
+        });
+    });
 });
 
 // 防抖函数

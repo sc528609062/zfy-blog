@@ -3,6 +3,9 @@
     $settings = $theme['settings'] ?? [];
     $nav = data_get($settings, 'global.nav', ['首页', '资源', '教程', '社区', '活动']);
     $accent = $theme['accent'] ?? '#1684ff';
+    $onAccent = $theme['on_accent'] ?? '#ffffff';
+    $accentHover = $theme['accent_hover'] ?? '#0f5ed7';
+    $accentText = $theme['accent_text'] ?? '#0f5ed7';
     $isMarket = $slug === 'style-b-marketplace';
     $isCreative = $slug === 'style-c-creative';
     $heroTitle = $isCreative ? '创意有趣，资源无限' : ($isMarket ? '优质资源 · 一站购齐' : '幻境之旅 · 新版本上线');
@@ -15,7 +18,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $content->title ?? ($theme['name'] ?? 'zfy-blog') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>:root{--theme-accent:{{ $accent }};--a-primary:{{ $accent }};}</style>
+    <style>:root{--theme-accent:{{ $accent }};--a-primary:{{ $accent }};--a-on-primary:{{ $onAccent }};--a-primary-dark:{{ $accentHover }};--a-primary-text:{{ $accentText }};}</style>
 </head>
 <body class="theme {{ $slug }}">
     <header class="site-header">
