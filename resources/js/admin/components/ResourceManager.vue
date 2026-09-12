@@ -121,8 +121,10 @@ watch(() => [props.resource, props.create], async () => {
             <el-table-column v-if="['verification', 'ban-appeals'].includes(resource)" prop="body" label="申请内容" min-width="300" />
             <el-table-column label="操作" width="110" fixed="right">
                 <template #default="{ row }">
+                    <div class="zfy-art-row-actions">
                     <el-tooltip content="编辑"><el-button :icon="Edit" aria-label="编辑" text @click="edit(row)" /></el-tooltip>
                     <el-tooltip v-if="schema.delete !== false" content="删除"><el-button :icon="Delete" aria-label="删除" type="danger" text @click="remove(row)" /></el-tooltip>
+                    </div>
                 </template>
             </el-table-column>
         </el-table>

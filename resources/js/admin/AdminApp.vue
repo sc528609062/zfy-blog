@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAdminStore } from './store';
-import { Close } from '@element-plus/icons-vue';
+import { Close, ArrowDown, Refresh } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import AdminPage from './components/AdminPage.vue';
 import AdminSidebar from './components/AdminSidebar.vue';
 import AdminTopbar from './components/AdminTopbar.vue';
+import AdminSearch from './components/AdminSearch.vue';
+import AdminAppearance from './components/AdminAppearance.vue';
 import { buildAdminBreadcrumbs, findAdminMenuItem, type AdminMenuGroup, type AdminPageDefinition } from './useAdminMenu';
 
 const props = defineProps<{
@@ -24,7 +26,12 @@ const route = useRoute();
 const store = useAdminStore();
 let appliedPath = `${window.location.pathname}${window.location.search}`;
 const isMobileSidebarOpen = shallowRef(false);
+const mobileQuery = window.matchMedia('(max-width: 900px)');
+const isMobile = shallowRef(mobileQuery.matches);
+const searchVisible = shallowRef(false);
+const appearanceVisible = shallowRef(false);
 const navigationLoading = shallowRef(false);
+const pageRevision = shallowRef(0);
 let navigationController: AbortController | null = null;
 
 const activeSection = computed(() => activePayload.value.section || 'dashboard');
@@ -41,7 +48,7 @@ const breadcrumbs = computed(() => buildAdminBreadcrumbs(menus.value, activeSect
 const pageInstanceKey = computed(() => {
     const editorContentId = activePayload.value.editor?.content?.id || 'new';
 
-    return `${activeSection.value}:${editorContentId}`;
+    return `${activeSection.value}:${editorContentId}:${pageRevision.value}`;
 });
 
 function adminSectionUrl(section: string): string {
@@ -106,6 +113,7 @@ async function navigate(target: string, options: NavigateOptions = {}) {
         }
 
         activePayload.value = json.payload || json;
+        if (options.force) pageRevision.value++;
         appliedPath = nextPath;
         store.visit(nextPath, json.payload?.current_page?.label || json.current_page?.label || '后台');
 
@@ -114,6 +122,8 @@ async function navigate(target: string, options: NavigateOptions = {}) {
         } else {
             await router.push(nextPath);
         }
+        await nextTick();
+        document.querySelector('.zfy-admin-tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
             return;
@@ -133,20 +143,30 @@ function refreshCurrentPage() {
 }
 
 function openMobileSidebar() {
-    isMobileSidebarOpen.value = true;
+    if (isMobile.value) isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
+    else store.toggleSidebar();
 }
 
 function closeMobileSidebar() {
     isMobileSidebarOpen.value = false;
 }
 
-function handlePopState() {
-    void navigate(`${window.location.pathname}${window.location.search}`, { force: true, replace: true });
+function handleViewport() { isMobile.value = mobileQuery.matches; isMobileSidebarOpen.value = false; }
+function handleKey(event: KeyboardEvent) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); searchVisible.value = !searchVisible.value; }
+    if (event.key === 'Escape') closeMobileSidebar();
+}
+function tabsCommand(command: string) {
+    if (command === 'refresh') refreshCurrentPage();
+    if (command === 'others') store.closeOthers(appliedPath);
+    if (command === 'all') { store.tabs = []; store.visit('/admin', '首页'); void navigate('/admin'); }
 }
 
 onMounted(() => {
-    document.documentElement.classList.toggle('dark', store.dark);
+    store.applyAppearance();
     store.visit(appliedPath, pageTitle.value);
+    mobileQuery.addEventListener('change', handleViewport);
+    document.addEventListener('keydown', handleKey);
 });
 
 watch(() => route.fullPath, path => {
@@ -160,15 +180,18 @@ function closeTab(path: string) {
 
 onBeforeUnmount(() => {
     navigationController?.abort();
+    mobileQuery.removeEventListener('change', handleViewport);
+    document.removeEventListener('keydown', handleKey);
 });
 </script>
 
 <template>
-    <el-container class="zfy-admin-shell">
+    <el-container :class="['zfy-admin-shell', { 'is-collapsed': store.collapsed && !isMobile, 'is-compact': store.compact }]">
         <AdminSidebar
             :active-section="activeSection"
             :menus="menus"
             :mobile-open="isMobileSidebarOpen"
+            :collapsed="store.collapsed && !isMobile"
             @close="closeMobileSidebar"
             @navigate="navigate"
         />
@@ -183,17 +206,25 @@ onBeforeUnmount(() => {
                 :breadcrumbs="breadcrumbs"
                 :csrf="activePayload.csrf"
                 :user="activePayload.current_user"
+                :mobile="isMobile"
+                :menus="menus"
                 @open-menu="openMobileSidebar"
+                @search="searchVisible = true"
+                @appearance="appearanceVisible = true"
                 @refresh="refreshCurrentPage"
                 @navigate="navigate"
             />
-            <el-main v-loading="navigationLoading" class="zfy-admin-main">
+            <div class="zfy-art-tabs-bar">
                 <nav class="zfy-admin-tabs" aria-label="已打开页面">
                     <div v-for="tab in store.tabs" :key="tab.path" :class="['zfy-admin-tab', { active: tab.path === route.fullPath }]">
-                        <a :href="tab.path" @click.prevent="navigate(tab.path)">{{ tab.title }}</a>
+                        <a :href="tab.path" :aria-current="tab.path === route.fullPath ? 'page' : undefined" @click.prevent="navigate(tab.path)">{{ tab.title }}</a>
                         <el-button v-if="store.tabs.length > 1" :icon="Close" text circle size="small" :aria-label="`关闭${tab.title}`" @click="closeTab(tab.path)" />
                     </div>
                 </nav>
+                <el-dropdown trigger="click" @command="tabsCommand"><el-button :icon="ArrowDown" class="zfy-art-tab-more" aria-label="页签操作" title="页签操作" /><template #dropdown><el-dropdown-menu><el-dropdown-item command="refresh" :icon="Refresh">刷新当前页</el-dropdown-item><el-dropdown-item command="others">关闭其他页签</el-dropdown-item><el-dropdown-item command="all">关闭全部页签</el-dropdown-item></el-dropdown-menu></template></el-dropdown>
+            </div>
+            <el-main v-loading="navigationLoading" class="zfy-admin-main">
+                <div v-if="currentPage.kind !== 'editor'" class="zfy-art-page-heading"><h1>{{ pageTitle }}</h1><span v-if="activeSection === 'dashboard'">{{ activePayload.today }}</span></div>
                 <AdminPage
                     :key="pageInstanceKey"
                     :current-page="currentPage"
@@ -205,5 +236,7 @@ onBeforeUnmount(() => {
                 />
             </el-main>
         </el-container>
+        <AdminSearch v-model="searchVisible" :menus="menus" @navigate="navigate" />
+        <AdminAppearance v-model="appearanceVisible" />
     </el-container>
 </template>

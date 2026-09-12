@@ -1,6 +1,12 @@
 Art Design Pro: https://github.com/Daymychen/art-design-pro
 Reference commit: f3aaf58eec1a0e988f162352c33862327a484f95
-The CMS adapts its layout and interaction conventions to its own business components.
+The CMS adapts its sidebar menu, header, work tabs, appearance settings and
+Element Plus theme conventions to its own business components. Adapted sources:
+src/config/setting.ts, src/config/index.ts,
+src/components/core/layouts/art-menus/art-sidebar-menu/{style,theme}.scss,
+src/components/core/layouts/art-header-bar/index.vue,
+src/components/core/layouts/art-work-tab/index.vue.
+Local integration: resources/css/admin-art.css and resources/js/admin/.
 
 MIT License
 

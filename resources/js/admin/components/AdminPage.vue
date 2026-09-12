@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, shallowRef, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { EditPen, Picture, Brush, Goods, ArrowRight, DocumentChecked, ChatDotRound, RefreshLeft } from '@element-plus/icons-vue';
 import AdminEditorPage from '../editor/AdminEditorPage.vue';
 import CoverImageField from '../editor/CoverImageField.vue';
 import AdminDataTable from './AdminDataTable.vue';
@@ -40,6 +41,7 @@ const themes = computed(() => props.payload.themes || []);
 const plugins = computed(() => props.payload.plugins || []);
 const layouts = computed(() => props.payload.layouts || []);
 const pageKind = computed(() => props.currentPage?.kind || 'placeholder');
+const hasMenu = (key: string) => (props.payload.admin_menu || []).some((group: any) => group.items.some((item: any) => item.key === key));
 const contentQuery = reactive({ q: props.payload.content_pagination?.q || '', status: props.payload.content_pagination?.status || '' });
 function searchContents(page = 1) {
     const query = new URLSearchParams({ q: contentQuery.q, status: contentQuery.status, page: String(page) });
@@ -425,10 +427,10 @@ async function saveQuickSettings() {
                             <h2>待处理</h2>
                         </div>
                     </div>
-                    <div class="zfy-quick-grid">
-                        <el-button v-if="stats.pending_contents !== null" @click="emit('navigate', '/admin/contents?status=pending')">内容审核 {{ stats.pending_contents }}</el-button>
-                        <el-button v-if="stats.pending_comments !== null" @click="goAdmin('comments')">评论审核 {{ stats.pending_comments }}</el-button>
-                        <el-button v-if="stats.pending_refunds !== null" @click="goAdmin('refunds')">退款处理 {{ stats.pending_refunds }}</el-button>
+                    <div class="zfy-art-pending">
+                        <button v-if="hasMenu('contents')" @click="emit('navigate', '/admin/contents?status=pending')"><el-icon><DocumentChecked /></el-icon><span>内容审核</span><strong>{{ stats.pending_contents ?? 0 }}</strong><el-icon><ArrowRight /></el-icon></button>
+                        <button v-if="hasMenu('comments')" @click="goAdmin('comments')"><el-icon><ChatDotRound /></el-icon><span>评论审核</span><strong>{{ stats.pending_comments ?? 0 }}</strong><el-icon><ArrowRight /></el-icon></button>
+                        <button v-if="hasMenu('refunds')" @click="goAdmin('refunds')"><el-icon><RefreshLeft /></el-icon><span>退款处理</span><strong>{{ stats.pending_refunds ?? 0 }}</strong><el-icon><ArrowRight /></el-icon></button>
                     </div>
                 </section>
 
@@ -438,17 +440,17 @@ async function saveQuickSettings() {
                             <h2>快捷操作</h2>
                         </div>
                     </div>
-                    <div class="zfy-quick-grid">
-                        <el-button @click="goAdmin('editor')">写文章</el-button>
-                        <el-button @click="goAdmin('media')">媒体库</el-button>
-                        <el-button @click="goAdmin('themes')">主题</el-button>
-                        <el-button @click="goAdmin('products')">商品</el-button>
+                    <div class="zfy-art-shortcuts">
+                        <button v-if="hasMenu('editor')" @click="goAdmin('editor')"><el-icon><EditPen /></el-icon><span>写文章</span></button>
+                        <button v-if="hasMenu('media')" @click="goAdmin('media')"><el-icon><Picture /></el-icon><span>媒体库</span></button>
+                        <button v-if="hasMenu('themes')" @click="goAdmin('themes')"><el-icon><Brush /></el-icon><span>主题</span></button>
+                        <button v-if="hasMenu('products')" @click="goAdmin('products')"><el-icon><Goods /></el-icon><span>商品</span></button>
                     </div>
                 </section>
             </div>
 
             <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                <el-card shadow="never">
+                <el-card v-if="hasMenu('contents')" shadow="never">
                     <template #header>最新文章</template>
                     <el-table :data="contents.slice(0, 5)" empty-text="暂无文章">
                         <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
@@ -457,7 +459,7 @@ async function saveQuickSettings() {
                     </el-table>
                     <el-button link @click="goAdmin('contents')">全部文章</el-button>
                 </el-card>
-                <el-card shadow="never">
+                <el-card v-if="hasMenu('orders')" shadow="never">
                     <template #header>最新订单</template>
                     <el-table :data="orders.slice(0, 5)" empty-text="暂无订单">
                         <el-table-column prop="order_no" label="订单号" min-width="180" />

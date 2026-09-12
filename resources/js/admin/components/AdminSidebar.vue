@@ -21,6 +21,7 @@ const props = defineProps<{
     activeSection: string;
     menus: AdminMenuGroup[];
     mobileOpen: boolean;
+    collapsed: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -57,10 +58,9 @@ function iconFor(name: string) {
 <template>
     <el-aside :class="['zfy-admin-sidebar', { 'is-mobile-open': mobileOpen }]">
         <div class="zfy-admin-sidebar-head">
-            <a class="zfy-admin-brand" href="/admin">
+            <a class="zfy-admin-brand" href="/admin" aria-label="zfy-blog 后台首页" @click.prevent="emit('navigate', 'dashboard')">
                 <span>Z</span>
                 <strong>zfy-blog</strong>
-                <small>站点后台</small>
             </a>
             <el-button
                 aria-label="关闭后台菜单"
@@ -76,6 +76,9 @@ function iconFor(name: string) {
                 :default-active="activeSection"
                 :default-openeds="defaultOpeneds"
                 class="zfy-admin-menu"
+                :collapse="collapsed"
+                :collapse-transition="false"
+                popper-class="zfy-art-menu-popup"
                 unique-opened
                 @select="(index: string) => emit('navigate', index)"
             >
@@ -98,5 +101,6 @@ function iconFor(name: string) {
                 </el-sub-menu>
             </el-menu>
         </el-scrollbar>
+        <a class="zfy-sidebar-site" href="/" title="访问站点"><el-icon><Monitor /></el-icon><span v-if="!collapsed">访问站点</span></a>
     </el-aside>
 </template>

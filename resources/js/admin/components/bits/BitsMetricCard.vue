@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { Document, ShoppingCart, Goods, Link } from '@element-plus/icons-vue';
 
 const props = withDefaults(defineProps<{
     label: string;
@@ -18,7 +19,7 @@ const displayValue = computed(() =>
 
 <template>
     <div :class="['bits-metric-card', `tone-${tone}`]">
-        <span>{{ label }}</span>
+        <div class="zfy-art-metric-top"><span>{{ label }}</span><div class="zfy-art-metric-icon"><el-icon><component :is="{blue:Document,green:ShoppingCart,amber:Goods,rose:Link}[tone]" /></el-icon></div></div>
         <strong>{{ displayValue }}</strong>
         <small>{{ trend }}</small>
     </div>

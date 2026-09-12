@@ -45,7 +45,7 @@
 | 扩展包 | JSON Schema、SemVer、依赖排序、入口/Provider/权限/设置/资源/更新声明、生命周期、迁移、错误记录 | 可信 PHP/Blade，不宣称沙箱；长驻进程升级后需重启 |
 | 主题独立开发 | 包内 Blade/资源、父子模板层级、菜单/区域/配置预览；第三方包无需核心配置和 Seeder 修改 | 独立示例 theme/plugin 安装及升级浏览器通过 |
 | 第三方注册接口 | 内容类型、短代码、块/页面组件、小工具、后台页、设置、API、支付驱动 | 声明式表单/表格与预构建 module；无独立扩展交易市场 |
-| 后台 Art 风格 | 固定 Art Design Pro 提交参考布局、Element Plus、Router/Pinia、页签、明暗、移动导航、表格表单 | 保留 MIT；采用现有业务集成，并非完整移植上游所有页面 |
+| 后台 Art 风格 | 固定 Art Design Pro 提交适配侧栏/顶栏/页签；搜索、折叠、批量关闭页签、全屏、明暗主题、主色与密度设置；Element Plus、Router/Pinia | 保留 MIT；现有 CMS 业务集成，详见 admin-ui.md |
 | 核心/扩展更新 | GitHub/Gitee 源、稳定版检查、管理员确认、签名/哈希、保护数据、拒绝本地改动、离线包 | 核心默认 Gitee；未 push、未创建远程标签、未发布 Release |
 | 更新恢复 | 独立 worker、持久阶段、写屏障、文件/DB 备份与恢复、健康检查、安全模式、CLI 恢复 | 自动化含 SQLite 中断与隔离 MySQL DDL 恢复；未做远程正式核心更新浏览器安装 |
 | 打包与 CI | 共用脚本、生产依赖/构建资源、签名清单、安装包、GitHub/Gitee 模板 | 本地签名演练通过；Gitee 主机组/制品归档需在远程绑定；PHP8.4/MySQL8.4 流水线未实际运行 |

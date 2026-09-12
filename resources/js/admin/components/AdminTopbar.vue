@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ArrowDown, House, Menu, Plus, Refresh, Setting, SwitchButton, User, UserFilled, Moon, Sunny } from '@element-plus/icons-vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ArrowDown, House, Menu, Plus, Refresh, Setting, SwitchButton, User, UserFilled, Moon, Sunny, Search, FullScreen, Fold, Expand } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import { useAdminStore } from '../store';
 const store = useAdminStore();
-import type { AdminBreadcrumbItem } from '../useAdminMenu';
+import type { AdminBreadcrumbItem, AdminMenuGroup } from '../useAdminMenu';
 
 interface AdminUser {
     id?: number;
@@ -16,13 +18,28 @@ const props = defineProps<{
     breadcrumbs: AdminBreadcrumbItem[];
     user?: AdminUser | null;
     csrf?: string;
+    mobile: boolean;
+    menus: AdminMenuGroup[];
 }>();
 
 const emit = defineEmits<{
     navigate: [section: string];
     openMenu: [];
     refresh: [];
+    search: [];
+    appearance: [];
 }>();
+const canPublish = computed(() => props.menus.some(group => group.items.some(item => item.key === 'editor')));
+const fullscreen = ref(false);
+function updateFullscreen() { fullscreen.value = Boolean(document.fullscreenElement); }
+async function toggleFullscreen() {
+    try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen();
+    } catch { ElMessage.warning('当前浏览器无法进入全屏'); }
+}
+onMounted(() => document.addEventListener('fullscreenchange', updateFullscreen));
+onBeforeUnmount(() => document.removeEventListener('fullscreenchange', updateFullscreen));
 
 function reloadPage() {
     emit('refresh');
@@ -66,14 +83,9 @@ function handleUserCommand(command: string | number | object) {
 
 <template>
     <el-header class="zfy-admin-topbar">
-        <el-button
-            aria-label="打开后台菜单"
-            class="zfy-mobile-menu-button"
-            :icon="Menu"
-            circle
-            @click="emit('openMenu')"
-        />
-
+        <div class="zfy-art-header-left">
+        <el-tooltip :content="mobile ? '打开后台菜单' : store.collapsed ? '展开侧栏' : '收起侧栏'"><el-button :aria-label="mobile ? '打开后台菜单' : store.collapsed ? '展开侧栏' : '收起侧栏'" class="zfy-art-icon" :icon="mobile ? Menu : store.collapsed ? Expand : Fold" text @click="emit('openMenu')" /></el-tooltip>
+        <el-tooltip content="刷新当前页"><el-button class="zfy-art-icon zfy-action-refresh" :icon="Refresh" aria-label="刷新当前页" text @click="reloadPage" /></el-tooltip>
         <el-breadcrumb
             id="breadcrumb-container"
             class="zfy-admin-breadcrumb app-breadcrumb breadcrumb-container"
@@ -94,15 +106,17 @@ function handleUserCommand(command: string | number | object) {
                 <span v-else class="no-redirect">{{ item.label }}</span>
             </el-breadcrumb-item>
         </el-breadcrumb>
-
+        </div>
         <div class="zfy-admin-top-actions">
-            <el-tooltip :content="store.dark ? '浅色模式' : '深色模式'"><el-button :icon="store.dark ? Sunny : Moon" circle :aria-label="store.dark ? '浅色模式' : '深色模式'" @click="store.toggleDark()" /></el-tooltip>
-            <el-button class="zfy-action-refresh" :icon="Refresh" circle @click="reloadPage" />
-            <el-button class="zfy-action-publish" :icon="Plus" type="primary" @click="emit('navigate', 'editor')">发布</el-button>
-            <el-button class="zfy-action-site" :icon="House" @click="visitSite">前台</el-button>
-            <el-dropdown trigger="hover" placement="bottom-end" @command="handleUserCommand">
-                <button class="zfy-admin-user-trigger" type="button">
-                    <el-avatar :src="user?.avatar_url || undefined" :icon="UserFilled" />
+            <el-tooltip content="搜索菜单"><el-button class="zfy-art-icon" :icon="Search" aria-label="搜索菜单" text @click="emit('search')" /></el-tooltip>
+            <el-tooltip :content="fullscreen ? '退出全屏' : '全屏'"><el-button class="zfy-art-icon zfy-action-fullscreen" :icon="FullScreen" :aria-label="fullscreen ? '退出全屏' : '全屏'" text @click="toggleFullscreen" /></el-tooltip>
+            <el-tooltip :content="store.dark ? '浅色模式' : '深色模式'"><el-button class="zfy-art-icon" :icon="store.dark ? Sunny : Moon" text :aria-label="store.dark ? '浅色模式' : '深色模式'" @click="store.toggleDark()" /></el-tooltip>
+            <el-tooltip content="外观设置"><el-button class="zfy-art-icon" :icon="Setting" aria-label="外观设置" text @click="emit('appearance')" /></el-tooltip>
+            <el-tooltip content="访问前台"><el-button class="zfy-art-icon zfy-action-site" :icon="House" aria-label="访问前台" text @click="visitSite" /></el-tooltip>
+            <el-button v-if="canPublish" class="zfy-action-publish" :icon="Plus" type="primary" @click="emit('navigate', 'editor')">发布</el-button>
+            <el-dropdown trigger="click" placement="bottom-end" @command="handleUserCommand">
+                <button class="zfy-admin-user-trigger" type="button" aria-label="用户菜单">
+                    <el-avatar :src="user?.avatar_url || '/assets/zfy/placeholders/avatar.svg'" :icon="UserFilled" />
                     <span>{{ user?.name || user?.username || '管理员' }}</span>
                     <el-icon><ArrowDown /></el-icon>
                 </button>
