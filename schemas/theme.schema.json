@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zfy-blog.test/schemas/theme.schema.json",
+  "title": "zfy-blog Native Theme Manifest v1",
+  "type": "object",
+  "required": ["schema_version", "name", "slug", "version", "compatible", "entry"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "slug": { "type": "string", "maxLength": 80, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$" },
+    "compatible": { "type": "string", "minLength": 1 },
+    "entry": { "type": "string", "pattern": "^views/[a-zA-Z0-9_/-]+\\.blade\\.php$" },
+    "bootstrap": { "type": "string", "pattern": "^[a-zA-Z0-9_/-]+\\.php$" },
+    "provider": { "type": "string", "minLength": 1 },
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "events": { "type": "array", "items": { "type": "string" } },
+    "assets": { "type": "object" },
+    "autoload": { "type": "object", "properties": { "psr-4": { "type": "object", "additionalProperties": { "type": "string" } } } },
+    "parent": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "preview": { "type": "string" },
+    "menus": { "type": "array", "items": { "type": "string" } },
+    "regions": { "type": "array", "items": { "type": "string" } },
+    "settings_schema": { "type": "object" },
+    "defaults": { "type": "object" },
+    "requires": { "type": "object", "properties": { "php": { "type": "string" }, "plugins": { "type": "object", "additionalProperties": { "type": "string" } }, "themes": { "type": "object", "additionalProperties": { "type": "string" } } } },
+    "update": { "type": "object", "properties": { "provider": { "enum": ["github", "gitee"] }, "repository": { "type": "string" } }, "required": ["provider", "repository"] }
+  }
+}

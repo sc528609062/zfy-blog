@@ -21,6 +21,5 @@ const displayValue = computed(() =>
         <span>{{ label }}</span>
         <strong>{{ displayValue }}</strong>
         <small>{{ trend }}</small>
-        <i aria-hidden="true" />
     </div>
 </template>

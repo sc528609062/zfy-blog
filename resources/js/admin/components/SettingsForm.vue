@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import { adminRequest } from './adminRequest';
 
 interface SettingField {
     key: string;
     label: string;
-    type: 'text' | 'url' | 'number' | 'boolean' | 'select';
+    type: 'text' | 'textarea' | 'url' | 'number' | 'boolean' | 'select';
     default?: string | number | boolean | null;
+    value?: string | number | boolean | null;
     options?: Record<string, string>;
 }
 
@@ -19,20 +21,32 @@ interface SettingGroup {
 
 const props = defineProps<{
     schema: SettingGroup[];
+    csrf: string;
 }>();
 
 const values = reactive<Record<string, string | number | boolean | null>>({});
 
 const groups = computed(() => props.schema || []);
+const saving = ref(false);
 
-groups.value.forEach((group) => {
+watch(groups, () => groups.value.forEach((group) => {
     group.fields.forEach((field) => {
-        values[field.key] = field.default ?? null;
+        values[field.key] = field.value ?? field.default ?? null;
     });
-});
+}), { immediate: true });
 
-function saveSettings() {
-    ElMessage.success('设置表单已接入统一 schema，保存接口将在对应模块实现。');
+async function saveSettings() {
+    saving.value = true;
+    try {
+        for (const group of groups.value) {
+            await adminRequest(`/admin/settings/${group.key}`, props.csrf, 'PUT', { values: Object.fromEntries(group.fields.map((field) => [field.key, values[field.key]])) });
+        }
+        ElMessage.success('设置已保存');
+    } catch (error) {
+        ElMessage.error((error as Error).message);
+    } finally {
+        saving.value = false;
+    }
 }
 </script>
 
@@ -41,10 +55,9 @@ function saveSettings() {
         <template #header>
             <div class="zfy-card-title">
                 <div>
-                    <h2>统一设置</h2>
-                    <p>系统、主题和插件设置都通过同一个 schema 渲染。</p>
+                    <h2>{{ groups[0]?.label || '设置' }}</h2>
                 </div>
-                <el-button type="primary" @click="saveSettings">保存设置</el-button>
+                <el-button type="primary" :loading="saving" @click="saveSettings">保存设置</el-button>
             </div>
         </template>
 
@@ -72,7 +85,7 @@ function saveSettings() {
                                 :value="value"
                             />
                         </el-select>
-                        <el-input v-else v-model="values[field.key]" />
+                        <el-input v-else v-model="values[field.key]" :type="field.type === 'textarea' ? 'textarea' : 'text'" :rows="6" />
                     </el-form-item>
                 </el-form>
             </el-tab-pane>

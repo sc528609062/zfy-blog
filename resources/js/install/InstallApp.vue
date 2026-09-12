@@ -39,11 +39,11 @@ const errorMessage = shallowRef('');
 
 const form = reactive({
     db: {
-        host: props.payload.defaults.db.host || '127.0.0.1',
+        host: String(props.payload.defaults.db.host || '127.0.0.1'),
         port: Number(props.payload.defaults.db.port || 3306),
-        database: props.payload.defaults.db.database || 'zfy_blog',
-        username: props.payload.defaults.db.username || 'zfy_blog',
-        password: props.payload.defaults.db.password || 'zfy_blog',
+        database: String(props.payload.defaults.db.database || 'zfy_blog'),
+        username: String(props.payload.defaults.db.username || 'zfy_blog'),
+        password: String(props.payload.defaults.db.password || ''),
     },
     site: {
         name: props.payload.defaults.site.name || 'zfy-blog',

@@ -14,6 +14,7 @@ export interface AdminMenuGroup {
 }
 
 export interface AdminPageDefinition extends AdminMenuItem {
+    resource?: string;
     group?: string;
     permission?: string | null;
 }

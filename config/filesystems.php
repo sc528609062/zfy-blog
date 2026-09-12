@@ -14,6 +14,7 @@ return [
     */
 
     'default' => env('FILESYSTEM_DISK', 'local'),
+    'downloads' => env('DOWNLOADS_DISK', 'local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -67,6 +68,20 @@ return [
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
             'report' => false,
+        ],
+
+        'oss' => [
+            'driver' => 'oss', 'access_key' => env('OSS_ACCESS_KEY_ID'), 'secret_key' => env('OSS_ACCESS_KEY_SECRET'),
+            'region' => env('OSS_REGION', 'cn-hangzhou'), 'bucket' => env('OSS_BUCKET'),
+            'endpoint' => env('OSS_ENDPOINT'), 'isCName' => false, 'root' => '',
+            'signatureVersion' => 'v4', 'visibility' => 'private', 'throw' => true,
+        ],
+        'cos' => [
+            'driver' => 'cos', 'secret_id' => env('COS_SECRET_ID'), 'secret_key' => env('COS_SECRET_KEY'),
+            'region' => env('COS_REGION', 'ap-guangzhou'), 'bucket' => env('COS_BUCKET'),
+            'app_id' => env('COS_APP_ID'), 'signed_url' => true, 'use_https' => true,
+            'visibility' => 'private', 'throw' => true,
+            'guzzle' => ['timeout' => 30, 'connect_timeout' => 10],
         ],
 
     ],

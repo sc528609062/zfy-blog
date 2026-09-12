@@ -9,14 +9,15 @@ use App\Models\Theme;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Throwable;
 
 class InstallationService
 {
@@ -27,6 +28,7 @@ class InstallationService
         $envPath = base_path('.env');
 
         return [
+            ...array_map(fn ($extension) => ['key' => $extension, 'label' => 'PHP '.$extension, 'ok' => extension_loaded($extension), 'detail' => extension_loaded($extension) ? '已启用' : '未启用'], ['bcmath', 'curl', 'dom', 'fileinfo', 'gd', 'mbstring', 'openssl', 'phar', 'sodium', 'xmlwriter']),
             [
                 'key' => 'php',
                 'label' => 'PHP 版本',
@@ -56,6 +58,21 @@ class InstallationService
 
     public function install(array $payload): array
     {
+        return Cache::store('file')->lock('zfy-install', 180)->block(1, function () use ($payload) {
+            if ($this->state->installed()) {
+                throw ValidationException::withMessages(['install' => '系统已经安装。']);
+            }
+
+            return $this->performInstallation($payload);
+        });
+    }
+
+    private function performInstallation(array $payload): array
+    {
+        $failed = array_filter($this->checks(), fn ($check) => ! $check['ok']);
+        if ($failed !== []) {
+            throw ValidationException::withMessages(['environment' => '环境检查未通过：'.implode('、', array_column($failed, 'label'))]);
+        }
         $db = $payload['db'];
         $site = $payload['site'];
         $admin = $payload['admin'];
@@ -69,7 +86,7 @@ class InstallationService
             'DB_DATABASE' => $db['database'],
             'DB_USERNAME' => $db['username'],
             'DB_PASSWORD' => $db['password'],
-            'SESSION_DRIVER' => 'file',
+            'SESSION_DRIVER' => 'database',
             'CACHE_STORE' => 'file',
             'QUEUE_CONNECTION' => 'database',
             'ZFY_INSTALLED' => 'true',
@@ -77,16 +94,24 @@ class InstallationService
 
         $this->configureDatabase($db);
         DB::connection('mysql')->getPdo();
-        Artisan::call('migrate:fresh', ['--force' => true]);
+        if (Schema::getTables() !== []) {
+            throw ValidationException::withMessages(['db.database' => '安装需要空数据库，请选择一个新的数据库。']);
+        }
+        if (Artisan::call('migrate', ['--force' => true]) !== 0) {
+            throw ValidationException::withMessages(['install' => '数据库迁移失败。']);
+        }
 
         $this->seedCore($site, $admin);
+
+        $this->persistEnvironment($environment);
+        Artisan::call('config:clear');
 
         $this->state->markInstalled([
             'site' => $site['name'],
             'admin_email' => $admin['email'],
         ]);
 
-        zfy_emit('zfy_system_installed', $site, $admin);
+        zfy_emit('zfy_system_installed', $site, array_diff_key($admin, ['password' => true, 'password_confirmation' => true]));
 
         return $environment;
     }
@@ -201,13 +226,13 @@ class InstallationService
             $pattern = '/^'.preg_quote($key, '/').'=.*$/m';
 
             if (preg_match($pattern, $contents)) {
-                $contents = preg_replace($pattern, $line, $contents) ?? $contents;
+                $contents = preg_replace_callback($pattern, fn () => $line, $contents) ?? $contents;
             } else {
                 $contents .= PHP_EOL.$line;
             }
         }
 
-        File::put($path, $contents);
+        File::replace($path, $contents);
     }
 
     private function envValue(mixed $value): string
@@ -218,10 +243,10 @@ class InstallationService
             return '';
         }
 
-        if (preg_match('/\s|#|"|\'/', $value)) {
-            return '"'.str_replace('"', '\"', $value).'"';
+        if (str_contains($value, "\n") || str_contains($value, "\r")) {
+            throw ValidationException::withMessages(['environment' => '配置值不能包含换行。']);
         }
 
-        return $value;
+        return '"'.str_replace(['\\', '"', '$'], ['\\\\', '\\"', '\\$'], $value).'"';
     }
 }

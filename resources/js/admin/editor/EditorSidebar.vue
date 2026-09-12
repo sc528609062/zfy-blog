@@ -13,6 +13,7 @@ const props = defineProps<{
 }>();
 
 const form = defineModel<EditorForm>({ required: true });
+const publishedAt = defineModel<string | null>('publishedAt');
 
 const emit = defineEmits<{
     save: [];
@@ -48,6 +49,7 @@ function visitSavedContent(): void {
                         <el-option v-for="category in categories" :key="category.id" :label="category.name" :value="category.id" />
                     </el-select>
                 </el-form-item>
+                <el-form-item label="发布时间"><el-date-picker v-model="publishedAt" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="立即发布" clearable /></el-form-item>
                 <el-form-item label="标签">
                     <el-input v-model="form.tags" placeholder="多个标签用英文逗号分隔" />
                 </el-form-item>

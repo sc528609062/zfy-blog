@@ -10,22 +10,47 @@ use App\Models\Media;
 use App\Models\Order;
 use App\Models\PageLayout;
 use App\Models\Plugin;
+use App\Models\PointsStoreItem;
+use App\Models\Product;
 use App\Models\Tag;
 use App\Models\Theme;
 use App\Models\User;
 use App\Models\VipLevel;
+use App\Services\CommentService;
+use App\Services\CommerceOperations;
+use App\Services\ContentMarkdownRenderer;
 use App\Services\DemoContentRepository;
+use App\Services\DownloadService;
+use App\Services\GalleryService;
 use App\Services\NeteaseMusicService;
+use App\Services\OrderCancellation;
 use App\Services\OrderService;
+use App\Services\Payment\PaymentManager;
+use App\Services\PointsStoreService;
 use App\Services\SystemHealthService;
 use App\Services\ThemeManager;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class PlatformController extends Controller
 {
+    public function sessions(Request $request)
+    {
+        abort_unless(config('session.driver') === 'database', 422, '当前会话驱动不支持设备管理。');
+
+        return $this->ok(DB::table('sessions')->where('user_id', $request->user()->id)->latest('last_activity')->get(['id', 'ip_address', 'user_agent', 'last_activity']));
+    }
+
+    public function exchange(Request $request, PointsStoreItem $item, PointsStoreService $store)
+    {
+        $data = $request->validate(['request_id' => ['required', 'uuid']]);
+
+        return $this->ok($store->exchange($request->user(), $item, $data['request_id']));
+    }
+
     public function token(Request $request)
     {
         $data = $request->validate([
@@ -33,27 +58,50 @@ class PlatformController extends Controller
             'email' => ['nullable', 'string', 'max:160', 'required_without:login'],
             'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:80'],
+            'abilities' => ['sometimes', 'array', 'min:1', 'max:5'],
+            'abilities.*' => ['string', 'distinct', 'in:read,orders,download,comment,profile'],
+            'expires_in' => ['sometimes', 'integer', 'min:300', 'max:2592000'],
         ]);
 
         $login = (string) ($data['login'] ?? $data['email'] ?? '');
         $user = User::findForLogin($login);
 
-        if (! $user || ! Hash::check($data['password'], $user->password)) {
+        if (! $user || $user->is_banned || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages(['login' => '账号或密码不正确。']);
         }
 
+        $expiresAt = now()->addSeconds($data['expires_in'] ?? 86400);
+        $abilities = $data['abilities'] ?? ['read', 'orders', 'download', 'comment', 'profile'];
+
         return $this->ok([
             'token_type' => 'Bearer',
-            'access_token' => $user->createToken($data['device_name'] ?? 'zfy-blog-api')->plainTextToken,
+            'access_token' => $user->createToken($data['device_name'] ?? 'zfy-blog-api', $abilities, $expiresAt)->plainTextToken,
+            'expires_at' => $expiresAt->toIso8601String(),
+            'abilities' => $abilities,
             'user' => $user->only(['id', 'name', 'email', 'username', 'avatar_url']),
         ]);
     }
 
+    public function tokens(Request $request)
+    {
+        return $this->ok($request->user()->tokens()->get(['id', 'name', 'abilities', 'last_used_at', 'expires_at', 'created_at']));
+    }
+
+    public function revokeToken(Request $request, int $token)
+    {
+        $request->user()->tokens()->whereKey($token)->firstOrFail()->delete();
+
+        return $this->ok(null);
+    }
+
     public function home(DemoContentRepository $repository, ThemeManager $themes)
     {
+        $theme = $themes->active();
+        $data = $repository->pageData();
+
         return $this->ok([
-            'theme' => $themes->active(),
-            'data' => $repository->pageData(),
+            'theme' => Arr::only($theme, ['slug', 'name', 'version', 'accent']),
+            'data' => Arr::only($data, ['page', 'contents', 'pagination', 'featured', 'resources', 'posts', 'images', 'categories', 'rankings', 'siteName', 'stats']),
         ]);
     }
 
@@ -62,17 +110,24 @@ class PlatformController extends Controller
         $contents = Content::query()
             ->with(['author:id,name,username,avatar_url', 'category:id,name,slug'])
             ->when($request->type, fn ($query, $type) => $query->where('type', $type))
-            ->when($request->q, fn ($query, $q) => $query->where('title', 'like', "%{$q}%"))
-            ->where('status', 'published')
+            ->when($request->q, fn ($query, $q) => $query->matchingPublicText((string) $q))
+            ->published()
             ->latest('published_at')
-            ->paginate($request->integer('per_page', 12));
+            ->paginate(max(1, min(100, $request->integer('per_page', 12))));
 
         return $this->ok($contents);
     }
 
-    public function content(string $slug)
+    public function content(Request $request, string $slug, OrderService $orders, ContentMarkdownRenderer $renderer)
     {
-        return $this->ok(Content::with(['author', 'category', 'tags'])->where('slug', $slug)->firstOrFail());
+        $content = Content::with(['author:id,name,username,avatar_url', 'category', 'tags'])->published()->where('slug', $slug)->firstOrFail();
+        $allowed = $orders->userCanAccessContent($content, $request->user('sanctum'));
+        if ($allowed) {
+            $renderer->renderContent($content, false, true);
+            $content->makeVisible('rendered_html');
+        }
+
+        return $this->ok([...$content->toArray(), 'can_access' => $allowed, 'gallery' => $allowed ? app(GalleryService::class)->items($content, $request->user('sanctum')) : []]);
     }
 
     public function taxonomy()
@@ -85,29 +140,32 @@ class PlatformController extends Controller
 
     public function categories()
     {
-        return $this->ok(Category::withCount('contents')->orderBy('sort_order')->paginate(30));
+        return $this->ok(Category::withCount(['contents' => fn ($query) => $query->published()])->orderBy('sort_order')->paginate(30));
     }
 
     public function tags()
     {
-        return $this->ok(Tag::withCount('contents')->latest()->paginate(50));
+        return $this->ok(Tag::withCount(['contents' => fn ($query) => $query->published()])->latest()->paginate(50));
     }
 
     public function media(Request $request)
     {
+        abort_unless($request->user('sanctum')?->can('manage contents'), 403);
+
         return $this->ok(Media::query()
             ->when($request->type, fn ($query, $type) => $query->where('type', $type))
             ->latest()
-            ->paginate($request->integer('per_page', 24)));
+            ->paginate(max(1, min(100, $request->integer('per_page', 24)))));
     }
 
     public function comments(Request $request)
     {
         return $this->ok(Comment::query()
             ->when($request->content_id, fn ($query, $contentId) => $query->where('content_id', $contentId))
-            ->where('status', $request->string('status', 'approved'))
+            ->where('status', 'approved')
+            ->whereHas('content', fn ($query) => $query->published())
             ->latest()
-            ->paginate($request->integer('per_page', 20)));
+            ->paginate(max(1, min(100, $request->integer('per_page', 20)))));
     }
 
     public function me(Request $request)
@@ -139,7 +197,7 @@ class PlatformController extends Controller
     public function createVipOrder(Request $request, VipLevel $vipLevel, OrderService $orders)
     {
         $data = $request->validate([
-            'period' => ['nullable', 'string', 'in:monthly,yearly'],
+            'period' => ['nullable', 'string', 'in:monthly,quarterly,yearly,lifetime'],
             'gateway' => ['nullable', 'string', 'in:alipay_official,wechat_official,hupijiao_v3,epay,balance,points'],
         ]);
 
@@ -155,7 +213,9 @@ class PlatformController extends Controller
     {
         abort_unless($order->user_id === $request->user()?->id, 403);
 
-        return $this->ok($orders->payWithBalance($order, $request->user()));
+        $data = $request->validate(['points' => ['sometimes', 'integer', 'between:0,100000000']]);
+
+        return $this->ok($orders->payWithBalance($order, $request->user(), (int) ($data['points'] ?? 0)));
     }
 
     public function payOrderWithPoints(Request $request, Order $order, OrderService $orders)
@@ -165,52 +225,69 @@ class PlatformController extends Controller
         return $this->ok($orders->payWithPoints($order, $request->user()));
     }
 
-    public function storeComment(Request $request, Content $content)
+    public function products(Request $request)
     {
-        $data = $request->validate([
-            'body' => ['required', 'string', 'max:2000'],
-            'parent_id' => ['nullable', 'integer', 'exists:comments,id'],
-        ]);
+        $data = $request->validate(['q' => ['nullable', 'string', 'max:120'], 'per_page' => ['sometimes', 'integer', 'between:1,100']]);
 
-        $comment = $content->comments()->create([
-            'user_id' => $request->user()->id,
-            'parent_id' => $data['parent_id'] ?? null,
-            'status' => 'pending',
-            'body' => $data['body'],
-            'ip_address' => $request->ip(),
-            'meta' => ['user_agent' => $request->userAgent()],
-        ]);
+        return $this->ok(Product::where('status', 'published')
+            ->select(['id', 'content_id', 'title', 'slug', 'type', 'price', 'sale_price'])
+            ->with(['variants' => fn ($query) => $query->where('status', 'active')->select(['id', 'product_id', 'sku', 'title', 'price', 'stock', 'attributes'])])
+            ->when($data['q'] ?? '', fn ($query, $q) => $query->where('title', 'like', '%'.$q.'%'))->latest()->paginate($data['per_page'] ?? 20));
+    }
 
-        $content->increment('comment_count');
+    public function recharge(Request $request, OrderService $orders)
+    {
+        $data = $request->validate(['amount' => ['required', 'numeric', 'decimal:0,2', 'between:1,10000'], 'gateway' => ['required', 'in:epay,alipay_official,wechat_official,hupijiao_v3']]);
 
-        return $this->ok($comment);
+        return $this->ok($orders->createRecharge($request->user(), (string) $data['amount'], $data['gateway']));
+    }
+
+    public function cancelOrder(Request $request, Order $order, OrderCancellation $cancellation)
+    {
+        abort_unless($order->user_id === $request->user()->id, 403);
+        $cancellation->cancel($order);
+
+        return $this->ok($order->fresh());
+    }
+
+    public function requestRefund(Request $request, Order $order, CommerceOperations $operations)
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'max:255'], 'amount' => ['nullable', 'numeric', 'min:0.01', 'decimal:0,2']]);
+
+        return $this->ok($operations->requestRefund($request->user(), $order, $data['reason'], isset($data['amount']) ? (string) $data['amount'] : null));
+    }
+
+    public function checkoutPayment(Request $request, Order $order, PaymentManager $payments)
+    {
+        abort_unless($order->user_id === $request->user()->id, 403);
+        $payment = $payments->createPayment($order, $order->pay_channel);
+
+        return $this->ok(['payment_id' => $payment->id, 'status' => $payment->status, 'checkout_url' => data_get($payment->response_payload, 'checkout_url'), 'qr_code' => data_get($payment->response_payload, 'qr_code')]);
+    }
+
+    public function queryPayment(Request $request, Order $order, PaymentManager $payments)
+    {
+        abort_unless($order->user_id === $request->user()->id, 403);
+        $payment = $order->payments()->latest('id')->firstOrFail();
+
+        return $this->ok($payments->queryPayment($payment));
+    }
+
+    public function withdrawal(Request $request, CommerceOperations $operations)
+    {
+        $data = $request->validate(['amount' => ['required', 'numeric', 'decimal:0,2', 'between:1,100000'], 'method' => ['required', 'in:alipay,wechat,bank'], 'account' => ['required', 'string', 'max:255']]);
+
+        return $this->ok(['id' => $operations->requestWithdrawal($request->user(), (string) $data['amount'], $data['method'], $data['account'])]);
+    }
+
+    public function storeComment(Request $request, Content $content, CommentService $comments)
+    {
+        return $this->ok($comments->store($request, $content));
     }
 
     public function download(Request $request, Content $content, OrderService $orders)
     {
-        $allowed = $orders->userCanAccessContent($content, $request->user());
-
-        DB::table('download_logs')->insert([
-            'content_id' => $content->id,
-            'user_id' => $request->user()->id,
-            'media_id' => null,
-            'ip_address' => $request->ip(),
-            'device_hash' => sha1((string) $request->userAgent()),
-            'status' => $allowed ? 'allowed' : 'denied',
-            'meta' => json_encode(['reason' => $allowed ? 'access_granted' : 'payment_required'], JSON_UNESCAPED_UNICODE),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        abort_unless($allowed, 403, '当前账号没有下载权限。');
-
-        $content->increment('download_count');
-
-        return $this->ok([
-            'content_id' => $content->id,
-            'download_url' => route('contents.show', ['slug' => $content->slug]),
-            'message' => '下载权限已通过，真实文件地址由附件存储适配器签发。',
-        ]);
+        return $this->ok(app(DownloadService::class)->authorize($request, $content));
     }
 
     public function wallet(Request $request)
@@ -265,16 +342,12 @@ class PlatformController extends Controller
 
         return $this->ok(Content::query()
             ->with(['author:id,name,username,avatar_url', 'category:id,name,slug'])
-            ->where('status', 'published')
+            ->published()
             ->when($keyword !== '', function ($query) use ($keyword) {
-                $query->where(function ($subQuery) use ($keyword) {
-                    $subQuery->where('title', 'like', "%{$keyword}%")
-                        ->orWhere('excerpt', 'like', "%{$keyword}%")
-                        ->orWhere('markdown_cache', 'like', "%{$keyword}%");
-                });
+                $query->matchingPublicText($keyword);
             })
             ->latest('published_at')
-            ->paginate($request->integer('per_page', 12)));
+            ->paginate(max(1, min(100, $request->integer('per_page', 12)))));
     }
 
     public function themes()
@@ -284,16 +357,20 @@ class PlatformController extends Controller
 
     public function plugins()
     {
+        abort_unless(request()->user('sanctum')?->can('manage plugins'), 403);
+
         return $this->ok(Plugin::all());
     }
 
     public function pageBuilder(string $scope = 'home')
     {
-        return $this->ok(PageLayout::where('scope', $scope)->firstOrFail());
+        return $this->ok(PageLayout::where('scope', $scope)->where('status', 'published')->firstOrFail());
     }
 
     public function health(SystemHealthService $health)
     {
+        abort_unless(request()->user('sanctum')?->can('manage system'), 403);
+
         return $this->ok($health->report());
     }
 
@@ -338,7 +415,7 @@ class PlatformController extends Controller
 
     public function authors()
     {
-        return $this->ok(User::where('is_author', true)->select('id', 'name', 'username', 'avatar_url', 'bio')->paginate());
+        return $this->ok(User::where('is_author', true)->where('author_status', 'approved')->where('is_banned', false)->select('id', 'name', 'username', 'avatar_url', 'bio')->paginate());
     }
 
     private function ok(mixed $data): array

@@ -9,6 +9,14 @@ use Laravel\Scout\Searchable;
 
 class Content extends Model
 {
+    public function toArray(): array
+    {
+        $data = parent::toArray();
+        unset($data['access_rules']['password_hash']);
+
+        return $data;
+    }
+
     use HasJsonMeta, Searchable, SoftDeletes;
 
     protected $fillable = [
@@ -18,6 +26,8 @@ class Content extends Model
         'like_count', 'download_count', 'published_at',
     ];
 
+    protected $hidden = ['markdown_cache', 'rendered_html', 'block_json'];
+
     protected $casts = [
         'block_json' => 'array',
         'seo' => 'array',
@@ -26,14 +36,43 @@ class Content extends Model
         'published_at' => 'datetime',
     ];
 
+    public function scopePublished($query)
+    {
+        return $query->where('status', 'published')->where(function ($query) {
+            $query->whereNull('published_at')->orWhere('published_at', '<=', now());
+        });
+    }
+
     public function author()
     {
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    public function shouldBeSearchable(): bool
+    {
+        return ! $this->trashed() && $this->status === 'published' && (! $this->published_at || ! $this->published_at->isFuture());
+    }
+
+    public function scopeMatchingPublicText($query, string $keyword)
+    {
+        $keyword = mb_substr(trim($keyword), 0, 120);
+
+        return $query->where(function ($query) use ($keyword) {
+            $query->where('title', 'like', '%'.$keyword.'%')->orWhere('excerpt', 'like', '%'.$keyword.'%');
+            if ($this->getConnection()->getDriverName() === 'mysql' && preg_match('/[a-zA-Z]{3,}/', $keyword)) {
+                $query->orWhereFullText(['title', 'excerpt'], $keyword);
+            }
+        });
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function topics()
+    {
+        return $this->belongsToMany(Topic::class);
     }
 
     public function tags()

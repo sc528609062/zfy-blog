@@ -12,7 +12,7 @@
         <form class="a-comment-form" method="post" action="/content/{{ $content->slug ?? '#' }}/comments">
             @csrf
             <img src="{{ auth()->user()->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="用户头像">
-            <textarea name="content" placeholder="发表你的看法..." rows="3" required></textarea>
+            <textarea name="body" placeholder="发表你的看法..." rows="3" maxlength="2000" required>{{ old('body') }}</textarea>
             <button type="submit" class="a-primary">发表评论</button>
         </form>
     @else
@@ -34,10 +34,18 @@
                         @endif
                         <time>{{ optional($comment->created_at)->diffForHumans() ?? '刚刚' }}</time>
                     </div>
-                    <p>{{ $comment->content ?? '这是一条演示评论内容。' }}</p>
+                    <p>{{ $comment->body }}</p>
                     <div class="a-comment-actions">
-                        <button class="a-comment-like">赞 ({{ $comment->likes_count ?? 0 }})</button>
-                        <button class="a-comment-reply">回复</button>
+                        @auth
+                            <details><summary>回复</summary>
+                                <form method="post" action="{{ route('comments.store', $content->slug) }}">
+                                    @csrf
+                                    <input type="hidden" name="parent_id" value="{{ $comment->id }}">
+                                    <textarea name="body" rows="2" maxlength="2000" required aria-label="回复内容"></textarea>
+                                    <button type="submit" class="a-primary">提交回复</button>
+                                </form>
+                            </details>
+                        @endauth
                     </div>
 
                     @if($comment->replies->count() > 0)
@@ -49,7 +57,7 @@
                                         <strong>{{ $reply->user->name ?? '匿名用户' }}</strong>
                                         <span>回复</span>
                                         <strong>{{ $reply->parent->user->name ?? '楼主' }}</strong>
-                                        <p>{{ $reply->content }}</p>
+                                        <p>{{ $reply->body }}</p>
                                         <time>{{ optional($reply->created_at)->diffForHumans() ?? '刚刚' }}</time>
                                     </div>
                                 </article>
@@ -65,7 +73,4 @@
         @endforelse
     </div>
 
-    @if($comments->count() > 20)
-        <button class="a-load-more">加载更多评论</button>
-    @endif
 </section>

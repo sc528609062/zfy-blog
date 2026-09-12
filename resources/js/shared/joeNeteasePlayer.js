@@ -3,6 +3,7 @@ const APLAYER_STYLE_ID = 'zfy-aplayer-style';
 
 let aplayerLoader;
 
+/** @param {ParentNode} root */
 export function mountJoeNeteasePlayers(root = document) {
     const scope = root || document;
     const elements = [...scope.querySelectorAll('joe-mlist, joe-mp3, joe-music')]

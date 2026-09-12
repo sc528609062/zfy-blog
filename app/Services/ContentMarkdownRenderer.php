@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Content;
+use App\Models\User;
+use App\Support\Zfy\ExtensionRegistry;
 use Illuminate\Support\Str;
 use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\CommonMark\Extension\FrontMatter\FrontMatterExtension;
@@ -11,6 +13,65 @@ use Mews\Purifier\Facades\Purifier;
 
 class ContentMarkdownRenderer
 {
+    public function renderComponent(string $name, array $values, ?Content $content, ?User $viewer): string
+    {
+        $renderer = clone $this;
+        $renderer->visibilityContent = $content;
+        $renderer->visibilityViewer = $viewer;
+        if (! empty($values['items']) && in_array($name, ['zfy-tabs', 'zfy-timeline', 'zfy-collapse', 'zfy-card-list'], true)) {
+            return $renderer->renderCollectionComponent($name, $values['items']);
+        }
+        $body = $renderer->filterHiddenSource((string) ($values['body'] ?? ''));
+        $attributes = array_map(fn ($value) => is_scalar($value) ? (string) $value : '', array_diff_key($values, ['body' => true, 'items' => true]));
+        $paired = ['zfy-alert', 'zfy-callout', 'zfy-tabs', 'zfy-card-list', 'zfy-card-default', 'zfy-card-describe', 'zfy-timeline', 'zfy-collapse', 'zfy-copy'];
+        $html = in_array($name, $paired, true)
+            ? $renderer->renderPairedShortcode($name, $attributes, $renderer->render($body), $body, false)
+            : $renderer->renderSingleShortcode($name, $attributes);
+
+        return app(ContentHtmlSanitizer::class)->clean($html);
+    }
+
+    private function renderCollectionComponent(string $name, array $items): string
+    {
+        $heads = '';
+        $html = '';
+        foreach ($items as $index => $item) {
+            $title = e($item['title'] ?? '');
+            $body = $this->renderForViewer((string) ($item['body'] ?? ''), $this->visibilityContent, $this->visibilityViewer);
+            $active = $index === 0 ? ' is-active' : '';
+            if ($name === 'zfy-tabs') {
+                $heads .= '<span class="zfy-tabs-head-item'.$active.'">'.$title.'</span>';
+                $html .= '<div class="zfy-tabs-body-item'.$active.'">'.$body.'</div>';
+            } elseif ($name === 'zfy-collapse') {
+                $html .= '<div class="zfy-collapse-item'.(! empty($item['open']) ? ' is-open' : '').'"><div class="zfy-shortcode-title">'.$title.'<span></span></div>'.$this->bodyHtml($body).'</div>';
+            } elseif ($name === 'zfy-timeline') {
+                $color = $this->safeCssColor($item['color'] ?? '');
+                $style = $color !== '' ? ' style="border-color:'.$color.'"' : '';
+                $html .= '<div class="zfy-timeline-item"><span class="zfy-timeline-dot"'.$style.'></span><div class="zfy-timeline-content"><strong>'.$title.'</strong>'.$body.'</div></div>';
+            } else {
+                $html .= '<div class="zfy-card-list-item"><strong>'.$title.'</strong>'.$body.'</div>';
+            }
+        }
+        if ($name === 'zfy-tabs') {
+            $html = '<div class="zfy-tabs-head">'.$heads.'</div><div class="zfy-tabs-body">'.$html.'</div>';
+        }
+
+        return app(ContentHtmlSanitizer::class)->clean('<div class="zfy-shortcode zfy-shortcode-'.substr($name, 4).'">'.$html.'</div>');
+    }
+
+    private ?Content $visibilityContent = null;
+
+    private ?User $visibilityViewer = null;
+
+    public function renderForViewer(string $markdown, ?Content $content, ?User $viewer, bool $allowRawHtml = false): string
+    {
+        $renderer = clone $this;
+        $renderer->visibilityContent = $content;
+        $renderer->visibilityViewer = $viewer;
+
+        return $renderer->render($markdown, $allowRawHtml);
+    }
+
     private const DEFAULT_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
     private const TIME_FORMATS = [
@@ -185,6 +246,7 @@ class ContentMarkdownRenderer
         $context = ['allow_raw_html' => $allowRawHtml];
         $markdown = (string) zfy_apply('zfy_markdown_before_render', $markdown, $context);
         $markdown = $this->normalizeMarkdown($markdown);
+        $markdown = $this->filterHiddenSource($markdown);
         $markdown = $this->replaceEmojiCodes($markdown);
 
         $shortcodes = [];
@@ -216,6 +278,18 @@ class ContentMarkdownRenderer
 
     public function renderContent(Content $content, bool $persist = false, bool $allowRawHtml = true): string
     {
+        if (data_get($content->block_json, 'version') === 3) {
+            $html = app(ContentDocumentService::class)->render(data_get($content->block_json, 'document', []), $content, request()->user() ?? request()->user('sanctum'));
+            $content->rendered_html = $html;
+
+            return $html;
+        }
+        if (in_array('zfy-hide', $this->extractShortcodes((string) $content->markdown_cache), true)) {
+            $html = $this->renderForViewer((string) $content->markdown_cache, $content, request()->user() ?? request()->user('sanctum'), $allowRawHtml);
+            $content->rendered_html = $html;
+
+            return $html;
+        }
         $html = $this->renderCachedContent($content->markdown_cache, $content->rendered_html, $allowRawHtml);
 
         if ($html !== (string) ($content->rendered_html ?? '')) {
@@ -234,7 +308,7 @@ class ContentMarkdownRenderer
         $markdown = trim((string) $markdown);
         $html = (string) ($html ?? '');
 
-        if ($markdown !== '' && ($this->containsMarkedHtmlBlock($markdown) || $this->containsRawHtmlMarkup($markdown) || $this->shouldRefreshCachedHtml($html))) {
+        if ($markdown !== '' && (in_array('zfy-hide', $this->extractShortcodes($markdown), true) || $this->containsMarkedHtmlBlock($markdown) || $this->containsRawHtmlMarkup($markdown) || $this->shouldRefreshCachedHtml($html))) {
             return $this->render($markdown, $allowRawHtml);
         }
 
@@ -453,6 +527,10 @@ class ContentMarkdownRenderer
             return self::SHORTCODE_ALIASES[$base] ?? $name;
         }
 
+        if (app(ExtensionRegistry::class)->get('shortcode', $name)) {
+            return $name;
+        }
+
         return self::SHORTCODE_ALIASES[$name] ?? 'zfy-'.$name;
     }
 
@@ -461,6 +539,10 @@ class ContentMarkdownRenderer
      */
     private function renderPairedShortcode(string $name, array $attributes, string $innerHtml, string $innerMarkdown, bool $allowRawHtml): string
     {
+        $extension = app(ExtensionRegistry::class)->get('shortcode', $name);
+        if ($extension) {
+            return app(ContentHtmlSanitizer::class)->clean(($extension['render'])($attributes, $innerMarkdown, ['content' => $this->visibilityContent, 'user' => $this->visibilityViewer]));
+        }
         $type = Str::after($name, 'zfy-');
         $tone = $this->safeToken($attributes['type'] ?? $attributes['tone'] ?? 'info');
         $title = trim($attributes['title'] ?? '');
@@ -481,7 +563,7 @@ class ContentMarkdownRenderer
             'zfy-timeline' => $this->renderTimeline($innerMarkdown, $innerHtml, $allowRawHtml),
             'zfy-copy' => $this->renderCopy($attributes, $innerHtml),
             'zfy-grid' => $this->renderGrid($attributes, $innerMarkdown, $innerHtml, $allowRawHtml),
-            'zfy-hide' => $this->renderHide($attributes),
+            'zfy-hide' => $this->renderHide($attributes, $innerHtml),
             'zfy-dotted' => $this->renderDotted($attributes),
             default => $this->wrapShortcode($this->safeToken($type), $tone, $titleHtml.$this->bodyHtml($innerHtml)),
         };
@@ -492,6 +574,10 @@ class ContentMarkdownRenderer
      */
     private function renderSingleShortcode(string $name, array $attributes): string
     {
+        $extension = app(ExtensionRegistry::class)->get('shortcode', $name);
+        if ($extension) {
+            return app(ContentHtmlSanitizer::class)->clean(($extension['render'])($attributes, '', ['content' => $this->visibilityContent, 'user' => $this->visibilityViewer]));
+        }
         $type = Str::after($name, 'zfy-');
 
         return match ($name) {
@@ -1224,11 +1310,51 @@ class ContentMarkdownRenderer
     /**
      * @param  array<string, string>  $attributes
      */
-    private function renderHide(array $attributes): string
+    private function renderHide(array $attributes, string $innerHtml = ''): string
     {
+        $rule = $attributes['rule'] ?? $attributes['type'] ?? 'member';
+        $rule = ['login' => 'member', 'pay' => 'purchased', 'reply' => 'comment'][$rule] ?? $rule;
+        if (in_array($rule, ['member', 'vip', 'purchased', 'comment', 'password'], true) && app(ContentVisibility::class)->allows($rule, $this->visibilityContent, $this->visibilityViewer)) {
+            return '<div class="zfy-shortcode zfy-shortcode-unlocked">'.$innerHtml.'</div>';
+        }
         $title = trim($attributes['title'] ?? $attributes['label'] ?? '登录后可见');
 
         return '<div class="zfy-shortcode zfy-shortcode-hide"><span>'.e($title).'</span><small>此处内容需要满足访问条件后查看</small></div>';
+    }
+
+    private function filterHiddenSource(string $markdown): string
+    {
+        preg_match_all('/\{(?<close>\/\s*)?(?:zfy-hide|hide)\b(?<attrs>[^}]*)\}/i', $markdown, $tokens, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        $stack = [];
+        $output = '';
+        $offset = 0;
+        foreach ($tokens as $token) {
+            $visible = ! in_array(false, $stack, true);
+            if ($visible) {
+                $output .= substr($markdown, $offset, $token[0][1] - $offset);
+            }
+            $offset = $token[0][1] + strlen($token[0][0]);
+            if ($token['close'][0] !== '') {
+                array_pop($stack);
+
+                continue;
+            }
+            $attributes = $this->parseAttributes($token['attrs'][0]);
+            $rule = $attributes['rule'] ?? $attributes['type'] ?? 'member';
+            $rule = ['login' => 'member', 'pay' => 'purchased', 'reply' => 'comment'][$rule] ?? $rule;
+            $allowed = in_array($rule, ['member', 'vip', 'purchased', 'comment', 'password'], true) && app(ContentVisibility::class)->allows($rule, $this->visibilityContent, $this->visibilityViewer);
+            if (! $allowed && $visible) {
+                $output .= "\n\n此内容需要相应访问权限\n\n";
+            }
+            if (! str_ends_with(trim($token['attrs'][0]), '/')) {
+                $stack[] = $allowed;
+            }
+        }
+        if (! in_array(false, $stack, true)) {
+            $output .= substr($markdown, $offset);
+        }
+
+        return $output;
     }
 
     /**
@@ -1931,6 +2057,8 @@ class ContentMarkdownRenderer
     private function shortcodeNameAlternation(): string
     {
         $names = collect(self::SHORTCODE_NAMES)
+            ->merge(array_keys(app(ExtensionRegistry::class)->all('shortcode')))
+            ->unique()
             ->sortByDesc(fn (string $name) => strlen($name))
             ->map(fn (string $name) => preg_quote($name, '/'))
             ->implode('|');

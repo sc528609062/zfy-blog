@@ -9,4 +9,9 @@ class Attachment extends Model
     protected $fillable = ['content_id', 'media_id', 'role', 'meta'];
 
     protected $casts = ['meta' => 'array'];
+
+    public function media()
+    {
+        return $this->belongsTo(Media::class);
+    }
 }

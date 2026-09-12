@@ -1,0 +1,54 @@
+name: Verify
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.2', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: bcmath, gd, pdo_sqlite, pdo_mysql, zip, redis
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: composer install --prefer-dist --no-interaction
+      - run: vendor/bin/phpunit
+      - run: vendor/bin/pint --test app bootstrap config database routes tests scripts
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+  mysql:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mysql: ['5.7', '8.4']
+    services:
+      database:
+        image: mysql:${{ matrix.mysql }}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: zfy_isolated_test
+        ports:
+          - 13307:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: bcmath, gd, pdo_sqlite, pdo_mysql, zip
+          coverage: none
+      - run: composer install --prefer-dist --no-interaction
+      - run: php scripts/test-mysql.php --filter 'MySqlConcurrencyTest|CartCheckoutTest|MixedPaymentTest|PaymentProtocolTest|RefundInventoryTest|SettlementTest|GalleryTest'

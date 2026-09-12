@@ -1,4 +1,6 @@
 import './bootstrap';
+import { mountCartQuote } from './shared/cartQuote';
+import { mountGallery } from './shared/gallery';
 import {
     copyEnlighterCode,
     getEnlighterBlock,
@@ -12,15 +14,30 @@ import { copyTextToClipboard } from './shared/clipboard';
 
 // 搜索功能
 document.addEventListener('DOMContentLoaded', () => {
+    mountCartQuote();
+    mountGallery();
     // 搜索建议
     const searchInputs = document.querySelectorAll('.a-search input');
-    searchInputs.forEach(input => {
-        input.addEventListener('input', debounce((e) => {
-            const query = e.target.value.trim();
-            if (query.length >= 2) {
-                // 这里可以添加搜索建议的AJAX请求
-                console.log('搜索:', query);
-            }
+    searchInputs.forEach((input, index) => {
+        const list = document.createElement('datalist');
+        list.id = 'zfy-search-suggestions-' + index;
+        input.setAttribute('list', list.id);
+        input.after(list);
+        input.addEventListener('input', debounce(async () => {
+            const query = input.value.trim();
+            list.replaceChildren();
+            if (query.length < 2) return;
+            try {
+                const response = await fetch('/api/v1/contents?' + new URLSearchParams({ q: query, per_page: '5' }), { headers: { Accept: 'application/json' } });
+                if (!response.ok) return;
+                const result = await response.json();
+                if (input.value.trim() !== query) return;
+                for (const content of result.data?.data || []) {
+                    const option = document.createElement('option');
+                    option.value = content.title;
+                    list.append(option);
+                }
+            } catch { /* Search form remains available when suggestions are offline. */ }
         }, 300));
     });
 

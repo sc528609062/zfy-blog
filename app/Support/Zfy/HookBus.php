@@ -2,49 +2,25 @@
 
 namespace App\Support\Zfy;
 
-use Illuminate\Support\Facades\Log;
-use Throwable;
-
-class HookBus
+class HookBus extends CallbackRegistry
 {
-    /**
-     * @var array<string, array<int, list<callable>>>
-     */
-    private array $listeners = [];
-
-    public function on(string $hook, callable $callback, int $priority = 10): void
+    public function on(string $hook, callable $callback, int $priority = 10, ?int $acceptedArgs = null): string
     {
-        $this->listeners[$hook][$priority] ??= [];
-        $this->listeners[$hook][$priority][] = $callback;
+        return $this->add($hook, $callback, $priority, $acceptedArgs, false);
+    }
+
+    public function once(string $hook, callable $callback, int $priority = 10, ?int $acceptedArgs = null): string
+    {
+        return $this->add($hook, $callback, $priority, $acceptedArgs, true);
     }
 
     public function emit(string $hook, mixed ...$args): void
     {
-        foreach ($this->callbacks($hook) as $callback) {
-            try {
-                $callback(...$args);
-            } catch (Throwable $exception) {
-                Log::error('zfy hook failed', [
-                    'hook' => $hook,
-                    'exception' => $exception,
-                ]);
-            }
-        }
+        $this->dispatch($hook, $args, false, false);
     }
 
-    public function has(string $hook): bool
+    public function emitStrict(string $hook, mixed ...$args): void
     {
-        return isset($this->listeners[$hook]);
-    }
-
-    /**
-     * @return list<callable>
-     */
-    public function callbacks(string $hook): array
-    {
-        $groups = $this->listeners[$hook] ?? [];
-        ksort($groups);
-
-        return array_merge(...array_values($groups ?: [[]]));
+        $this->dispatch($hook, $args, false, true);
     }
 }

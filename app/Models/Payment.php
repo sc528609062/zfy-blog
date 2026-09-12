@@ -16,4 +16,11 @@ class Payment extends Model
         'response_payload' => 'array',
         'paid_at' => 'datetime',
     ];
+
+    protected $hidden = ['request_payload', 'response_payload'];
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
 }

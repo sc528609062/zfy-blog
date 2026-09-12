@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ArrowDown, House, Menu, Plus, Refresh, Setting, SwitchButton, User, UserFilled } from '@element-plus/icons-vue';
+import { ArrowDown, House, Menu, Plus, Refresh, Setting, SwitchButton, User, UserFilled, Moon, Sunny } from '@element-plus/icons-vue';
+import { useAdminStore } from '../store';
+const store = useAdminStore();
 import type { AdminBreadcrumbItem } from '../useAdminMenu';
 
 interface AdminUser {
@@ -94,6 +96,7 @@ function handleUserCommand(command: string | number | object) {
         </el-breadcrumb>
 
         <div class="zfy-admin-top-actions">
+            <el-tooltip :content="store.dark ? '浅色模式' : '深色模式'"><el-button :icon="store.dark ? Sunny : Moon" circle :aria-label="store.dark ? '浅色模式' : '深色模式'" @click="store.toggleDark()" /></el-tooltip>
             <el-button class="zfy-action-refresh" :icon="Refresh" circle @click="reloadPage" />
             <el-button class="zfy-action-publish" :icon="Plus" type="primary" @click="emit('navigate', 'editor')">发布</el-button>
             <el-button class="zfy-action-site" :icon="House" @click="visitSite">前台</el-button>

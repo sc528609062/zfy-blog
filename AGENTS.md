@@ -178,9 +178,9 @@ REDIS_CLIENT=predis
 新增主题：
 
 - 新建 `themes/<slug>/theme.json`。
-- 新建 `resources/views/themes/<slug>/layout.blade.php`。
-- 在 `config/zfy.php` 的 `themes` 中补充主题元信息。
-- 在 `CoreInstallSeeder` 逻辑兼容新主题，必要时补充默认设置。
+- 原生主题模板放在包内 `views/`，构建资源放在 `assets/`；由清单声明入口、父主题、设置和依赖。
+- 使用 `zfy:extension make-theme/validate/pack` 在独立目录开发，后台上传安装；无需修改核心配置或 Seeder。
+- 内置三主题保留原模板路径，第三方开发约定见 `docs/extensions.md`、`docs/manifests.md`、`docs/hooks.md`。
 
 新增插件：
 

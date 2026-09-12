@@ -1,7 +1,7 @@
 @php
     $query = request('q', '');
-    $results = $contents->merge($resources)->merge($images)->unique('id');
-    $resultCount = $results->count();
+    $results = $contents;
+    $resultCount = isset($pagination) ? $pagination->total() : $results->count();
 @endphp
 
 <section class="a-page-hero compact search">
@@ -31,7 +31,7 @@
                     @include('themes.style-a-blue-gaming.partials.cards', ['item' => $item, 'mode' => 'list'])
                 @endforeach
             </div>
-            <a class="a-load-more" href="#">加载更多结果</a>
+            @if(isset($pagination)) {{ $pagination->links() }} @endif
         @else
             <div class="a-empty-state">
                 <h3>没有找到相关内容</h3>

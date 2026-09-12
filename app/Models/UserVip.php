@@ -10,6 +10,11 @@ class UserVip extends Model
 
     protected $casts = ['started_at' => 'datetime', 'expires_at' => 'datetime', 'meta' => 'array'];
 
+    public function isActive(): bool
+    {
+        return $this->expires_at === null || $this->expires_at->isFuture();
+    }
+
     public function level()
     {
         return $this->belongsTo(VipLevel::class, 'vip_level_id');

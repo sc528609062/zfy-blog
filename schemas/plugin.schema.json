@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zfy-blog.test/schemas/plugin.schema.json",
+  "title": "zfy-blog Native Plugin Manifest v1",
+  "type": "object",
+  "required": ["schema_version", "name", "slug", "version", "compatible", "permissions", "events"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "slug": { "type": "string", "maxLength": 80, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$" },
+    "compatible": { "type": "string", "minLength": 1 },
+    "entry": { "type": "string", "minLength": 1 },
+    "provider": { "type": "string", "minLength": 1 },
+    "permissions": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "events": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "requires": {
+      "type": "object",
+      "properties": {
+        "php": { "type": "string" },
+        "plugins": { "type": "object", "additionalProperties": { "type": "string" } },
+        "themes": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "autoload": { "type": "object", "properties": { "psr-4": { "type": "object", "additionalProperties": { "type": "string" } } } },
+    "settings_schema": { "type": "object", "additionalProperties": { "type": "object", "properties": { "label": { "type": "string" }, "fields": { "type": "array", "items": { "type": "object", "required": ["key", "label", "type"] } } } } },
+    "admin_pages": { "type": "array", "items": { "type": "object", "required": ["key", "label"], "properties": { "kind": { "const": "extension" }, "permission": { "type": "string" }, "endpoint": { "type": "string" }, "module": { "type": "string" } } } },
+    "assets": { "type": "object" },
+    "update": { "type": "object", "properties": { "provider": { "enum": ["github", "gitee"] }, "repository": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" } }, "required": ["provider", "repository"] }
+  }
+}

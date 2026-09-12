@@ -1,0 +1,27 @@
+version: '1.0'
+name: signed-release
+displayName: Build Signed Release
+triggers:
+  trigger: manual
+stages:
+  - name: release
+    displayName: Validate and package
+    strategy: naturally
+    trigger: manual
+    executor: []
+    steps:
+      - step: shell@agent
+        name: signed_package
+        displayName: PHP 8.2+ and Node 22 isolated runner
+        hostGroupID: zfy-blog-php82
+        script: |
+          set -eu
+          php -r "exit(PHP_VERSION_ID >= 80200 ? 0 : 1);"
+          composer install --prefer-dist --no-interaction
+          vendor/bin/phpunit
+          vendor/bin/pint --test app bootstrap config database routes tests scripts examples
+          npm ci
+          npm run typecheck
+          npm run build
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          php scripts/ci-release.php

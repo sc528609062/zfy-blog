@@ -1,11 +1,23 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminResourceController;
+use App\Http\Controllers\Api\V1\ExtensionController;
 use App\Http\Controllers\Api\V1\PlatformController;
+use App\Http\Controllers\Web\AccountSecurityController;
+use App\Http\Controllers\Web\CartController;
+use App\Http\Controllers\Web\CommunityController;
+use App\Http\Controllers\Web\ContentPasswordController;
+use App\Http\Controllers\Web\PrivateMessageController;
+use App\Http\Controllers\Web\ShipmentController;
+use App\Http\Controllers\Web\SiteController;
 use App\Http\Middleware\EnsureInstalled;
+use App\Http\Middleware\EnsureTokenAbility;
+use App\Http\Middleware\UseContentPermalinks;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->name('api.v1.')->middleware([EnsureInstalled::class, 'throttle:api'])->group(function () {
-    Route::post('/auth/token', [PlatformController::class, 'token']);
+Route::prefix('v1')->name('api.v1.')->middleware([EnsureInstalled::class, UseContentPermalinks::class, EnsureTokenAbility::class, 'throttle:api'])->group(function () {
+    Route::match(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], '/extensions/{endpoint}', ExtensionController::class)->where('endpoint', '[a-z][a-z0-9_-]{0,79}');
+    Route::post('/auth/token', [PlatformController::class, 'token'])->middleware('throttle:5,1');
     Route::get('/home', [PlatformController::class, 'home']);
     Route::get('/contents', [PlatformController::class, 'contents']);
     Route::get('/contents/{slug}', [PlatformController::class, 'content']);
@@ -16,6 +28,7 @@ Route::prefix('v1')->name('api.v1.')->middleware([EnsureInstalled::class, 'throt
     Route::get('/comments', [PlatformController::class, 'comments']);
     Route::get('/authors', [PlatformController::class, 'authors']);
     Route::get('/vip', [PlatformController::class, 'vip']);
+    Route::get('/products', [PlatformController::class, 'products']);
     Route::get('/search', [PlatformController::class, 'search']);
     Route::get('/themes', [PlatformController::class, 'themes']);
     Route::get('/plugins', [PlatformController::class, 'plugins']);
@@ -28,8 +41,36 @@ Route::prefix('v1')->name('api.v1.')->middleware([EnsureInstalled::class, 'throt
     Route::get('/netease/song/{id}/lyric', [PlatformController::class, 'neteaseSongLyric'])->whereNumber('id');
 
     Route::middleware('auth:sanctum')->group(function () {
+        Route::controller(CartController::class)->group(function () {
+            Route::get('/cart', 'index');
+            Route::get('/cart/quote', 'quote');
+            Route::post('/cart/products/{product}', 'add');
+            Route::patch('/cart/items/{item}', 'update')->whereNumber('item');
+            Route::delete('/cart/items/{item}', 'remove')->whereNumber('item');
+            Route::post('/cart/checkout', 'checkout');
+            Route::post('/addresses', 'saveAddress');
+            Route::patch('/addresses/{address}', 'saveAddress')->whereNumber('address');
+            Route::delete('/addresses/{address}', 'removeAddress')->whereNumber('address');
+        });
+        Route::get('/auth/tokens', [PlatformController::class, 'tokens']);
+        Route::delete('/auth/tokens/{token}', [PlatformController::class, 'revokeToken'])->whereNumber('token');
         Route::get('/me', [PlatformController::class, 'me']);
+        Route::post('/contents/{content:slug}/unlock', ContentPasswordController::class)->middleware('throttle:6,1');
+        Route::put('/me', [AdminResourceController::class, 'profile']);
+        Route::get('/me/sessions', [PlatformController::class, 'sessions']);
+        Route::delete('/me/sessions/{session}', [AccountSecurityController::class, 'revokeSession']);
+        Route::post('/me/verification-email', [AccountSecurityController::class, 'send'])->middleware('throttle:6,1');
+        Route::post('/requests', [CommunityController::class, 'request'])->name('requests')->middleware('throttle:10,1');
+        Route::post('/points-store/{item}/exchange', [PlatformController::class, 'exchange']);
+        Route::post('/refunds/{refund}/return', [ShipmentController::class, 'returnShipment']);
         Route::get('/orders', [PlatformController::class, 'orders']);
+        Route::post('/wallet/recharge', [PlatformController::class, 'recharge']);
+        Route::post('/wallet/withdrawals', [PlatformController::class, 'withdrawal']);
+        Route::post('/orders/{order:order_no}/cancel', [PlatformController::class, 'cancelOrder']);
+        Route::post('/orders/{order:order_no}/refund', [PlatformController::class, 'requestRefund']);
+        Route::post('/orders/{order:order_no}/payment', [PlatformController::class, 'checkoutPayment'])->middleware('throttle:10,1');
+        Route::post('/orders/{order:order_no}/query', [PlatformController::class, 'queryPayment'])->middleware('throttle:10,1');
+        Route::post('/orders/{order:order_no}/receive', [ShipmentController::class, 'receive']);
         Route::get('/orders/{order:order_no}', [PlatformController::class, 'order']);
         Route::post('/contents/{content:slug}/orders', [PlatformController::class, 'createContentOrder']);
         Route::post('/vip/{vipLevel:slug}/orders', [PlatformController::class, 'createVipOrder']);
@@ -40,6 +81,14 @@ Route::prefix('v1')->name('api.v1.')->middleware([EnsureInstalled::class, 'throt
         Route::get('/wallet', [PlatformController::class, 'wallet']);
         Route::get('/points', [PlatformController::class, 'points']);
         Route::get('/downloads', [PlatformController::class, 'downloads']);
+        Route::get('/downloads/{attachment}', [SiteController::class, 'downloadFile'])->name('downloads.file')->whereNumber('attachment');
         Route::get('/notifications', [PlatformController::class, 'notifications']);
+        Route::get('/messages', [PrivateMessageController::class, 'index']);
+        Route::post('/messages', [PrivateMessageController::class, 'store'])->middleware('throttle:10,1');
+        Route::post('/messages/{message}/read', [PrivateMessageController::class, 'read']);
+        Route::post('/notifications/{notification}/read', [CommunityController::class, 'readNotification']);
+        Route::post('/checkin', [CommunityController::class, 'checkin']);
+        Route::post('/contents/{content:slug}/reaction', [CommunityController::class, 'reaction']);
+        Route::post('/authors/{author}/follow', [CommunityController::class, 'follow']);
     });
 });

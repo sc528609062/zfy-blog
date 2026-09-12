@@ -18,24 +18,27 @@
         @endforeach
         <div class="a-vip-ad">
             <strong>开通VIP会员</strong>
-            <p>享受无限下载特权</p>
+            <p>查看会员权益与资源折扣</p>
             <a href="/vip">立即开通</a>
         </div>
     </aside>
 
     <article class="a-detail-main">
-        <nav class="a-breadcrumb">首页 > 攻略教程 > {{ $detail->title ?? '内容详情' }}</nav>
+        <nav class="a-breadcrumb"><a href="/">首页</a> > {{ $detail->category?->name ?? '内容' }} > {{ $detail->title }}</nav>
         <div class="a-detail-head">
-            <div class="a-labels"><span>攻略教程</span><span>角色扮演</span><span>精华</span></div>
-            <h1>{{ $detail->title ?? '《幻境之旅》全剧情流程详解与隐藏任务攻略' }}</h1>
-            <p>{{ $detail->excerpt ?? '包含全章节流程指引、隐藏任务触发条件及丰厚奖励获取方法。' }}</p>
+            <div class="a-labels">@foreach($detail->tags as $tag)<a href="{{ route('tags.show', $tag->slug) }}">{{ $tag->name }}</a>@endforeach</div>
+            <h1>{{ $detail->title }}</h1>
+            <p>{{ $detail->excerpt }}</p>
             <div class="a-detail-meta">
                 <img src="{{ $detail->author->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="作者头像">
                 <span>{{ $detail->author->name ?? 'zfy小助手' }}</span>
-                <span>{{ optional($detail->published_at)->format('Y-m-d H:i') ?? '2026-05-11 14:30' }}</span>
-                <span>{{ number_format($detail->view_count ?? 28600) }} 阅读</span>
-                <span>{{ $detail->comment_count ?? 156 }} 评论</span>
-                <button>关注</button>
+                <span>{{ optional($detail->published_at)->format('Y-m-d H:i') }}</span>
+                <span>{{ number_format($detail->view_count ?? 0) }} 阅读</span>
+                <span>{{ $detail->comment_count ?? 0 }} 评论</span>
+                @auth @if($detail->author?->is_author && $detail->author_id !== auth()->id())
+                    @php $following = \Illuminate\Support\Facades\DB::table('user_follows')->where('user_id', auth()->id())->where('author_id', $detail->author_id)->exists(); @endphp
+                    <form method="post" action="{{ route('authors.follow', $detail->author_id) }}">@csrf<input type="hidden" name="active" value="{{ $following ? 0 : 1 }}"><button>{{ $following ? '取消关注' : '关注' }}</button></form>
+                @endif @endauth
             </div>
         </div>
 
@@ -44,22 +47,13 @@
                 <img src="{{ $cover }}" alt="{{ $detail->title }}">
                 <div>
                     <h2>资源下载</h2>
-                    <p>版本：v1.4.2 · 大小：32.6GB · 语言：简体中文</p>
-                    <div><b>¥{{ data_get($detail, 'pricing.price', 68) }}</b><em>VIP ¥{{ data_get($detail, 'pricing.vip_price', 54) }}</em></div>
+                    <p>{{ $detail->attachments()->count() }} 个附件</p>
+                    <div><b>¥{{ data_get($detail, 'pricing.price', 0) }}</b>@if(data_get($detail->access_rules, 'vip_free'))<em>会员免费</em>@endif</div>
                 </div>
-            </section>
-        @elseif($isImages)
-            <section class="a-gallery-strip">
-                @foreach($rankings->take(4) as $rank)
-                    <img src="{{ $rank->cover_url }}" alt="{{ $rank->title }}">
-                @endforeach
             </section>
         @else
             <section class="a-gallery-strip">
                 <img src="{{ $cover }}" alt="{{ $detail->title }}">
-                @foreach($rankings->take(3) as $rank)
-                    <img src="{{ $rank->cover_url }}" alt="{{ $rank->title }}">
-                @endforeach
             </section>
         @endif
 
@@ -68,38 +62,56 @@
             data-markdown-theme="{{ $markdownTheme }}"
             data-code-theme="{{ $codeTheme }}"
         >
-            {!! $detail->rendered_html ?? '<p>这里是编辑器渲染后的内容。支持隐藏内容、下载块、提示块、代码块、图集和视频等复杂结构。</p>' !!}
+            {!! $detail->rendered_html ?? '' !!}
         </div>
+        @if($canAccess ?? false){!! app(\App\Services\GalleryService::class)->render($detail, auth()->user()) !!}@endif
 
-        @if(data_get($detail, 'pricing.price', 0) > 0 || $isFile)
+        @if(filled(data_get($detail->access_rules, 'password_hash')) && !app(\App\Services\ContentPasswordAccess::class)->allows($detail, auth()->user()))
+                <form method="post" action="/content/{{ $detail->slug }}/unlock" class="a-paywall">@csrf<label>内容密码 <input type="password" name="password" required maxlength="128"></label><button class="a-primary">解锁内容</button>@if($errors->any())<p role="alert">{{ $errors->first() }}</p>@endif</form>
+        @endif
+        @if(!($canAccess ?? true))
+            @if(!in_array(data_get($detail->access_rules, 'visibility', 'public'), ['public', 'password'], true))
+                <p>此内容需要{{ ['member' => '登录', 'vip' => '有效 VIP', 'comment' => '评论审核通过'][data_get($detail->access_rules, 'visibility')] ?? '相应权限' }}后查看。</p>
+            @endif
+            @if(bccomp((string) data_get($detail->pricing, 'price', '0'), '0', 2) > 0)
             <form method="post" action="/buy/{{ $detail->slug }}" class="a-paywall">
                 @csrf
-                <h3>此处内容需要开通 VIP 或购买后查看</h3>
-                <p>包含隐藏任务触发条件、高级装备获取方式和资源下载地址。</p>
+                <h3>购买后查看完整内容</h3>
+                <p>¥{{ data_get($detail->pricing, 'price', 0) }} @if(data_get($detail->access_rules, 'vip_free')) · 会员免费 @endif</p>
                 <select name="gateway">
-                    <option value="alipay_official">支付宝官方</option>
-                    <option value="wechat_official">微信官方</option>
-                    <option value="hupijiao_v3">虎皮椒 V3</option>
-                    <option value="epay">易支付</option>
+                    @include('themes.shared.partials.payment-options')
                 </select>
                 <button class="a-primary">立即购买</button>
             </form>
+            @endif
         @endif
 
-        <div class="a-action-row"><button>赞 (256)</button><button>收藏 (892)</button><button>分享</button><button>举报</button></div>
+        @if($isFile && ($canAccess ?? false) && $detail->attachments()->exists())
+            @foreach($detail->attachments()->where('role', '!=', 'gallery')->get() as $attachment)
+                <form method="post" action="{{ route('downloads.create', $detail->slug) }}">@csrf<input type="hidden" name="attachment_id" value="{{ $attachment->id }}"><button class="a-primary">下载 {{ \App\Models\Media::find($attachment->media_id)?->name ?? '附件' }}</button></form>
+            @endforeach
+        @endif
 
         @include('themes.style-a-blue-gaming.partials.comments')
+        @auth
+            <div class="a-action-row">
+                @foreach(['like' => '点赞', 'favorite' => '收藏'] as $reaction => $label)
+                    <form method="post" action="{{ route('contents.reaction', $detail->slug) }}">@csrf<input type="hidden" name="type" value="{{ $reaction }}"><input type="hidden" name="active" value="{{ in_array($reaction, $reactions ?? []) ? 0 : 1 }}"><button>{{ in_array($reaction, $reactions ?? []) ? '取消'.$label : $label }}</button></form>
+                @endforeach
+                <details><summary>举报</summary><form method="post" action="{{ route('user.requests') }}">@csrf<input type="hidden" name="type" value="report"><input type="hidden" name="content_id" value="{{ $detail->id }}"><textarea name="body" required maxlength="4000" aria-label="举报原因"></textarea><button>提交举报</button></form></details>
+            </div>
+        @endauth
     </article>
 
     <aside class="a-side-stack">
-        <div class="a-card-panel a-author-box">
+        @if(data_get($theme, 'settings.content-detail.show_author_card', true))<div class="a-card-panel a-author-box">
             <h3>作者信息</h3>
             <img src="{{ $detail->author->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="作者头像">
-            <h2>{{ $detail->author->name ?? 'zfy小助手' }} <span>LV.6</span></h2>
-            <p>资深游戏攻略作者，专注资源整理与玩法分享。</p>
-            <div><strong>342<span>文章</span></strong><strong>1.2万<span>粉丝</span></strong><strong>8.6万<span>获赞</span></strong></div>
-            <a href="/authors">关注作者</a>
-        </div>
-        @include('themes.style-a-blue-gaming.partials.ranking', ['title' => '相关推荐'])
+            <h2>{{ $detail->author?->name ?? '作者' }}</h2>
+            <p>{{ $detail->author?->bio }}</p>
+            <div><strong>{{ $detail->author?->contents()->published()->count() ?? 0 }}<span>内容</span></strong><strong>{{ \Illuminate\Support\Facades\DB::table('user_follows')->where('author_id', $detail->author_id)->count() }}<span>粉丝</span></strong><strong>{{ $detail->author?->contents()->published()->sum('like_count') ?? 0 }}<span>获赞</span></strong></div>
+            <a href="{{ $detail->author?->is_author && filled($detail->author->username) ? route('authors.show', $detail->author->username) : route('authors.index') }}">作者主页</a>
+        </div>@endif
+        @if(data_get($theme, 'settings.content-detail.show_related', true))@include('themes.style-a-blue-gaming.partials.ranking', ['title' => '相关推荐'])@endif
     </aside>
 </section>

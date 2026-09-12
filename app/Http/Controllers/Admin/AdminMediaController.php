@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attachment;
 use App\Models\Media;
+use App\Services\SiteSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -39,6 +42,9 @@ class AdminMediaController extends Controller
         $perPage = (int) ($data['per_page'] ?? $this->mediaLibraryPerPage());
 
         $builder = Media::query()
+            ->where('disk', '!=', 'local')
+            ->whereNotIn('id', Attachment::where('role', 'download')->whereNotNull('media_id')->select('media_id'))
+            ->where(fn ($query) => $query->whereNull('metadata->private')->orWhere('metadata->private', false))
             ->when($type !== 'all', fn ($mediaQuery) => $mediaQuery->where('type', $type))
             ->when($query !== '', function ($mediaQuery) use ($query) {
                 $mediaQuery->where(function ($nested) use ($query) {
@@ -86,27 +92,34 @@ class AdminMediaController extends Controller
         $extension = $this->mediaExtension($file);
         $type = $this->mediaType($file);
         $filename = $this->mediaFilename($file, $relativeDirectory, $extension);
+        zfy_validate('zfy_media_uploading', $file, $request->user());
         $path = $file->storePubliclyAs($relativeDirectory, $filename, $this->mediaDisk());
 
         abort_unless(is_string($path) && $path !== '', 422, '媒体上传失败');
 
-        $media = Media::create([
-            'folder_id' => null,
-            'user_id' => $request->user()?->id,
-            'disk' => $this->mediaDisk(),
-            'type' => $type,
-            'name' => pathinfo((string) $file->getClientOriginalName(), PATHINFO_FILENAME) ?: pathinfo($filename, PATHINFO_FILENAME),
-            'path' => $path,
-            'mime' => $file->getClientMimeType(),
-            'size' => $file->getSize() ?: 0,
-            'metadata' => [
-                'directory' => $directory,
-                'storage_directory' => $storageDirectory,
-                'original_name' => $file->getClientOriginalName(),
-                'stored_name' => $filename,
-                'url' => $this->mediaPublicUrl($path),
-            ],
-        ]);
+        try {
+            $media = DB::transaction(fn () => Media::create([
+                'folder_id' => null,
+                'user_id' => $request->user()?->id,
+                'disk' => $this->mediaDisk(),
+                'type' => $type,
+                'name' => pathinfo((string) $file->getClientOriginalName(), PATHINFO_FILENAME) ?: pathinfo($filename, PATHINFO_FILENAME),
+                'path' => $path,
+                'mime' => $file->getMimeType(),
+                'size' => $file->getSize() ?: 0,
+                'metadata' => [
+                    'directory' => $directory,
+                    'storage_directory' => $storageDirectory,
+                    'original_name' => $file->getClientOriginalName(),
+                    'stored_name' => $filename,
+                    'url' => $this->mediaPublicUrl($path),
+                ],
+            ]));
+        } catch (\Throwable $exception) {
+            Storage::disk($this->mediaDisk())->delete($path);
+            throw $exception;
+        }
+        zfy_after_commit('zfy_media_uploaded', $media, $request->user());
 
         return response()->json([
             'message' => '媒体已上传',
@@ -118,6 +131,8 @@ class AdminMediaController extends Controller
     {
         $this->authorizeMedia($request);
 
+        abort_if(Attachment::where('media_id', $media->id)->exists(), 422, '请先移除内容中的附件关联。');
+        zfy_validate('zfy_media_deleting', $media, $request->user());
         $disk = Storage::disk($media->disk ?: $this->mediaDisk());
         $paths = collect([
             trim((string) $media->path, '/'),
@@ -131,6 +146,7 @@ class AdminMediaController extends Controller
         }
 
         $media->delete();
+        zfy_after_commit('zfy_media_deleted', $media, $request->user());
 
         return response()->json([
             'message' => '媒体已永久删除',
@@ -150,7 +166,7 @@ class AdminMediaController extends Controller
      */
     private function mediaPayload(Media $media): array
     {
-        $url = $this->mediaPublicUrl($media->path);
+        $url = data_get($media->metadata, 'private') ? null : $this->mediaPublicUrl($media->path, $media->disk);
 
         return [
             'id' => $media->id,
@@ -253,7 +269,7 @@ class AdminMediaController extends Controller
 
     private function mediaType(UploadedFile $file): string
     {
-        $mime = strtolower((string) $file->getClientMimeType());
+        $mime = strtolower((string) $file->getMimeType());
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: $file->guessExtension() ?: '');
 
         if (Str::startsWith($mime, 'image/') || in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg'], true)) {
@@ -294,8 +310,11 @@ class AdminMediaController extends Controller
         return (string) ($this->mediaConfig()['disk'] ?? 'media');
     }
 
-    private function mediaPublicUrl(string $path): string
+    private function mediaPublicUrl(string $path, ?string $disk = null): string
     {
+        if (($disk ?? $this->mediaDisk()) !== 'media') {
+            return Storage::disk($disk ?? $this->mediaDisk())->url($path);
+        }
         $relativePath = implode('/', array_map('rawurlencode', explode('/', $this->mediaRelativePath($path))));
 
         return url('/'.$this->mediaStorageRoot().'/'.$relativePath);
@@ -325,6 +344,6 @@ class AdminMediaController extends Controller
 
     private function mediaUploadMaxKb(): int
     {
-        return (int) ($this->mediaConfig()['upload_max_kb'] ?? 20480);
+        return (int) app(SiteSettings::class)->get('media.max_upload_mb', ($this->mediaConfig()['upload_max_kb'] ?? 20480) / 1024) * 1024;
     }
 }

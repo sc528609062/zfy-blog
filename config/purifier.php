@@ -10,9 +10,9 @@ return [
         'default' => [
             'HTML.Doctype' => 'HTML 4.01 Transitional',
             'HTML.Allowed' => implode(',', [
-                'h1[id|class],h2[id|class],h3[id|class],h4[id|class],h5[id|class],h6[id|class]',
+                'h1[id|class|style],h2[id|class|style],h3[id|class|style],h4[id|class|style],h5[id|class|style],h6[id|class|style]',
                 'p[class|style|align],br,hr[class]',
-                'strong[class],b[class],em[class],i[class],s[class],del[class],sup[id|class]',
+                'strong[class],b[class],em[class],i[class],u[class],s[class],del[class],sup[id|class]',
                 'button[type|class|data-copy-text|aria-label|title]',
                 'blockquote[class],pre[class|data-enlighter-language|data-enlighter-title],code[class|data-enlighter-language|data-enlighter-theme|data-enlighter-highlight|data-enlighter-linenumbers|data-enlighter-lineoffset|data-enlighter-title|data-enlighter-group]',
                 'ul[class],ol[class],li[id|class]',
@@ -33,7 +33,7 @@ return [
             'Attr.EnableID' => true,
             'AutoFormat.AutoParagraph' => false,
             'AutoFormat.RemoveEmpty' => false,
-            'CSS.AllowedProperties' => ['width', 'border-color', 'background-color', 'color', 'font-size', 'text-align'],
+            'CSS.AllowedProperties' => ['width', 'border-color', 'background-color', 'color', 'font-size', 'text-align', 'margin-left'],
             'HTML.SafeIframe' => true,
             'URI.SafeIframeRegexp' => '%^https://player\.bilibili\.com/%',
         ],

@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\DeliverSiteNotification;
 use App\Models\Content;
 use App\Models\ContentRevision;
 use App\Models\Tag;
+use App\Services\ContentDocumentService;
 use App\Services\ContentMarkdownRenderer;
+use App\Services\ContentModeration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +27,7 @@ class AdminContentController extends Controller
         $this->authorizeWriting($request);
 
         $payload = $this->validatedPayload($request);
-        $content = $this->persistContent($request, $payload);
+        $content = DB::transaction(fn () => $this->persistContent($request, $payload));
 
         return $this->contentResponse($content, '内容已保存');
     }
@@ -33,7 +37,7 @@ class AdminContentController extends Controller
         $this->authorizeWriting($request, $content);
 
         $payload = $this->validatedPayload($request);
-        $content = $this->persistContent($request, $payload, $content);
+        $content = DB::transaction(fn () => $this->persistContent($request, $payload, Content::whereKey($content->id)->lockForUpdate()->firstOrFail()));
 
         return $this->contentResponse($content, '内容已更新');
     }
@@ -75,16 +79,7 @@ class AdminContentController extends Controller
             'published_at' => $isPublished ? ($content->published_at ?: now()) : null,
         ];
 
-        zfy_emit('zfy_content_saving', $attributes, $content, $request->user());
-
-        $content->update($attributes);
-        $this->syncTags($content, $data['tags'] ?? null);
-
-        zfy_emit('zfy_content_saved', $content, $attributes, $request->user());
-
-        if ($isPublished && ! $wasPublished) {
-            zfy_emit('zfy_content_published', $content, $attributes, $request->user());
-        }
+        $this->saveQuickChange($request, $content, $attributes, $data['tags'] ?? null, true);
 
         return $this->contentResponse($content->refresh(), '快捷设置已保存');
     }
@@ -104,15 +99,7 @@ class AdminContentController extends Controller
             'published_at' => $isPublished ? ($content->published_at ?: now()) : null,
         ];
 
-        zfy_emit('zfy_content_saving', $attributes, $content, $request->user());
-
-        $content->update($attributes);
-
-        zfy_emit('zfy_content_saved', $content, $attributes, $request->user());
-
-        if ($isPublished && ! $wasPublished) {
-            zfy_emit('zfy_content_published', $content, $attributes, $request->user());
-        }
+        $this->saveQuickChange($request, $content, $attributes);
 
         return $this->contentResponse($content->refresh(), $isPublished ? '内容已发布' : '内容已设为草稿');
     }
@@ -121,7 +108,12 @@ class AdminContentController extends Controller
     {
         $this->authorizeWriting($request, $content);
 
-        $content->delete();
+        DB::transaction(function () use ($content, $request) {
+            $content = Content::whereKey($content->id)->lockForUpdate()->firstOrFail();
+            zfy_validate('zfy_content_deleting', $content, $request->user());
+            $content->delete();
+            zfy_after_commit('zfy_content_deleted', $content, $request->user());
+        });
 
         return response()->json([
             'message' => '内容已删除',
@@ -134,10 +126,15 @@ class AdminContentController extends Controller
 
         $data = $request->validate([
             'markdown' => ['nullable', 'string'],
+            'block_json' => ['nullable', 'array'],
         ]);
 
+        $document = app(ContentDocumentService::class);
+        $block = $document->normalize($data['block_json'] ?? [], $data['markdown'] ?? '');
+
         return response()->json([
-            'html' => $this->renderer->render($data['markdown'] ?? '', $this->canUseRawHtml($request)),
+            'html' => $block['mode'] === 'markdown' && ! str_starts_with($data['markdown'] ?? '', '```zfy-document') ? $this->renderer->render($data['markdown'] ?? '', $this->canUseRawHtml($request)) : $document->render($block['document']),
+            'block_json' => $block,
         ]);
     }
 
@@ -225,7 +222,7 @@ class AdminContentController extends Controller
         $this->authorizeWriting($request, $content);
         $revisions = $content->revisions()
             ->with('user:id,name,username')
-            ->where('kind', 'revision')
+            ->whereIn('kind', ['revision', 'pending', 'rejected', 'reviewed'])
             ->latest()
             ->take(50)
             ->get()
@@ -238,7 +235,7 @@ class AdminContentController extends Controller
     public function revision(Request $request, Content $content, ContentRevision $revision): JsonResponse
     {
         $this->authorizeWriting($request, $content);
-        abort_unless($revision->content_id === $content->id && $revision->kind === 'revision', 404);
+        abort_unless($revision->content_id === $content->id && in_array($revision->kind, ['revision', 'pending', 'rejected', 'reviewed'], true), 404);
 
         return response()->json(['revision' => $this->revisionPayload($revision, true)]);
     }
@@ -246,8 +243,10 @@ class AdminContentController extends Controller
     public function restoreRevision(Request $request, Content $content, ContentRevision $revision): JsonResponse
     {
         $this->authorizeWriting($request, $content);
-        abort_unless($revision->content_id === $content->id && $revision->kind === 'revision', 404);
-        $this->recordRevision($content, $request->user()?->id);
+        abort_unless($revision->content_id === $content->id && in_array($revision->kind, ['revision', 'pending'], true), 404);
+        if ($revision->kind === 'pending') {
+            abort_unless($request->user()->can('publish contents'), 403);
+        }
 
         $snapshot = Arr::wrap($revision->snapshot);
         $payload = [
@@ -257,9 +256,44 @@ class AdminContentController extends Controller
             ]),
             'status' => $content->status,
         ];
-        $content = $this->persistContent($request, $payload, $content, false);
+        $content = DB::transaction(function () use ($request, $payload, $content, $revision) {
+            $content = Content::whereKey($content->id)->lockForUpdate()->firstOrFail();
+            $revision = ContentRevision::whereKey($revision->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($revision->kind, ['revision', 'pending'], true), 409, '该版本已处理，请刷新。');
+            if ($revision->kind === 'pending' && $revision->source_updated_at && ! $revision->source_updated_at->equalTo($content->updated_at)) {
+                abort(409, '公开内容已更新，请重新核对并提交修订。');
+            }
+            $content = $this->persistContent($request, $payload, $content);
+            if ($revision->kind === 'pending') {
+                $revision->update(['kind' => 'reviewed']);
+                if ($revision->user_id) {
+                    DeliverSiteNotification::dispatch('review.approved:'.$revision->id, $revision->user_id, 'review', '修订已发布', $content->title);
+                }
+            }
+
+            return $content;
+        });
 
         return $this->contentResponse($content, '历史版本已恢复');
+    }
+
+    public function rejectRevision(Request $request, Content $content, ContentRevision $revision): JsonResponse
+    {
+        $this->authorizeWriting($request, $content);
+        abort_unless($request->user()->can('publish contents'), 403);
+        $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
+        DB::transaction(function () use ($request, $content, $revision, $data) {
+            Content::whereKey($content->id)->lockForUpdate()->firstOrFail();
+            $revision = ContentRevision::whereKey($revision->id)->lockForUpdate()->firstOrFail();
+            abort_unless($revision->content_id === $content->id && $revision->kind === 'pending', 409, '该待审版本已处理。');
+            $revision->update(['kind' => 'rejected', 'snapshot' => [...($revision->snapshot ?? []), 'review' => ['reason' => $data['reason'], 'reviewer_id' => $request->user()->id, 'at' => now()->toIso8601String()]]]);
+            if ($revision->user_id) {
+                DeliverSiteNotification::dispatch('review.rejected:'.$revision->id, $revision->user_id, 'review', '修订已驳回', $data['reason']);
+            }
+            zfy_after_commit('zfy_content_review_rejected', $content, $revision, $request->user());
+        });
+
+        return response()->json(['message' => '修订已驳回，公开版本保持不变']);
     }
 
     /**
@@ -268,6 +302,7 @@ class AdminContentController extends Controller
     private function validatedPayload(Request $request): array
     {
         return $request->validate([
+            'published_at' => ['nullable', 'date'],
             'title' => ['required', 'string', 'max:180'],
             'type' => ['required', 'string', Rule::in(config('zfy.content_types', ['post', 'images', 'files', 'page']))],
             'status' => ['required', 'string', Rule::in(['draft', 'published'])],
@@ -277,9 +312,44 @@ class AdminContentController extends Controller
             'cover_url' => ['nullable', 'string', 'max:2048'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'tags' => ['nullable'],
-            'markdown_cache' => ['nullable', 'string'],
+            'markdown_cache' => ['nullable', 'string', 'max:200000'],
             'block_json' => ['nullable', 'array'],
         ]);
+    }
+
+    public function submit(Request $request, ?Content $content = null)
+    {
+        abort_unless($request->user()->canSubmitContent(), 403);
+        abort_if($content && ($content->author_id !== $request->user()->id || $content->type === 'page'), 403);
+        $payload = $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+            'type' => ['required', Rule::in(array_values(array_diff(config('zfy.content_types', ['post', 'images', 'files']), ['page'])))],
+            'status' => ['required', Rule::in(['draft', 'pending'])],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'excerpt' => ['nullable', 'string', 'max:1000'],
+            'markdown_cache' => ['required', 'string', 'max:200000'],
+            'tags' => ['nullable', 'string', 'max:500'],
+        ]);
+        $content = DB::transaction(function () use ($request, $payload, $content) {
+            if ($content) {
+                $content = Content::whereKey($content->id)->lockForUpdate()->firstOrFail();
+                abort_unless($content->author_id === $request->user()->id, 403);
+                $payload['cover_url'] = $content->cover_url;
+                $payload['subtitle'] = $content->subtitle;
+                if ($content->status === 'published') {
+                    app(ContentModeration::class)->check($payload['title'].' '.$payload['markdown_cache'], 'markdown_cache');
+                    $kind = $payload['status'] === 'pending' ? 'pending' : 'author_draft';
+                    $content->revisions()->updateOrCreate(['kind' => $kind, 'user_id' => $request->user()->id], ['snapshot' => $payload, 'source_updated_at' => $content->updated_at]);
+                    zfy_after_commit('zfy_content_review_submitted', $content, $request->user());
+
+                    return $content;
+                }
+            }
+
+            return $this->persistContent($request, $payload, $content);
+        });
+
+        return redirect()->route('user.editor', ['content' => $content->id])->with('status', $payload['status'] === 'pending' ? '内容已提交，等待审核。' : '草稿已保存。');
     }
 
     /**
@@ -290,9 +360,16 @@ class AdminContentController extends Controller
         $user = $request->user();
         $markdown = (string) ($payload['markdown_cache'] ?? '');
         $isPublished = $payload['status'] === 'published';
+        if ($isPublished) {
+            abort_unless($user?->can('publish contents'), 403);
+        }
+        $publishAt = $isPublished ? (filled($payload['published_at'] ?? null) ? Carbon::parse($payload['published_at']) : ($content?->published_at ?: now())) : null;
+        $isScheduled = $isPublished && $publishAt->isFuture();
         $wasPublished = $content?->status === 'published';
         $contentId = $content?->id;
         $allowRawHtml = $this->canUseRawHtml($request);
+        $documents = app(ContentDocumentService::class);
+        $block = $documents->normalize(Arr::wrap($payload['block_json'] ?? []), $markdown);
 
         if ($content && $recordRevision) {
             $this->recordRevision($content, $user?->id);
@@ -302,28 +379,22 @@ class AdminContentController extends Controller
             'author_id' => $content?->author_id ?: $user?->id,
             'category_id' => $payload['category_id'] ?? null,
             'type' => $payload['type'],
-            'status' => $payload['status'],
+            'status' => $isScheduled ? 'scheduled' : $payload['status'],
             'title' => $payload['title'],
-            'slug' => $this->uniqueSlug($payload['slug'] ?? $payload['title'], $contentId),
+            'slug' => $this->uniqueSlug($payload['slug'] ?? $content?->slug ?? $payload['title'], $contentId),
             'subtitle' => $payload['subtitle'] ?? null,
             'excerpt' => $payload['excerpt'] ?? null,
             'cover_url' => $payload['cover_url'] ?? null,
             'markdown_cache' => $markdown,
-            'rendered_html' => $this->renderer->render($markdown, $allowRawHtml),
-            'block_json' => array_replace_recursive([
-                'mode' => 'markdown',
-                'editor' => 'zfy-markdown',
-                'version' => 1,
-                'shortcodes' => $this->renderer->extractShortcodes($markdown),
-                'raw_html' => $this->renderer->containsMarkedHtmlBlock($markdown),
-            ], Arr::wrap($payload['block_json'] ?? [])),
-            'published_at' => $isPublished ? ($content?->published_at ?: now()) : null,
+            'rendered_html' => $block['mode'] === 'markdown' && ! str_starts_with($markdown, '```zfy-document') ? $this->renderer->render($markdown, $allowRawHtml) : $documents->render($block['document']),
+            'block_json' => $block,
+            'published_at' => $publishAt,
         ];
 
-        $attributes = zfy_apply('zfy_content_payload', $attributes, $payload, $request, $content);
+        $attributes = zfy_apply_strict('zfy_content_payload', $attributes, $payload, $request, $content);
         abort_unless(is_array($attributes), 422, '内容过滤器必须返回数组');
 
-        zfy_emit('zfy_content_saving', $attributes, $content, $user);
+        zfy_validate('zfy_content_saving', $attributes, $content, $user);
 
         if ($content) {
             $content->update($attributes);
@@ -333,10 +404,11 @@ class AdminContentController extends Controller
 
         $this->syncTags($content, $payload['tags'] ?? null);
 
-        zfy_emit('zfy_content_saved', $content, $attributes, $user);
+        zfy_after_commit('zfy_content_saved', $content, $attributes, $user);
+        zfy_after_commit($contentId ? 'zfy_content_updated' : 'zfy_content_created', $content, $attributes, $user);
 
-        if ($isPublished && ! $wasPublished) {
-            zfy_emit('zfy_content_published', $content, $attributes, $user);
+        if ($content->status === 'published' && ! $wasPublished) {
+            zfy_after_commit('zfy_content_published', $content, $attributes, $user);
         }
 
         ContentRevision::query()
@@ -366,7 +438,7 @@ class AdminContentController extends Controller
             'tags' => ['nullable'],
             'cover_url' => ['nullable', 'string', 'max:2048'],
             'excerpt' => ['nullable', 'string', 'max:1000'],
-            'markdown_cache' => ['nullable', 'string'],
+            'markdown_cache' => ['nullable', 'string', 'max:200000'],
             'block_json' => ['nullable', 'array'],
         ]);
     }
@@ -397,6 +469,30 @@ class AdminContentController extends Controller
         if ($staleIds->isNotEmpty()) {
             ContentRevision::whereKey($staleIds)->delete();
         }
+    }
+
+    private function saveQuickChange(Request $request, Content $content, array $attributes, mixed $tags = null, bool $syncTags = false): void
+    {
+        DB::transaction(function () use ($request, $content, $attributes, $tags, $syncTags) {
+            $content = Content::whereKey($content->id)->lockForUpdate()->firstOrFail();
+            $published = $content->status === 'published';
+            if ($attributes['status'] === 'published') {
+                abort_unless($request->user()->can('publish contents'), 403);
+            }
+            $attributes = zfy_apply_strict('zfy_content_payload', $attributes, $request->all(), $request, $content);
+            abort_unless(is_array($attributes), 422);
+            zfy_validate('zfy_content_saving', $attributes, $content, $request->user());
+            $this->recordRevision($content, $request->user()->id);
+            $content->update($attributes);
+            if ($syncTags) {
+                $this->syncTags($content, $tags);
+            }
+            zfy_after_commit('zfy_content_saved', $content, $attributes, $request->user());
+            zfy_after_commit('zfy_content_updated', $content, $attributes, $request->user());
+            if ($content->status === 'published' && ! $published) {
+                zfy_after_commit('zfy_content_published', $content, $attributes, $request->user());
+            }
+        });
     }
 
     private function contentSnapshot(Content $content): array

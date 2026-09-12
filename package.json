@@ -3,7 +3,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build && node scripts/normalize-vite-manifest.mjs",
+        "typecheck": "vue-tsc --noEmit",
+        "build": "vite build",
         "dev": "vite"
     },
     "devDependencies": {
@@ -14,22 +15,36 @@
         "@codemirror/view": "^6.42.1",
         "@element-plus/icons-vue": "^2.3.2",
         "@tailwindcss/vite": "^4.0.0",
+        "@types/node": "^22.20.2",
         "@vitejs/plugin-vue": "^6.0.6",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "element-plus": "^2.14.0",
         "laravel-vite-plugin": "^2.0.0",
         "tailwindcss": "^4.0.0",
+        "typescript": "~5.6.3",
         "vite": "^7.0.7",
-        "vue": "^3.5.34"
+        "vue": "^3.5.34",
+        "vue-tsc": "^3.3.11"
     },
     "dependencies": {
         "@codemirror/search": "^6.7.1",
+        "@tiptap/extension-image": "^3.31.3",
+        "@tiptap/extension-table": "^3.31.3",
+        "@tiptap/extension-task-item": "^3.31.3",
+        "@tiptap/extension-task-list": "^3.31.3",
+        "@tiptap/extension-text-align": "^3.31.3",
+        "@tiptap/extension-text-style": "^3.31.3",
+        "@tiptap/markdown": "^3.31.3",
+        "@tiptap/starter-kit": "^3.31.3",
+        "@tiptap/vue-3": "^3.31.3",
         "gemoji": "^8.1.0",
         "highlight.js": "^11.11.1",
         "juejin-markdown-themes": "^1.34.0",
         "katex": "^0.17.0",
         "medium-zoom": "^1.1.0",
-        "mermaid": "^11.16.0"
+        "mermaid": "^11.16.0",
+        "pinia": "^3.0.4",
+        "vue-router": "^4.6.4"
     }
 }

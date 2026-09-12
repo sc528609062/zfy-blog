@@ -27,21 +27,22 @@
             @csrf
             <h1>{{ $authTone === 'creative' ? '欢迎加入创意社区' : '欢迎加入 zfy-blog' }}</h1>
             <p>{{ $authTone === 'market' ? '创建账号，购买源码、素材和教程资源' : ($authTone === 'creative' ? '创建账号，连接创作者和优质灵感资源' : '创建账号，解锁更多游戏资源与社区体验') }}</p>
-            <label><span>1. 邮箱验证</span><input type="email" name="email" value="player_zfy@protonmail.com" required></label>
-            <label><span>2. 设置用户名</span><input name="name" value="Zfy_玩家小白" required></label>
-            <label><span>3. 设置密码</span><input type="password" name="password" value="zfy-blog-123456" required></label>
-            <label><span>4. 确认密码</span><input type="password" name="password_confirmation" value="zfy-blog-123456"></label>
-            <label class="a-check"><input type="checkbox" checked> 我已阅读并同意用户协议和隐私政策</label>
+            @if($errors->any())<p role="alert">{{ $errors->first() }}</p>@endif
+            <label><span>邮箱</span><input type="email" name="email" value="{{ old('email') }}" autocomplete="email" required maxlength="160"></label>
+            <label><span>昵称</span><input name="name" value="{{ old('name') }}" autocomplete="nickname" required maxlength="80"></label>
+            <label><span>密码</span><input type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+            <label><span>确认密码</span><input type="password" name="password_confirmation" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+            <label><span>邀请码</span><input name="invite_code" value="{{ old('invite_code', request('invite_code')) }}" maxlength="80" @required(app(\App\Services\SiteSettings::class)->get('registration.invite_required', false))></label>
             <button class="a-primary wide">立即注册</button>
             <p class="a-auth-switch">已有账号？<a href="/login">立即登录</a></p>
         </form>
         <aside class="a-register-perks">
             <h2>注册即享专属福利</h2>
-            @foreach(['新手礼包','高速下载','专属权限','社区互动','积分奖励'] as $perk)
-                <div><strong>{{ $perk }}</strong><p>解锁更多游戏资源、隐藏内容和优先客服支持。</p><span>{{ $loop->first ? '价值 88元' : '尊享特权' }}</span></div>
+            @foreach(\App\Models\VipLevel::orderBy('level')->get() as $level)
+                <div><strong>{{ $level->name }}</strong><p>{{ implode(' · ', $level->benefits ?? []) }}</p><span>¥{{ $level->price_monthly }}/月</span></div>
             @endforeach
         </aside>
     </main>
-    <footer class="a-auth-benefits"><div>安全可靠<span>多重安全防护</span></div><div>资源丰富<span>100,000+ 优质资源</span></div><div>更新及时<span>每日更新最新内容</span></div><div>优质服务<span>7x24小时客服支持</span></div></footer>
+    <footer class="a-auth-benefits"><a href="/">首页</a><a href="/vip">会员</a><a href="/links">友情链接</a></footer>
 </body>
 </html>

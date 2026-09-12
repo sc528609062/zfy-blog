@@ -29,11 +29,11 @@ stages:
     steps:
       - step: shell@agent
         name: laravel_verify
-        displayName: Laravel 12 / PHP 8.3 验证
-        hostGroupID: zfy-blog-php83
+        displayName: Laravel 12 / PHP 8.2+ 验证
+        hostGroupID: zfy-blog-php82
         script: |
           php -v
-          php -r "exit(PHP_VERSION_ID >= 80300 ? 0 : 1);"
+          php -r "exit(PHP_VERSION_ID >= 80200 ? 0 : 1);"
           if [ -f composer.phar ]; then php composer.phar install --no-interaction --prefer-dist; else composer install --no-interaction --prefer-dist; fi
           cp .env.example .env
           php artisan key:generate
@@ -47,7 +47,9 @@ stages:
           php artisan config:clear
           php artisan migrate:fresh --seed --force
           php artisan test
+          vendor/bin/pint --test app bootstrap config database routes tests scripts
           npm ci
+          npm run typecheck
           npm run build
 
 permissions:

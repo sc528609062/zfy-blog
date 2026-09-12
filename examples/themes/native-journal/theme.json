@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../schemas/theme.schema.json",
+  "schema_version": 1,
+  "name": "Native Journal",
+  "slug": "native-journal",
+  "version": "1.0.0",
+  "compatible": "^1.0",
+  "entry": "views/layout.blade.php",
+  "bootstrap": "provider.php",
+  "provider": "Examples\\NativeJournal\\Provider",
+  "requires": { "php": "^8.2" },
+  "menus": ["primary", "footer"],
+  "regions": ["footer"],
+  "settings_schema": { "global": [
+    { "key": "logo_text", "label": "站点名称", "type": "text" },
+    { "key": "primary_color", "label": "强调色", "type": "color" },
+    { "key": "footer_text", "label": "页脚文字", "type": "textarea" }
+  ] },
+  "defaults": { "global": { "logo_text": "Native Journal", "primary_color": "#13766e", "footer_text": "Native Journal" } }
+}

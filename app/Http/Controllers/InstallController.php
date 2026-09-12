@@ -6,6 +6,7 @@ use App\Services\Install\InstallationService;
 use App\Services\Install\InstallationState;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class InstallController extends Controller
@@ -27,7 +28,7 @@ class InstallController extends Controller
                         'port' => env('DB_PORT', '3306'),
                         'database' => env('DB_DATABASE', 'zfy_blog'),
                         'username' => env('DB_USERNAME', 'zfy_blog'),
-                        'password' => env('DB_PASSWORD', 'zfy_blog'),
+                        'password' => '',
                     ],
                     'site' => [
                         'name' => env('APP_NAME', 'zfy-blog'),
@@ -79,15 +80,15 @@ class InstallController extends Controller
             'admin.password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
         $data['site']['url'] = $data['site']['url'] ?? $request->getSchemeAndHttpHost();
+        $data['db']['password'] ??= '';
 
         try {
-            $environment = $installer->install($data);
-            app()->terminating(fn () => $installer->persistEnvironment($environment));
+            $installer->install($data);
         } catch (Throwable $exception) {
             report($exception);
 
             return response()->json([
-                'message' => '安装失败：'.$exception->getMessage(),
+                'message' => $exception instanceof ValidationException ? $exception->validator->errors()->first() : '安装失败，请检查数据库连接、空库状态和服务器日志。',
             ], 422);
         }
 

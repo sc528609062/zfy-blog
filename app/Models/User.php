@@ -2,16 +2,28 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\ResetAccountPassword;
+use App\Notifications\VerifyAccountEmail;
 use Database\Factories\UserFactory;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
+    protected static function booted(): void
+    {
+        static::saving(function (self $user) {
+            zfy_validate('zfy_user_saving', $user, array_diff_key($user->getDirty(), ['password' => true, 'remember_token' => true]));
+        });
+        static::saved(function (self $user) {
+            zfy_after_commit('zfy_user_saved', $user, array_diff_key($user->getChanges(), ['password' => true, 'remember_token' => true]));
+        });
+    }
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
@@ -30,6 +42,8 @@ class User extends Authenticatable
         'is_author',
         'author_status',
         'meta',
+        'is_banned',
+        'ban_reason',
     ];
 
     /**
@@ -53,6 +67,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_author' => 'boolean',
+            'is_banned' => 'boolean',
             'meta' => 'array',
         ];
     }
@@ -73,6 +88,21 @@ class User extends Authenticatable
     public function contents()
     {
         return $this->hasMany(Content::class, 'author_id');
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyAccountEmail);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetAccountPassword($token));
+    }
+
+    public function canSubmitContent(): bool
+    {
+        return ! $this->is_banned && (($this->is_author && $this->author_status === 'approved') || $this->can('publish contents') || $this->can('manage contents'));
     }
 
     public function wallet()

@@ -14,6 +14,7 @@ Desktop.ini
 
 # Environment and credentials
 .env
+.zfy-release.json
 .env.*
 !.env.example
 /auth.json
@@ -84,8 +85,8 @@ Homestead.yaml
 /storage/pail/
 
 # Test and coverage output
-/tests/
 /coverage/
+/dist/
 /.nyc_output/
 
 # Temporary files

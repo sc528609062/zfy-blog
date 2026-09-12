@@ -1,0 +1,37 @@
+/* CMS adaptation of Art Design Pro layout and surface conventions. */
+:root {
+    --zfy-admin-bg: #f6f7f9;
+    --zfy-admin-panel: #fff;
+    --zfy-admin-line: #e8e9ed;
+    --zfy-admin-text: #252832;
+    --zfy-admin-muted: #737781;
+    --zfy-admin-surface: #fff;
+    --zfy-admin-surface-soft: #f8f9fb;
+    --zfy-admin-shadow: 0 2px 8px rgb(0 0 0 / 3%);
+}
+html.dark {
+    --zfy-admin-bg: #141519;
+    --zfy-admin-panel: #1d1f24;
+    --zfy-admin-line: #303239;
+    --zfy-admin-text: #e7e8ec;
+    --zfy-admin-muted: #a2a5af;
+    --zfy-admin-surface: #1d1f24;
+    --zfy-admin-surface-soft: #25272d;
+    --zfy-admin-primary-soft: #243345;
+}
+.zfy-admin-shell { background: var(--zfy-admin-bg); color: var(--zfy-admin-text); }
+.zfy-admin-sidebar, .zfy-admin-topbar { background: var(--zfy-admin-surface); box-shadow: none; }
+.zfy-admin-sidebar { border-right: 1px solid var(--zfy-admin-line); }
+.zfy-admin-main { padding: 18px 24px 28px; }
+.zfy-admin-shell .el-card { border-radius: 6px; border-color: var(--zfy-admin-line); box-shadow: none; }
+.zfy-admin-shell .el-table { --el-table-header-bg-color: var(--zfy-admin-surface-soft); }
+.zfy-admin-shell .el-menu { --el-menu-bg-color: var(--zfy-admin-surface); --el-menu-text-color: var(--zfy-admin-text); }
+.zfy-admin-tabs { display: flex; gap: 4px; margin: -4px 0 18px; overflow-x: auto; min-height: 36px; scrollbar-width: thin; }
+.zfy-admin-tab { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; padding: 0 8px 0 12px; border-bottom: 2px solid transparent; background: var(--zfy-admin-surface); }
+.zfy-admin-tab a { color: var(--zfy-admin-muted); font-size: 13px; white-space: nowrap; }
+.zfy-admin-tab.active { border-bottom-color: var(--el-color-primary); }
+.zfy-admin-tab.active a { color: var(--el-color-primary); }
+.zfy-package-upload { margin-bottom: 16px; }
+.zfy-admin-shell h1, .zfy-admin-shell h2 { letter-spacing: 0; }
+html.dark .zfy-admin-shell .zfy-page-hero { background: var(--zfy-admin-surface); }
+@media (max-width: 760px) { .zfy-admin-main { padding: 12px; } .zfy-admin-tabs { margin-bottom: 12px; } }

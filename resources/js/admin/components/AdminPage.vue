@@ -5,6 +5,17 @@ import AdminEditorPage from '../editor/AdminEditorPage.vue';
 import CoverImageField from '../editor/CoverImageField.vue';
 import AdminDataTable from './AdminDataTable.vue';
 import SettingsForm from './SettingsForm.vue';
+import ResourceManager from './ResourceManager.vue';
+import ProfileForm from './ProfileForm.vue';
+import MediaManager from './MediaManager.vue';
+import LayoutBuilder from './LayoutBuilder.vue';
+import PluginTools from './PluginTools.vue';
+import CommerceManager from './CommerceManager.vue';
+import ThemeSettings from './ThemeSettings.vue';
+import PackageUpload from './PackageUpload.vue';
+import ExtensionPage from './ExtensionPage.vue';
+import MaintenancePanel from './MaintenancePanel.vue';
+import LinkChecks from './LinkChecks.vue';
 import BitsGradientText from './bits/BitsGradientText.vue';
 import BitsMetricCard from './bits/BitsMetricCard.vue';
 import BitsSpotlightCard from './bits/BitsSpotlightCard.vue';
@@ -29,6 +40,11 @@ const themes = computed(() => props.payload.themes || []);
 const plugins = computed(() => props.payload.plugins || []);
 const layouts = computed(() => props.payload.layouts || []);
 const pageKind = computed(() => props.currentPage?.kind || 'placeholder');
+const contentQuery = reactive({ q: props.payload.content_pagination?.q || '', status: props.payload.content_pagination?.status || '' });
+function searchContents(page = 1) {
+    const query = new URLSearchParams({ q: contentQuery.q, status: contentQuery.status, page: String(page) });
+    emit('navigate', `/admin/${props.section}?${query}`);
+}
 const settingsSchema = computed(() => props.payload.settings_schema || []);
 const editorPayload = computed(() => props.payload.editor || {});
 const contentTypes = computed(() => editorPayload.value.content_types || []);
@@ -396,29 +412,30 @@ async function saveQuickSettings() {
     <section class="zfy-admin-page">
         <template v-if="pageKind === 'dashboard'">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <BitsMetricCard label="文章总数" :value="stats.contents || 0" trend="内容资产" tone="blue" />
+                <BitsMetricCard label="内容总数" :value="stats.contents || 0" trend="全部内容类型" tone="blue" />
                 <BitsMetricCard label="订单总数" :value="stats.orders || 0" trend="商城交易" tone="green" />
                 <BitsMetricCard label="商品总数" :value="stats.products || 0" trend="核心商城" tone="amber" />
                 <BitsMetricCard label="链接总数" :value="stats.links || 0" trend="增强友链" tone="rose" />
             </div>
 
             <div class="grid grid-cols-1 gap-5 xl:grid-cols-3">
-                <BitsSpotlightCard class="xl:col-span-2">
+                <section class="xl:col-span-2">
                     <div class="zfy-card-title">
                         <div>
-                            <h2>运营概览</h2>
-                            <p>清爽后台视图，独立于前台主题。</p>
+                            <h2>待处理</h2>
                         </div>
-                        <el-tag type="success">运行中</el-tag>
                     </div>
-                    <div class="zfy-flow-line" />
-                </BitsSpotlightCard>
+                    <div class="zfy-quick-grid">
+                        <el-button v-if="stats.pending_contents !== null" @click="emit('navigate', '/admin/contents?status=pending')">内容审核 {{ stats.pending_contents }}</el-button>
+                        <el-button v-if="stats.pending_comments !== null" @click="goAdmin('comments')">评论审核 {{ stats.pending_comments }}</el-button>
+                        <el-button v-if="stats.pending_refunds !== null" @click="goAdmin('refunds')">退款处理 {{ stats.pending_refunds }}</el-button>
+                    </div>
+                </section>
 
-                <BitsSpotlightCard tone="green">
+                <section>
                     <div class="zfy-card-title">
                         <div>
                             <h2>快捷操作</h2>
-                            <p>常用后台入口</p>
                         </div>
                     </div>
                     <div class="zfy-quick-grid">
@@ -427,28 +444,45 @@ async function saveQuickSettings() {
                         <el-button @click="goAdmin('themes')">主题</el-button>
                         <el-button @click="goAdmin('products')">商品</el-button>
                     </div>
-                </BitsSpotlightCard>
+                </section>
             </div>
 
             <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
                 <el-card shadow="never">
                     <template #header>最新文章</template>
-                    <AdminDataTable
-                        :rows="contents"
-                        variant="content"
-                        @edit="editRow"
-                        @settings="settingsRow"
-                        @toggle-status="toggleContentStatus"
-                        @delete="deleteContent"
-                    />
+                    <el-table :data="contents.slice(0, 5)" empty-text="暂无文章">
+                        <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
+                        <el-table-column label="状态" width="90"><template #default="{ row }">{{ ({published:'已发布',draft:'草稿',pending:'待审核',scheduled:'定时发布',private:'私密'} as Record<string,string>)[row.status] || row.status }}</template></el-table-column>
+                        <el-table-column label="操作" width="70"><template #default="{ row }"><el-button link type="primary" @click="editRow(row)">编辑</el-button></template></el-table-column>
+                    </el-table>
+                    <el-button link @click="goAdmin('contents')">全部文章</el-button>
                 </el-card>
                 <el-card shadow="never">
                     <template #header>最新订单</template>
-                    <AdminDataTable :rows="orders" @edit="editRow" />
+                    <el-table :data="orders.slice(0, 5)" empty-text="暂无订单">
+                        <el-table-column prop="order_no" label="订单号" min-width="180" />
+                        <el-table-column prop="total_amount" label="金额" width="90" />
+                        <el-table-column label="状态" width="100"><template #default="{ row }">{{ ({pending:'待支付',paid:'已支付',cancelled:'已取消',closed:'已关闭',refunded:'已退款',refund_pending:'待退款'} as Record<string,string>)[row.status] || row.status }}</template></el-table-column>
+                    </el-table>
+                    <el-button link @click="goAdmin('orders')">全部订单</el-button>
                 </el-card>
             </div>
         </template>
 
+        <template v-else-if="pageKind === 'maintenance'"><MaintenancePanel :csrf="payload.csrf" /></template>
+        <template v-else-if="pageKind === 'link-checks'"><LinkChecks :csrf="payload.csrf" /></template>
+        <template v-else-if="['orders', 'refunds', 'commissions', 'withdrawals', 'points-exchanges'].includes(section)">
+            <CommerceManager :section="section" :csrf="payload.csrf" />
+        </template>
+        <template v-else-if="pageKind === 'resource'">
+            <ResourceManager :resource="currentPage?.resource || section" :csrf="payload.csrf" :create="section.endsWith('-create')" />
+        </template>
+        <template v-else-if="pageKind === 'media-library'">
+            <MediaManager :csrf="payload.csrf" />
+        </template>
+        <template v-else-if="pageKind === 'profile'">
+            <ProfileForm :profile="payload.profile" :csrf="payload.csrf" />
+        </template>
         <template v-else-if="pageKind === 'table'">
             <el-card shadow="never">
                 <template #header>
@@ -458,20 +492,24 @@ async function saveQuickSettings() {
                             <p>{{ description }}</p>
                         </div>
                         <el-space wrap>
-                            <el-button>批量操作</el-button>
-                            <el-button>导出</el-button>
-                            <el-button type="primary">新建</el-button>
+                            <el-button v-if="['contents', 'pages'].includes(section)" type="primary" @click="goAdmin(section === 'pages' ? 'pages-create' : 'editor')">新建</el-button>
                         </el-space>
                     </div>
                 </template>
                 <AdminDataTable
+                    v-if="!['contents', 'pages'].includes(section)"
                     :rows="tableRows"
-                    :variant="section === 'contents' ? 'content' : 'default'"
+                    :variant="['contents', 'pages'].includes(section) ? 'content' : 'default'"
                     @edit="editRow"
                     @settings="settingsRow"
                     @toggle-status="toggleContentStatus"
                     @delete="deleteContent"
                 />
+                <template v-else>
+                    <el-space wrap class="mb-4"><el-input v-model="contentQuery.q" aria-label="搜索标题" clearable @keyup.enter="searchContents()" /><el-select v-model="contentQuery.status" clearable aria-label="发布状态" style="width:140px"><el-option label="草稿" value="draft" /><el-option label="待审核" value="pending" /><el-option label="已发布" value="published" /></el-select><el-button @click="searchContents()">搜索</el-button></el-space>
+                    <AdminDataTable :rows="tableRows" variant="content" @edit="editRow" @settings="settingsRow" @toggle-status="toggleContentStatus" @delete="deleteContent" />
+                    <el-pagination :current-page="payload.content_pagination?.current_page || 1" :page-size="20" :total="payload.content_pagination?.total || 0" layout="total, prev, pager, next" @current-change="searchContents" />
+                </template>
             </el-card>
         </template>
 
@@ -479,7 +517,11 @@ async function saveQuickSettings() {
             <AdminEditorPage :payload="payload" />
         </template>
 
+        <template v-else-if="pageKind === 'extension'">
+            <ExtensionPage :definition="currentPage || {}" :csrf="payload.csrf" />
+        </template>
         <template v-else-if="pageKind === 'themes'">
+            <PackageUpload type="theme" :csrf="payload.csrf" @installed="goAdmin('themes')" />
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                 <el-card v-for="theme in themes" :key="theme.slug" shadow="never">
                     <div class="zfy-theme-preview">
@@ -494,14 +536,15 @@ async function saveQuickSettings() {
                     </div>
                     <el-button
                         class="mt-4 w-full"
-                        :disabled="theme.is_active"
+                        :disabled="theme.is_active || !theme.installed"
                         type="primary"
                         @click="submitPost(payload.routes.theme_activate, { slug: theme.slug })"
                     >
-                        {{ theme.is_active ? '已启用' : '启用此主题' }}
+                        {{ !theme.installed ? '已卸载' : theme.is_active ? '已启用' : '启用此主题' }}
                     </el-button>
                 </el-card>
             </div>
+            <ThemeSettings :csrf="payload.csrf" />
         </template>
 
         <template v-else-if="pageKind === 'plugins'">
@@ -521,43 +564,18 @@ async function saveQuickSettings() {
         </template>
 
         <template v-else-if="pageKind === 'builder'">
-            <div class="grid grid-cols-1 gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
-                <BitsSpotlightCard tone="slate">
-                    <h2 class="mb-3 text-base font-semibold">组件库</h2>
-                    <div class="zfy-builder-parts">
-                        <el-button>内容流</el-button>
-                        <el-button>轮播</el-button>
-                        <el-button>榜单</el-button>
-                        <el-button>VIP</el-button>
-                        <el-button>自定义 HTML</el-button>
-                    </div>
-                </BitsSpotlightCard>
-                <el-card shadow="never">
-                    <template #header>页面布局 JSON</template>
-                    <el-collapse>
-                        <el-collapse-item v-for="layout in layouts" :key="layout.id" :title="layout.title" :name="layout.id">
-                            <el-input type="textarea" :rows="12" :model-value="layout.schema" />
-                            <el-button class="mt-3" type="primary">保存布局</el-button>
-                        </el-collapse-item>
-                    </el-collapse>
-                </el-card>
-            </div>
+            <LayoutBuilder :layouts="layouts" :csrf="payload.csrf" :blocks="payload.builder_blocks || []" />
         </template>
 
+        <template v-else-if="['installer', 'plugin-settings'].includes(section)">
+            <PluginTools :key="section" :csrf="payload.csrf" :installer="section === 'installer'" />
+        </template>
         <template v-else-if="pageKind === 'settings'">
-            <SettingsForm :schema="settingsSchema" />
+            <SettingsForm :schema="settingsSchema" :csrf="payload.csrf" />
         </template>
 
         <template v-else>
-            <BitsSpotlightCard class="zfy-placeholder-card" tone="blue">
-                <el-tag effect="plain">{{ currentPage ? '菜单入口' : '后台' }}</el-tag>
-                <h2><BitsGradientText :text="title" subtle /></h2>
-                <p>{{ description }}。这个功能页面还没有接入实际业务，当前先保留入口和说明，方便后台菜单结构先完整起来。</p>
-                <el-space wrap>
-                    <el-button type="primary" @click="goAdmin('dashboard')">返回仪表盘</el-button>
-                    <el-button @click="copyPlaceholder">记录占位</el-button>
-                </el-space>
-            </BitsSpotlightCard>
+            <el-result icon="error" title="页面不可用"><template #extra><el-button @click="goAdmin('dashboard')">返回仪表盘</el-button></template></el-result>
         </template>
 
         <el-dialog v-model="quickSettingsVisible" title="快捷设置" width="680px" destroy-on-close :close-on-click-modal="true" :lock-scroll="false">

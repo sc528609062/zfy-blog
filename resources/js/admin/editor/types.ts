@@ -125,7 +125,7 @@ export interface EditorSnapshot {
 export interface EditorRevision {
     id: number;
     content_id?: number | null;
-    kind: 'autosave' | 'revision';
+    kind: 'autosave' | 'revision' | 'pending' | 'reviewed' | 'rejected';
     draft_key?: string | null;
     title: string;
     summary: string;

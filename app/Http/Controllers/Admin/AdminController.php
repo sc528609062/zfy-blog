@@ -20,15 +20,22 @@ use App\Models\Refund;
 use App\Models\Shipment;
 use App\Models\Theme;
 use App\Models\User;
+use App\Services\AdminResourceRegistry;
 use App\Services\ContentMarkdownRenderer;
 use App\Services\PackageManifestService;
+use App\Services\PageLayoutSchema;
+use App\Services\PluginLifecycleManager;
+use App\Services\SiteSettings;
 use App\Services\ThemeManager;
 use App\Support\Zfy\AdminRegistry;
+use App\Support\Zfy\ExtensionRegistry;
 use App\Support\Zfy\SettingsRegistry;
 use App\Support\Zfy\ThemeRegistry;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
@@ -60,13 +67,50 @@ class AdminController extends Controller
 
     private function pageData(Request $request, string $section): array
     {
-        $page = $this->admin->pageOrFallback($section);
+        $page = $this->admin->findPage($section);
+        abort_unless($page, 404);
+        abort_if(! empty($page['permission']) && ! $request->user()?->can($page['permission']), 403);
+        $resource = match ($section) {
+            'links-create' => 'links',
+            'users-create' => 'users',
+            default => $section,
+        };
+        if (isset(app(AdminResourceRegistry::class)->definitions()[$resource])) {
+            $page['kind'] = 'resource';
+            $page['status'] = 'ready';
+            $page['resource'] = $resource;
+        }
+        if ($section === 'pages') {
+            $page['kind'] = 'table';
+            $page['status'] = 'ready';
+        } elseif ($section === 'pages-create') {
+            $page['kind'] = 'editor';
+            $page['status'] = 'ready';
+        } elseif ($section === 'profiles') {
+            $page['kind'] = 'profile';
+            $page['status'] = 'ready';
+        } elseif (in_array($section, ['media', 'media-upload'], true)) {
+            $page['kind'] = 'media-library';
+            $page['status'] = 'ready';
+        }
+        $settingGroup = $section === 'settings-permalinks' ? 'permalink' : str_replace('settings-', '', $section);
+        if ($section === 'link-redirects') {
+            $settingGroup = 'links';
+        }
+
+        $contentPagination = in_array($section, ['contents', 'pages'], true)
+            ? Content::with($this->contentListRelations())
+                ->when($section === 'pages', fn ($query) => $query->where('type', 'page'), fn ($query) => $query->where('type', '!=', 'page'))
+                ->when($request->filled('q'), fn ($query) => $query->where('title', 'like', '%'.mb_substr($request->string('q'), 0, 120).'%'))
+                ->when(in_array($request->input('status'), ['draft', 'pending', 'published'], true), fn ($query) => $query->where('status', $request->input('status')))
+                ->latest()->paginate(20)
+            : null;
 
         return [
             'section' => $section,
             'adminMenu' => $this->admin->menuFor($request->user()),
             'currentPage' => $page,
-            'settingsSchema' => $this->settings->schema(),
+            'settingsSchema' => app(SiteSettings::class)->schema($settingGroup),
             'themeCapabilities' => $this->themeRegistry->payload(),
             'theme' => $this->themes->active(),
             'stats' => [
@@ -76,16 +120,21 @@ class AdminController extends Controller
                 'themes' => Theme::count(),
                 'products' => Product::count(),
                 'links' => Link::count(),
+                'pending_contents' => $request->user()->can('manage contents') ? Content::where('status', 'pending')->count() : null,
+                'pending_comments' => $request->user()->can('manage contents') ? Comment::where('status', 'pending')->count() : null,
+                'pending_refunds' => $request->user()->can('manage commerce') ? Refund::whereIn('status', ['pending', 'processing'])->count() : null,
             ],
-            'contents' => $this->contentRows(Content::with($this->contentListRelations())->latest()->take(12)->get()),
-            'orders' => Order::latest()->take(12)->get(),
-            'dataRows' => $this->rowsFor($section),
+            'contents' => $request->user()->can('manage contents') ? $this->contentRows(Content::with($this->contentListRelations())->latest()->take(12)->get()) : [],
+            'orders' => $request->user()->can('manage commerce') ? Order::latest()->take(12)->get() : [],
+            'dataRows' => $contentPagination ? $this->contentRows($contentPagination->getCollection()) : $this->rowsFor($section),
+            'contentPagination' => $contentPagination ? ['current_page' => $contentPagination->currentPage(), 'total' => $contentPagination->total(), 'per_page' => 20, 'q' => $request->input('q', ''), 'status' => $request->input('status', '')] : null,
             'themes' => Theme::all(),
             'plugins' => Plugin::all(),
             'layouts' => PageLayout::latest()->take(10)->get(),
             'themeManifests' => $this->packages->themes(),
             'pluginManifests' => $this->packages->plugins(),
-            'editor' => $this->editorPayload($request),
+            'editor' => $request->user()->can('manage contents') || $request->user()->can('publish contents') ? $this->editorPayload($request) : [],
+            'profile' => $request->user()->only(['name', 'email', 'bio']),
         ];
     }
 
@@ -107,11 +156,14 @@ class AdminController extends Controller
             'orders' => collect($data['orders'] ?? [])->map(fn ($order) => [
                 'id' => $order->id,
                 'title' => $order->order_no,
+                'order_no' => $order->order_no,
+                'total_amount' => $order->total_amount,
                 'status' => $order->status,
                 'type' => $order->pay_channel,
                 'created_at' => optional($order->created_at)->format('Y-m-d H:i'),
             ])->values(),
             'data_rows' => collect($data['dataRows'] ?? [])->values(),
+            'content_pagination' => $data['contentPagination'] ?? null,
             'themes' => collect($data['themes'] ?? [])->map(fn ($themeItem) => [
                 'id' => $themeItem->id,
                 'name' => $themeItem->name,
@@ -119,6 +171,7 @@ class AdminController extends Controller
                 'version' => $themeItem->version,
                 'preview' => $themeItem->preview,
                 'is_active' => (bool) $themeItem->is_active,
+                'installed' => is_file(base_path('themes/'.$themeItem->slug.'/theme.json')),
                 'settings_url' => route('admin.themes.settings', $themeItem, false),
             ])->values(),
             'plugins' => collect($data['plugins'] ?? [])->map(fn ($plugin) => [
@@ -139,6 +192,8 @@ class AdminController extends Controller
                 'save_url' => route('admin.page-builder.save', $layout, false),
             ])->values(),
             'editor' => $data['editor'] ?? [],
+            'builder_blocks' => collect(app(ExtensionRegistry::class)->all('block'))->map(fn ($definition, $key) => ['key' => $key, 'label' => $definition['label'] ?? $key, 'fields' => $definition['fields'] ?? [], 'defaults' => $definition['defaults'] ?? []])->values()->all(),
+            'profile' => $data['profile'] ?? [],
             'theme_manifests' => $data['themeManifests'] ?? [],
             'plugin_manifests' => $data['pluginManifests'] ?? [],
             'routes' => [
@@ -156,6 +211,7 @@ class AdminController extends Controller
                 'content_revisions' => '/admin/contents/__CONTENT__/revisions',
                 'content_revision' => '/admin/contents/__CONTENT__/revisions/__REVISION__',
                 'content_revision_restore' => '/admin/contents/__CONTENT__/revisions/__REVISION__/restore',
+                'content_revision_reject' => '/admin/contents/__CONTENT__/revisions/__REVISION__/reject',
                 'media_library' => route('admin.media.library', [], false),
                 'media_upload' => route('admin.media.upload', [], false),
                 'media_destroy' => '/admin/media/__MEDIA__',
@@ -165,6 +221,7 @@ class AdminController extends Controller
 
     public function activateTheme(Request $request)
     {
+        abort_unless($request->user()?->can('manage themes'), 403);
         $data = $request->validate(['slug' => ['required', 'string', 'exists:themes,slug']]);
         $this->themes->activate($data['slug']);
 
@@ -196,11 +253,20 @@ class AdminController extends Controller
 
     public function saveThemeSetting(Request $request, Theme $theme)
     {
+        abort_unless($request->user()?->can('manage themes'), 403);
         $data = $request->validate([
             'scope' => ['required', 'string'],
             'key' => ['required', 'string'],
             'value' => ['nullable'],
         ]);
+        $defaults = $this->themes->defaultSettings($theme->slug);
+        abort_unless(array_key_exists($data['key'], $defaults[$data['scope']] ?? []), 422);
+        $default = $defaults[$data['scope']][$data['key']];
+        $rules = is_bool($default) ? ['required', 'boolean'] : (is_array($default) ? ['required', 'array', 'max:30'] : ['nullable', 'string', 'max:500']);
+        if ($data['key'] === 'primary_color') {
+            $rules = ['required', 'regex:/^#[a-fA-F0-9]{6}$/'];
+        }
+        Validator::make(['value' => $data['value'] ?? null], ['value' => $rules])->validate();
 
         $theme->settings()->updateOrCreate(
             ['scope' => $data['scope'], 'key' => $data['key']],
@@ -213,47 +279,46 @@ class AdminController extends Controller
 
     public function savePageLayout(Request $request, PageLayout $layout)
     {
+        abort_unless($request->user()?->can('manage themes'), 403);
         $data = $request->validate([
             'title' => ['required', 'string', 'max:120'],
             'status' => ['required', 'string', 'in:draft,published'],
             'schema' => ['required', 'json'],
         ]);
+        $schema = app(PageLayoutSchema::class)->validate(json_decode($data['schema'], true));
+        $schema['enabled'] = true;
 
         $layout->update([
             'title' => $data['title'],
             'status' => $data['status'],
-            'schema' => json_decode($data['schema'], true),
+            'schema' => $schema,
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => '布局已保存']);
+        }
 
         return back()->with('status', '页面构建器配置已保存');
     }
 
-    public function togglePlugin(Plugin $plugin)
+    public function togglePlugin(Request $request, Plugin $plugin)
     {
-        $manifest = $this->packages->plugins()[$plugin->slug] ?? [];
-        $errors = $this->packages->validatePluginPayload($manifest);
-
-        if ($errors !== []) {
-            return back()->withErrors(['plugin' => implode('；', $errors)]);
-        }
-
-        $plugin->update(['enabled' => ! $plugin->enabled]);
-        zfy_emit($plugin->enabled ? 'zfy_plugin_activated' : 'zfy_plugin_deactivated', $plugin);
+        abort_unless($request->user()?->can('manage plugins'), 403);
+        app(PluginLifecycleManager::class)->toggle($plugin, ! $plugin->enabled);
 
         return back()->with('status', $plugin->name.' 已'.($plugin->enabled ? '启用' : '禁用'));
     }
 
     public function savePluginSetting(Request $request, Plugin $plugin)
     {
+        abort_unless($request->user()?->can('manage plugins'), 403);
         $data = $request->validate([
             'key' => ['required', 'string', 'max:120'],
             'value' => ['nullable'],
         ]);
 
-        $plugin->settings()->updateOrCreate(
-            ['key' => $data['key']],
-            ['value' => ['raw' => $data['value']]]
-        );
+        $request->merge(['values' => [$data['key'] => $data['value'] ?? null]]);
+        app(AdminPluginController::class)->save($request, $plugin, $this->packages);
 
         return back()->with('status', '插件配置已保存');
     }
@@ -261,6 +326,7 @@ class AdminController extends Controller
     private function rowsFor(string $section)
     {
         return match ($section) {
+            'pages' => $this->contentRows(Content::with($this->contentListRelations())->where('type', 'page')->latest()->take(100)->get()),
             'contents' => $this->contentRows(Content::with($this->contentListRelations())->latest()->take(20)->get()),
             'orders' => Order::latest()->take(20)->get()->map(fn (Order $order) => [
                 'id' => $order->id,
@@ -346,7 +412,7 @@ class AdminController extends Controller
                 'type' => 'card',
                 'created_at' => optional($card->created_at)->format('Y-m-d H:i'),
             ]),
-            default => $this->contentRows(Content::with($this->contentListRelations())->latest()->take(20)->get()),
+            default => [],
         };
     }
 
@@ -484,6 +550,7 @@ class AdminController extends Controller
 
         return [
             'toolbar' => is_array($toolbar) ? $toolbar : $this->defaultEditorToolbar(),
+            'blocks' => collect(app(ExtensionRegistry::class)->all('block'))->map(fn ($definition, $key) => ['key' => $key, 'label' => $definition['label'] ?? $key, 'fields' => $definition['fields'] ?? [], 'defaults' => $definition['defaults'] ?? []])->values()->all(),
             'content_types' => collect(config('zfy.content_types', ['post', 'images', 'files', 'page']))
                 ->map(fn (string $type) => [
                     'value' => $type,
@@ -500,7 +567,9 @@ class AdminController extends Controller
             'media' => $this->editorMediaPayload(),
             'can_use_raw_html' => $this->canUseRawHtml($request),
             'can_manage_theme_defaults' => (bool) $request->user()?->can('manage themes'),
-            'default_status' => 'draft',
+            'can_manage_commerce' => (bool) $request->user()?->can('manage commerce'),
+            'default_status' => app(SiteSettings::class)->get('content.default_status', 'draft'),
+            'default_type' => $request->route('section') === 'pages-create' ? 'page' : 'post',
             'presentation_defaults' => [
                 'markdown_theme' => (string) data_get($this->themes->active(), 'settings.content-detail.markdown_theme', 'juejin'),
                 'code_theme' => (string) data_get($this->themes->active(), 'settings.content-detail.code_theme', 'atom-one-dark'),
@@ -540,6 +609,10 @@ class AdminController extends Controller
             'markdown_cache' => $content->markdown_cache,
             'block_json' => $content->block_json,
             'rendered_html' => $renderedHtml,
+            'pricing' => $content->pricing,
+            'access_rules' => Arr::except($content->access_rules ?? [], ['password_hash']),
+            'seo' => $content->seo,
+            'attachments' => $content->attachments()->where('role', '!=', 'gallery')->get()->map(fn ($attachment) => ['id' => $attachment->id, 'name' => Media::find($attachment->media_id)?->name ?? '文件'])->all(),
             'published_at' => optional($content->published_at)->toISOString(),
             'updated_at' => optional($content->updated_at)->toISOString(),
             'show_url' => route('contents.show', $content->slug, false),

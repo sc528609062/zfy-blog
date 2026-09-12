@@ -1,0 +1,43 @@
+name: Build Signed Release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing immutable version tag, for example v1.1.0
+        required: true
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: bcmath, gd, pdo_sqlite, pdo_mysql, zip
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: composer install --prefer-dist --no-interaction
+      - run: vendor/bin/phpunit
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+      - name: Sign package
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          ZFY_RELEASE_PRIVATE_KEY: ${{ secrets.ZFY_RELEASE_PRIVATE_KEY }}
+        run: php scripts/ci-release.php
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-release
+          path: dist/release/
+          if-no-files-found: error

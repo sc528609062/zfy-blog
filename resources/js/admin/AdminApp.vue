@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, shallowRef } from 'vue';
+import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAdminStore } from './store';
+import { Close } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import AdminPage from './components/AdminPage.vue';
 import AdminSidebar from './components/AdminSidebar.vue';
@@ -16,6 +19,10 @@ interface NavigateOptions {
 }
 
 const activePayload = shallowRef<Record<string, any>>({ ...props.payload });
+const router = useRouter();
+const route = useRoute();
+const store = useAdminStore();
+let appliedPath = `${window.location.pathname}${window.location.search}`;
 const isMobileSidebarOpen = shallowRef(false);
 const navigationLoading = shallowRef(false);
 let navigationController: AbortController | null = null;
@@ -99,11 +106,13 @@ async function navigate(target: string, options: NavigateOptions = {}) {
         }
 
         activePayload.value = json.payload || json;
+        appliedPath = nextPath;
+        store.visit(nextPath, json.payload?.current_page?.label || json.current_page?.label || '后台');
 
         if (options.replace) {
-            window.history.replaceState({ zfyAdmin: true }, '', nextPath);
+            await router.replace(nextPath);
         } else {
-            window.history.pushState({ zfyAdmin: true }, '', nextPath);
+            await router.push(nextPath);
         }
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -136,13 +145,21 @@ function handlePopState() {
 }
 
 onMounted(() => {
-    window.history.replaceState({ zfyAdmin: true }, '', `${window.location.pathname}${window.location.search}`);
-    window.addEventListener('popstate', handlePopState);
+    document.documentElement.classList.toggle('dark', store.dark);
+    store.visit(appliedPath, pageTitle.value);
 });
+
+watch(() => route.fullPath, path => {
+    if (path !== appliedPath) void navigate(path, { force: true, replace: true });
+});
+
+function closeTab(path: string) {
+    store.close(path);
+    if (path === appliedPath) void navigate(store.tabs.at(-1)?.path || '/admin', { replace: true });
+}
 
 onBeforeUnmount(() => {
     navigationController?.abort();
-    window.removeEventListener('popstate', handlePopState);
 });
 </script>
 
@@ -171,6 +188,12 @@ onBeforeUnmount(() => {
                 @navigate="navigate"
             />
             <el-main v-loading="navigationLoading" class="zfy-admin-main">
+                <nav class="zfy-admin-tabs" aria-label="已打开页面">
+                    <div v-for="tab in store.tabs" :key="tab.path" :class="['zfy-admin-tab', { active: tab.path === route.fullPath }]">
+                        <a :href="tab.path" @click.prevent="navigate(tab.path)">{{ tab.title }}</a>
+                        <el-button v-if="store.tabs.length > 1" :icon="Close" text circle size="small" :aria-label="`关闭${tab.title}`" @click="closeTab(tab.path)" />
+                    </div>
+                </nav>
                 <AdminPage
                     :key="pageInstanceKey"
                     :current-page="currentPage"

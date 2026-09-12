@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schemas/plugin.schema.json",
+  "schema_version": 1,
+  "name": "Editorial Tools",
+  "slug": "editorial-tools",
+  "version": "1.0.0",
+  "compatible": "^1.0",
+  "entry": "provider.php",
+  "provider": "Examples\\EditorialTools\\Provider",
+  "permissions": ["manage contents"],
+  "events": ["zfy_content_published"],
+  "requires": { "php": "^8.2" },
+  "admin_pages": [{
+    "key": "editorial-settings", "label": "Editorial Tools", "kind": "extension", "permission": "manage contents",
+    "endpoint": "/api/v1/extensions/editorial-settings", "save_method": "PUT",
+    "fields": [{ "key": "notice", "label": "Notice", "type": "textarea", "required": true, "maxlength": 1000 }]
+  }],
+  "settings_schema": {
+    "general": {
+      "label": "Editorial Tools",
+      "fields": [{ "key": "notice", "label": "Notice", "type": "text", "default": "Editorial note" }]
+    }
+  }
+}

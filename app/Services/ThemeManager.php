@@ -7,18 +7,32 @@ use App\Models\Theme;
 use App\Models\ThemeSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class ThemeManager
 {
     public function active(): array
     {
+        if (! app()->runningInConsole() && request()->filled('theme_preview') && auth()->user()?->can('manage themes')) {
+            $preview = Cache::store('file')->get('zfy-theme-preview-'.request()->string('theme_preview'));
+            if ($preview && $preview['user_id'] === auth()->id() && ($theme = Theme::find($preview['theme_id']))) {
+                if ($this->blockedInSafeMode($theme->slug)) {
+                    return $this->fallbackTheme(config('zfy.default_theme'));
+                }
+                $settings = $this->applyGlobalOptions(array_replace_recursive($this->settingsFor($theme), ['global' => $preview['values']]));
+                $accent = $this->primaryColor($settings, '#1684ff');
+                $onAccent = $this->contrastingTextColor($accent);
+
+                return ['model' => $theme, 'slug' => $theme->slug, 'name' => $theme->name, 'view' => $theme->entry_view, 'settings' => $settings, 'accent' => $accent, 'on_accent' => $onAccent, 'accent_hover' => $this->hoverAccent($accent, $onAccent), 'accent_text' => $this->foregroundAccent($accent)];
+            }
+        }
         $defaultSlug = config('zfy.default_theme');
 
         if (! Schema::hasTable('settings') || ! Schema::hasTable('themes')) {
             return $this->fallbackTheme($defaultSlug);
         }
 
-        return Cache::remember('zfy.active_theme', 60, function () {
+        $active = Cache::remember('zfy.active_theme', 60, function () {
             $slug = data_get(Setting::where('key', 'site.active_theme')->first()?->value, 'slug', config('zfy.default_theme'));
             $theme = Theme::where('slug', $slug)->first();
 
@@ -43,17 +57,42 @@ class ThemeManager
                 'settings' => $settings,
             ];
         });
+
+        return $this->blockedInSafeMode($active['slug']) ? $this->fallbackTheme(config('zfy.default_theme')) : $active;
+    }
+
+    private function blockedInSafeMode(string $slug): bool
+    {
+        return (config('extensions.safe_mode') || is_file(storage_path('app/private/extensions/safe-mode'))) && ! array_key_exists($slug, config('zfy.themes', []));
     }
 
     public function activate(string $slug): void
     {
-        Theme::query()->update(['is_active' => false]);
-        Theme::where('slug', $slug)->update(['is_active' => true]);
+        $theme = Theme::where('slug', $slug)->firstOrFail();
+        abort_unless(is_file(base_path('themes/'.$slug.'/theme.json')), 422, '主题安装文件不存在。');
+        $packages = app(PackageManifestService::class);
+        $manifest = $packages->themes()[$slug];
+        $validation = array_replace(['permissions' => [], 'events' => []], $manifest);
+        unset($validation['schema_version']);
+        $errors = $packages->validatePluginPayload($validation);
+        if (isset($manifest['schema_version'])) {
+            $errors = [...$errors, ...$packages->validateSchema($manifest, 'theme')];
+        }
+        if ($errors) {
+            throw ValidationException::withMessages(['theme' => implode('; ', $errors)]);
+        }
+        $packages->assertDependencies($manifest);
+        abort_unless(view()->exists($theme->entry_view), 422, '主题模板不存在。');
+        app(ThemeLifecycleManager::class)->activate($theme, function () use ($slug) {
+            Theme::orderBy('id')->lockForUpdate()->get();
+            Theme::query()->update(['is_active' => false]);
+            Theme::where('slug', $slug)->update(['is_active' => true]);
 
-        Setting::updateOrCreate(
-            ['key' => 'site.active_theme'],
-            ['value' => ['slug' => $slug], 'autoload' => true]
-        );
+            Setting::updateOrCreate(
+                ['key' => 'site.active_theme'],
+                ['value' => ['slug' => $slug], 'autoload' => true]
+            );
+        });
 
         $this->forgetActiveCache();
     }
@@ -72,7 +111,23 @@ class ThemeManager
             ])->all())
             ->all();
 
-        return array_replace_recursive($this->defaultSettings($theme->slug), $settings);
+        return $this->applyGlobalOptions(array_replace_recursive($this->defaultSettings($theme->slug), $settings));
+    }
+
+    private function applyGlobalOptions(array $settings): array
+    {
+        foreach (['hero_enabled', 'channels_enabled', 'sidebar_enabled'] as $key) {
+            if (array_key_exists($key, $settings['global'] ?? [])) {
+                $settings['home'][$key] = $settings['global'][$key];
+            }
+        }
+        foreach (['show_author_card', 'show_related'] as $key) {
+            if (array_key_exists($key, $settings['global'] ?? [])) {
+                $settings['content-detail'][$key] = $settings['global'][$key];
+            }
+        }
+
+        return $settings;
     }
 
     public function defaultSettings(string $slug): array
@@ -103,7 +158,7 @@ class ThemeManager
             ],
         ];
 
-        return match ($slug) {
+        $defaults = match ($slug) {
             'style-b-marketplace' => array_replace_recursive($base, [
                 'global' => ['nav' => ['首页', '资源商城', '教程中心', '文章资讯', '会员中心', '帮助中心']],
                 'home' => ['coupon_panel' => true, 'market_stats' => true],
@@ -114,6 +169,9 @@ class ThemeManager
             ]),
             default => $base,
         };
+        $manifest = app(PackageManifestService::class)->themes()[$slug] ?? [];
+
+        return array_replace_recursive($defaults, is_array($manifest['defaults'] ?? null) ? $manifest['defaults'] : []);
     }
 
     private function fallbackTheme(string $slug): array

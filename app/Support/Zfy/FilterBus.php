@@ -2,51 +2,25 @@
 
 namespace App\Support\Zfy;
 
-use Illuminate\Support\Facades\Log;
-use Throwable;
-
-class FilterBus
+class FilterBus extends CallbackRegistry
 {
-    /**
-     * @var array<string, array<int, list<callable>>>
-     */
-    private array $filters = [];
-
-    public function filter(string $hook, callable $callback, int $priority = 10): void
+    public function once(string $hook, callable $callback, int $priority = 10, ?int $acceptedArgs = null): string
     {
-        $this->filters[$hook][$priority] ??= [];
-        $this->filters[$hook][$priority][] = $callback;
+        return $this->add($hook, $callback, $priority, $acceptedArgs, true);
+    }
+
+    public function filter(string $hook, callable $callback, int $priority = 10, ?int $acceptedArgs = null): string
+    {
+        return $this->add($hook, $callback, $priority, $acceptedArgs, false);
     }
 
     public function apply(string $hook, mixed $value, mixed ...$args): mixed
     {
-        foreach ($this->callbacks($hook) as $callback) {
-            try {
-                $value = $callback($value, ...$args);
-            } catch (Throwable $exception) {
-                Log::error('zfy filter failed', [
-                    'hook' => $hook,
-                    'exception' => $exception,
-                ]);
-            }
-        }
-
-        return $value;
+        return $this->dispatch($hook, [$value, ...$args], true, false);
     }
 
-    public function has(string $hook): bool
+    public function applyStrict(string $hook, mixed $value, mixed ...$args): mixed
     {
-        return isset($this->filters[$hook]);
-    }
-
-    /**
-     * @return list<callable>
-     */
-    public function callbacks(string $hook): array
-    {
-        $groups = $this->filters[$hook] ?? [];
-        ksort($groups);
-
-        return array_merge(...array_values($groups ?: [[]]));
+        return $this->dispatch($hook, [$value, ...$args], true, true);
     }
 }

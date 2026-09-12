@@ -1,0 +1,13 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; color: #25262a; background: #f5f6f8; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header, main, footer { max-width: 1080px; margin: auto; padding: 24px; }
+header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 1px solid #d9dce2; }
+header > a { font-size: 24px; font-weight: 700; }
+nav { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+a { color: var(--journal-accent, #13766e); text-decoration: none; }
+article { padding: 24px 0; border-bottom: 1px solid #d9dce2; overflow-wrap: anywhere; }
+img, video { max-width: 100%; height: auto; }
+input, button, select, textarea { font: inherit; max-width: 100%; }
+@media (max-width: 600px) { header { flex-direction: column; } header, main, footer { padding: 16px; } }
+@media (prefers-color-scheme: dark) { :root { color: #eceef1; background: #191a1d; } a { color: var(--journal-accent, #6dd9b5); } }

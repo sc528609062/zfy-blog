@@ -88,15 +88,26 @@ async function restoreRevision(): Promise<void> {
     }
 }
 
+async function rejectRevision() {
+    if (!selected.value) return;
+    try {
+        const { value } = await ElMessageBox.prompt('驳回原因', '驳回修订', { inputValidator: value => Boolean(value?.trim()) || '请填写原因' });
+        await requestJson(routeUrl('content_revision_reject', selected.value.id), 'POST', { reason: value });
+        await loadRevisions();
+        ElMessage.success('修订已驳回');
+    } catch (error) { if (error instanceof Error) ElMessage.error(error.message); }
+}
+
 function routeUrl(key: string, revisionId?: number): string {
     return String(props.routes[key] || '')
         .replace('__CONTENT__', String(props.contentId || ''))
         .replace('__REVISION__', String(revisionId || ''));
 }
 
-async function requestJson(url: string, method: string): Promise<any> {
+async function requestJson(url: string, method: string, data?: unknown): Promise<any> {
     const response = await fetch(url, {
         method,
+        body: data ? JSON.stringify(data) : undefined,
         headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
@@ -141,7 +152,7 @@ function formattedDate(value?: string | null): string {
                     type="button"
                     @click="inspectRevision(revision)"
                 >
-                    <strong>{{ revision.title || '未命名版本' }}</strong>
+                    <strong>{{ revision.kind === 'pending' ? '待复审：' : '' }}{{ revision.title || '未命名版本' }}</strong>
                     <span>{{ formattedDate(revision.created_at) }}</span>
                     <small>{{ revision.summary || '无正文摘要' }}</small>
                 </button>
@@ -155,7 +166,8 @@ function formattedDate(value?: string | null): string {
                             <strong>{{ selected.snapshot.title || selected.title }}</strong>
                             <span>{{ formattedDate(selected.created_at) }}</span>
                         </div>
-                        <el-button :loading="restoring" type="primary" @click="restoreRevision">恢复此版本</el-button>
+                        <el-button v-if="['revision', 'pending'].includes(selected.kind)" :loading="restoring" type="primary" @click="restoreRevision">{{ selected.kind === 'pending' ? '审核通过并发布' : '恢复此版本' }}</el-button>
+                        <el-button v-if="selected.kind === 'pending'" type="danger" plain @click="rejectRevision">驳回</el-button>
                     </header>
                     <pre>{{ selected.snapshot.markdown_cache || '空白正文' }}</pre>
                 </template>

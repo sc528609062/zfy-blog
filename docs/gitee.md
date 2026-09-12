@@ -10,15 +10,15 @@
 
 ## Gitee Go 注意事项
 
-`zfy-blog` 要求 PHP 8.3。当前流水线使用 `shell@agent`，需要你在 Gitee Go 中准备一台已安装 PHP 8.3、Composer、Node、npm 的自有主机，并把 `.workflow/zfy-blog-ci.yml` 里的：
+`zfy-blog` 最低 PHP 8.2，推荐 PHP 8.4。当前流水线使用 `shell@agent`，需要在 Gitee Go 中准备已安装 PHP 8.2+、Composer 2、Node 22 的独立构建主机，并把 `.workflow/zfy-blog-ci.yml` 和发布模板中的：
 
 ```yaml
-hostGroupID: zfy-blog-php83
+hostGroupID: zfy-blog-php82
 ```
 
 改成你 Gitee Go 主机组的真实 ID。
 
-不建议直接使用旧版云端 `build@php` 模板，因为它可能不提供 PHP 8.3，容易和 Laravel 12 的运行要求冲突。
+流水线仅可运行在隔离 checkout，不得使用站点运行目录。发布模板为 `.gitee/workflows/release.yml`，手动绑定不可变版本标签，配置 `RELEASE_TAG` 和受保护的 `ZFY_RELEASE_PRIVATE_KEY`；实际主机组及制品上传由仓库管理员在 Gitee Go 中绑定。该模板尚未在远程运行，不代表已发布版本。两个平台共用 `scripts/ci-release.php`，镜像同步同一制品及签名，不重新打包。
 
 ## 首次推送前建议
 

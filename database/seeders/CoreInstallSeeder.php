@@ -18,7 +18,11 @@ class CoreInstallSeeder extends Seeder
 {
     public function run(): void
     {
+        $newRoles = [];
         foreach (config('zfy.roles') as $role) {
+            if (! Role::where('name', $role)->where('guard_name', 'web')->exists()) {
+                $newRoles[] = $role;
+            }
             Role::findOrCreate($role);
         }
 
@@ -36,12 +40,14 @@ class CoreInstallSeeder extends Seeder
             Permission::findOrCreate($permission);
         }
 
-        Role::findByName('SUPER_ADMIN')->syncPermissions(Permission::all());
-        Role::findByName('ADMIN')->syncPermissions(['manage contents', 'publish contents', 'manage commerce', 'manage themes', 'manage plugins', 'manage links']);
-        Role::findByName('EDITOR')->syncPermissions(['manage contents', 'publish contents']);
-        Role::findByName('USER')->syncPermissions(['buy contents']);
+        Role::findByName('SUPER_ADMIN')->givePermissionTo(Permission::all());
+        foreach (['ADMIN' => ['manage contents', 'publish contents', 'manage commerce', 'manage themes', 'manage plugins', 'manage links'], 'EDITOR' => ['manage contents', 'publish contents'], 'USER' => ['buy contents']] as $role => $permissions) {
+            if (in_array($role, $newRoles, true)) {
+                Role::findByName($role)->givePermissionTo($permissions);
+            }
+        }
 
-        $admin = User::updateOrCreate(['email' => 'admin@zfy-blog.test'], [
+        $admin = User::firstOrCreate(['email' => 'admin@zfy-blog.test'], [
             'name' => 'zfy站长',
             'username' => 'admin',
             'password' => Hash::make('zfy-blog-123456'),
@@ -50,12 +56,14 @@ class CoreInstallSeeder extends Seeder
             'is_author' => true,
             'author_status' => 'approved',
         ]);
-        $admin->syncRoles(['SUPER_ADMIN']);
+        if ($admin->wasRecentlyCreated) {
+            $admin->assignRole('SUPER_ADMIN');
+        }
 
         Wallet::firstOrCreate(['user_id' => $admin->id], ['balance' => 0]);
         PointsAccount::firstOrCreate(['user_id' => $admin->id], ['points' => 0]);
 
-        VipLevel::updateOrCreate(['slug' => 'vip'], [
+        VipLevel::firstOrCreate(['slug' => 'vip'], [
             'name' => 'VIP',
             'level' => 1,
             'price_monthly' => 29,
@@ -65,7 +73,7 @@ class CoreInstallSeeder extends Seeder
             'benefits' => ['专属资源', '高速下载', '会员折扣'],
         ]);
 
-        VipLevel::updateOrCreate(['slug' => 'svip'], [
+        VipLevel::firstOrCreate(['slug' => 'svip'], [
             'name' => 'SVIP',
             'level' => 2,
             'price_monthly' => 59,
@@ -76,7 +84,7 @@ class CoreInstallSeeder extends Seeder
         ]);
 
         foreach (config('zfy.themes') as $slug => $theme) {
-            Theme::updateOrCreate(['slug' => $slug], [
+            Theme::firstOrCreate(['slug' => $slug], [
                 'name' => $theme['name'],
                 'version' => '1.0.0',
                 'author' => 'zfy-blog',
@@ -90,18 +98,18 @@ class CoreInstallSeeder extends Seeder
                     'pages' => ['home', 'channel', 'detail', 'vip', 'user', 'admin'],
                     'builder' => ['row', 'columns', 'content-feed', 'rank', 'vip', 'ad', 'html', 'theme-component'],
                 ],
-                'is_active' => $slug === config('zfy.default_theme'),
+                'is_active' => ! Theme::where('is_active', true)->exists() && $slug === config('zfy.default_theme'),
             ]);
         }
 
-        Setting::updateOrCreate(['key' => 'site.name'], ['value' => ['raw' => config('app.name', 'zfy-blog')], 'autoload' => true]);
-        Setting::updateOrCreate(['key' => 'site.url'], ['value' => ['raw' => config('app.url')], 'autoload' => true]);
-        Setting::updateOrCreate(['key' => 'site.active_theme'], [
+        Setting::firstOrCreate(['key' => 'site.name'], ['value' => ['raw' => config('app.name', 'zfy-blog')], 'autoload' => true]);
+        Setting::firstOrCreate(['key' => 'site.url'], ['value' => ['raw' => config('app.url')], 'autoload' => true]);
+        Setting::firstOrCreate(['key' => 'site.active_theme'], [
             'value' => ['slug' => config('zfy.default_theme')],
             'autoload' => true,
         ]);
 
-        PageLayout::updateOrCreate(['scope' => 'home'], [
+        PageLayout::firstOrCreate(['scope' => 'home'], [
             'title' => '首页布局',
             'schema' => [
                 'blocks' => [

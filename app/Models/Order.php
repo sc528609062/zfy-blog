@@ -18,6 +18,11 @@ class Order extends Model
         'meta' => 'array',
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function items()
     {
         return $this->hasMany(OrderItem::class);
@@ -26,5 +31,10 @@ class Order extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
     }
 }
