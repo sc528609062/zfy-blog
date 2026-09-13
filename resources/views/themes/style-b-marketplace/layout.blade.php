@@ -21,9 +21,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     @include('themes.shared.partials.seo')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>:root{--a-primary:{{ $accent }};--a-on-primary:{{ $onAccent }};--a-primary-dark:{{ $accentHover }};--a-primary-text:{{ $accentText }};}</style>
+    @include('themes.shared.partials.appearance')
 </head>
-<body class="a-body b-body">
+<body class="a-body b-body site-refined" data-sidebar="{{ data_get($theme, 'settings.global.sidebar_position', 'right') }}" data-back-to-top="{{ data_get($theme, 'settings.global.back_to_top', true) ? 'true' : 'false' }}">
     @include('themes.style-a-blue-gaming.partials.header')
 
     <main class="a-shell page-{{ $page }}">
@@ -55,14 +55,6 @@
     </main>
     @include('themes.shared.partials.site-extras')
 
-    <footer class="a-footer">
-        <span>© {{ date('Y') }} {{ data_get($theme, 'settings.global.footer_text', $siteName) }}</span>
-        <nav>
-            <a href="/vip">VIP会员</a>
-            <a href="/points-store">积分商城</a>
-            <a href="/links">友情链接</a>
-            <a href="/cart">购物车</a>
-        </nav>
-    </footer>
+    @include('themes.shared.partials.footer')
 </body>
 </html>

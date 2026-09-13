@@ -111,6 +111,15 @@ class ThemeManager
             ])->all())
             ->all();
 
+        // Preserve older scoped settings until an administrator saves the global equivalent.
+        foreach (['home' => ['hero_enabled', 'channels_enabled', 'sidebar_enabled'], 'content-detail' => ['show_author_card', 'show_related']] as $scope => $keys) {
+            foreach ($keys as $key) {
+                if (! array_key_exists($key, $settings['global'] ?? []) && array_key_exists($key, $settings[$scope] ?? [])) {
+                    $settings['global'][$key] = $settings[$scope][$key];
+                }
+            }
+        }
+
         return $this->applyGlobalOptions(array_replace_recursive($this->defaultSettings($theme->slug), $settings));
     }
 
@@ -170,6 +179,12 @@ class ThemeManager
             default => $base,
         };
         $manifest = app(PackageManifestService::class)->themes()[$slug] ?? [];
+        if (array_key_exists($slug, config('zfy.themes', []))) {
+            $defaults['global'] = array_replace(
+                collect(app(ThemeConfiguration::class)->builtInFields($slug))->pluck('default', 'key')->all(),
+                $defaults['global'],
+            );
+        }
 
         return array_replace_recursive($defaults, is_array($manifest['defaults'] ?? null) ? $manifest['defaults'] : []);
     }

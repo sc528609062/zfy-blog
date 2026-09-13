@@ -23,11 +23,11 @@ with sync_playwright() as p:
     headers = {'Accept': 'application/json', 'X-CSRF-TOKEN': payload['csrf'], 'X-Requested-With': 'XMLHttpRequest'}
     original_layout = payload['layouts'][0]
     themes = context.request.get(base + '/admin/themes/configuration').json()['data']
-    theme = themes[0]
+    theme = next((item for item in themes if item['is_active']), themes[0])
     try:
         # Cancel leaves edits intact; confirm only changes the form until save.
-        page.goto(base + '/admin/themes', wait_until='networkidle')
-        form = page.locator('.el-tab-pane:visible').last
+        page.goto(base + '/admin/theme-settings', wait_until='networkidle')
+        form = page.locator('.theme-settings')
         brand = form.get_by_label('站点标识', exact=True)
         brand.fill('Unsaved brand')
         form.get_by_role('button', name='恢复默认', exact=True).click()
@@ -36,16 +36,16 @@ with sync_playwright() as p:
         form.get_by_role('button', name='恢复默认', exact=True).click()
         page.get_by_role('dialog').get_by_role('button', name='恢复默认', exact=True).click()
         assert brand.input_value() == theme['defaults']['logo_text']
-        unchanged = context.request.get(base + '/admin/themes/configuration').json()['data'][0]
+        unchanged = next(item for item in context.request.get(base + '/admin/themes/configuration').json()['data'] if item['id'] == theme['id'])
         assert unchanged['values'] == theme['values']
         form.get_by_role('button', name='保存配置', exact=True).click()
         page.get_by_text('主题配置已保存', exact=True).wait_for()
         page.reload(wait_until='networkidle')
-        assert page.locator('.el-tab-pane:visible').last.get_by_label('站点标识', exact=True).input_value() == theme['defaults']['logo_text']
+        assert page.locator('.theme-settings').get_by_label('站点标识', exact=True).input_value() == theme['defaults']['logo_text']
         for width, label in [(1440, 'desktop'), (390, 'mobile')]:
             page.set_viewport_size({'width': width, 'height': 1000 if width > 500 else 844})
             page.wait_for_timeout(250)
-            page.locator('.el-tab-pane:visible').last.get_by_role('button', name='恢复默认', exact=True).scroll_into_view_if_needed()
+            page.locator('.theme-settings').get_by_role('button', name='恢复默认', exact=True).scroll_into_view_if_needed()
             page.screenshot(path=str(output / ('theme-' + label + '.png')), full_page=True)
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 2')
             assert page.locator('.theme-settings').evaluate('(el) => el.getBoundingClientRect().right <= innerWidth')

@@ -1,6 +1,7 @@
 @php
     $mode = $mode ?? 'list';
-    $cover = $item->cover_url ?? '/assets/zfy/placeholders/cover-blue.svg';
+    $cardOptions = data_get($theme, 'settings.global', []);
+    $cover = $item->cover_url ?: (($cardOptions['default_cover'] ?? '') ?: asset('theme-assets/'.match($themeTone ?? 'blue') { 'market' => 'b-product-1.png', 'creative' => 'c-card-1.png', default => 'a-home-art.png' }));
     $typeLabel = match ($item->type ?? 'post') {
         'files' => '资源发布',
         'images' => '图集精选',
@@ -11,16 +12,15 @@
 @endphp
 <article class="a-item-card a-item-{{ $mode }}">
     <a href="{{ route('contents.show', $item->slug) }}" class="a-item-cover">
-        <img src="{{ $cover }}" alt="{{ $item->title ?? '资源封面' }}">
+        <img src="{{ $cover }}" alt="{{ $item->title ?? '资源封面' }}" loading="lazy" decoding="async" width="480" height="300">
     </a>
     <div class="a-item-body">
         <span class="a-badge">{{ $typeLabel }}</span>
         <h3><a href="{{ route('contents.show', $item->slug) }}">{{ $item->title }}</a></h3>
-        <p>{{ $item->excerpt ?? '精选游戏资源、攻略教程与社区内容。' }}</p>
+        @if($cardOptions['card_excerpt'] ?? true)<p>{{ $item->excerpt }}</p>@endif
         <div class="a-meta">
-            <span>{{ $item->author->name ?? 'zfy小助手' }}</span>
-            <span>{{ number_format($item->view_count ?? 0) }} 浏览</span>
-            <span>{{ $item->comment_count ?? 0 }} 评论</span>
+            @if($cardOptions['card_author'] ?? true)<span class="site-card-author">{{ $item->author->name ?? '作者' }}</span>@endif
+            @if($cardOptions['card_stats'] ?? true)<span>{{ number_format($item->view_count ?? 0) }} 浏览</span><span>{{ $item->comment_count ?? 0 }} 评论</span>@endif
             @if($price > 0)
                 <strong>¥{{ $price }}</strong>
             @else

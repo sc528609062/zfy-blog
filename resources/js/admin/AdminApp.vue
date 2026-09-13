@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAdminStore } from './store';
 import { Close, ArrowDown, Refresh } from '@element-plus/icons-vue';
@@ -18,6 +18,7 @@ const props = defineProps<{
 interface NavigateOptions {
     force?: boolean;
     replace?: boolean;
+    guarded?: boolean;
 }
 
 const activePayload = shallowRef<Record<string, any>>({ ...props.payload });
@@ -33,6 +34,9 @@ const appearanceVisible = shallowRef(false);
 const navigationLoading = shallowRef(false);
 const pageRevision = shallowRef(0);
 let navigationController: AbortController | null = null;
+const beforeLeave = shallowRef<(() => Promise<boolean>) | null>(null);
+provide('admin-before-leave', beforeLeave);
+const removeRouteGuard = router.beforeEach(async to => to.fullPath === appliedPath || !beforeLeave.value || await beforeLeave.value());
 
 const activeSection = computed(() => activePayload.value.section || 'dashboard');
 const menus = computed<AdminMenuGroup[]>(() => activePayload.value.admin_menu || []);
@@ -85,6 +89,8 @@ async function navigate(target: string, options: NavigateOptions = {}) {
     if (!options.force && nextPath === currentPath) {
         return;
     }
+
+    if (!options.guarded && beforeLeave.value && !await beforeLeave.value()) return;
 
     navigationController?.abort();
     const controller = new AbortController();
@@ -170,7 +176,7 @@ onMounted(() => {
 });
 
 watch(() => route.fullPath, path => {
-    if (path !== appliedPath) void navigate(path, { force: true, replace: true });
+    if (path !== appliedPath) void navigate(path, { force: true, replace: true, guarded: true });
 });
 
 function closeTab(path: string) {
@@ -179,6 +185,7 @@ function closeTab(path: string) {
 }
 
 onBeforeUnmount(() => {
+    removeRouteGuard();
     navigationController?.abort();
     mobileQuery.removeEventListener('change', handleViewport);
     document.removeEventListener('keydown', handleKey);

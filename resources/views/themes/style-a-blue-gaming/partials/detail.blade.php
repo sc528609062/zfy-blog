@@ -4,36 +4,25 @@
     $isFile = $page === 'file-detail' || ($detail->type ?? '') === 'files';
     $isImages = $page === 'images-detail' || ($detail->type ?? '') === 'images';
     $tone = $themeTone ?? 'blue';
+    $detailOptions = data_get($theme, 'settings.global', []);
     $markdownTheme = data_get($detail->block_json, 'presentation.markdown_theme')
         ?: data_get($theme, 'settings.content-detail.markdown_theme', 'juejin');
     $codeTheme = data_get($detail->block_json, 'presentation.code_theme')
         ?: data_get($theme, 'settings.content-detail.code_theme', 'atom-one-dark');
 @endphp
 
-<section class="a-detail-layout">
-    <aside class="a-left-nav">
-        <h3>全部分类</h3>
-        @foreach($categories->take(10) as $category)
-            <a href="/c/{{ $category->slug }}"><span>{{ mb_substr($category->name, 0, 1) }}</span>{{ $category->name }}</a>
-        @endforeach
-        <div class="a-vip-ad">
-            <strong>开通VIP会员</strong>
-            <p>查看会员权益与资源折扣</p>
-            <a href="/vip">立即开通</a>
-        </div>
-    </aside>
-
+<section class="a-detail-layout {{ ($detailOptions['detail_sidebar'] ?? true) ? '' : 'without-sidebar' }}">
     <article class="a-detail-main">
         <nav class="a-breadcrumb"><a href="/">首页</a> > {{ $detail->category?->name ?? '内容' }} > {{ $detail->title }}</nav>
         <div class="a-detail-head">
-            <div class="a-labels">@foreach($detail->tags as $tag)<a href="{{ route('tags.show', $tag->slug) }}">{{ $tag->name }}</a>@endforeach</div>
+            @if($detailOptions['detail_tags'] ?? true)<div class="a-labels">@foreach($detail->tags as $tag)<a href="{{ route('tags.show', $tag->slug) }}">{{ $tag->name }}</a>@endforeach</div>@endif
             <h1>{{ $detail->title }}</h1>
-            <p>{{ $detail->excerpt }}</p>
+            @if($detailOptions['detail_excerpt'] ?? true)<p>{{ $detail->excerpt }}</p>@endif
             <div class="a-detail-meta">
                 <img src="{{ $detail->author->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="作者头像">
                 <span>{{ $detail->author->name ?? 'zfy小助手' }}</span>
-                <span>{{ optional($detail->published_at)->format('Y-m-d H:i') }}</span>
-                <span>{{ number_format($detail->view_count ?? 0) }} 阅读</span>
+                @if($detailOptions['detail_date'] ?? true)<time>{{ optional($detail->published_at)->format('Y-m-d H:i') }}</time>@endif
+                @if($detailOptions['detail_views'] ?? true)<span>{{ number_format($detail->view_count ?? 0) }} 阅读</span>@endif
                 <span>{{ $detail->comment_count ?? 0 }} 评论</span>
                 @auth @if($detail->author?->is_author && $detail->author_id !== auth()->id())
                     @php $following = \Illuminate\Support\Facades\DB::table('user_follows')->where('user_id', auth()->id())->where('author_id', $detail->author_id)->exists(); @endphp
@@ -51,7 +40,7 @@
                     <div><b>¥{{ data_get($detail, 'pricing.price', 0) }}</b>@if(data_get($detail->access_rules, 'vip_free'))<em>会员免费</em>@endif</div>
                 </div>
             </section>
-        @else
+        @elseif($detailOptions['detail_cover'] ?? true)
             <section class="a-gallery-strip">
                 <img src="{{ $cover }}" alt="{{ $detail->title }}">
             </section>
@@ -103,7 +92,7 @@
         @endauth
     </article>
 
-    <aside class="a-side-stack">
+    @if($detailOptions['detail_sidebar'] ?? true)<aside class="a-side-stack">
         @if(data_get($theme, 'settings.content-detail.show_author_card', true))<div class="a-card-panel a-author-box">
             <h3>作者信息</h3>
             <img src="{{ $detail->author->avatar_url ?? '/assets/zfy/placeholders/avatar.svg' }}" alt="作者头像">
@@ -113,5 +102,5 @@
             <a href="{{ $detail->author?->is_author && filled($detail->author->username) ? route('authors.show', $detail->author->username) : route('authors.index') }}">作者主页</a>
         </div>@endif
         @if(data_get($theme, 'settings.content-detail.show_related', true))@include('themes.style-a-blue-gaming.partials.ranking', ['title' => '相关推荐'])@endif
-    </aside>
+    </aside>@endif
 </section>

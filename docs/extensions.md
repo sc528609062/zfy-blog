@@ -77,3 +77,23 @@ zfy_register_block('sample-notice', [
 `theme.json` 声明 `entry: views/layout.blade.php`。视图命名空间为 `theme-<slug>::`，候选可按 `content-<type>`、`single`、`layout` 传给 `zfy_template`。子主题声明 `parent` 和 `requires.themes`；同路径覆盖父模板，资源通过具体包 slug 寻址，不自动复制父资源。
 
 模板获得站点页面 payload；可复用 `themes.shared.partials.native-content`、`seo` 与用户中心片段。主题设置来自 `$theme['settings']`，模板必须实际使用自己声明的字段。配置预览使用绑定管理员、有效期 600 秒的缓存标识，期间可重复访问，不改变当前公开主题。共享商业流程和权限判断由平台服务负责。
+
+### 分组主题表单
+
+`theme.json` 的 `settings_schema.global` 使用字段对象数组，后台自动渲染到独立主题设置页。支持 `text/textarea/color/boolean/number/select/image/url`；`group` 可为 `brand/layout/home/cards/article/footer/extension`，省略或未知分组归入“主题扩展”。`depends_on` 指向同主题布尔字段，控制表单显示，不删除已保存值。
+
+```json
+{
+  "settings_schema": {
+    "global": [
+      { "key": "notice_enabled", "label": "显示公告", "type": "boolean", "group": "home", "default": false },
+      { "key": "notice_image", "label": "公告图片", "type": "image", "group": "home", "default": "", "depends_on": "notice_enabled" },
+      { "key": "notice_url", "label": "公告链接", "type": "url", "group": "home", "default": "", "depends_on": "notice_enabled" }
+    ]
+  }
+}
+```
+
+`default` 提供重置默认值，清单 `defaults.global` 中的同名值优先；`false`、`0` 和空字符串保留原义。数字字段可声明 `min/max/step`，并同时通过 `rules` 声明服务端范围，例如 `["required", "integer", "between:1,20"]`。选择字段通过 `options` 的键验证输入。图片与 URL 仅接受单斜线开头的站内路径或 HTTP/HTTPS 地址，不允许脚本、协议相对地址和控制字符；Blade 输出仍必须转义。空的文本、图片和 URL 在保存时归一为字符串。
+
+值位于 `$theme['settings']['global']`。扩展必须在模板中落实开关与字段，不能只注册表单；内置主题外观 CSS 不注入第三方主题。保存继续调用 `zfy_theme_settings_saving` 校验和提交后的 `zfy_theme_settings_saved` 事件。

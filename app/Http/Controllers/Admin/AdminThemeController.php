@@ -30,7 +30,7 @@ class AdminThemeController extends Controller
     {
         abort_unless($request->user()?->can('manage themes'), 403);
 
-        return response()->json(['data' => Theme::all()->map(function ($theme) use ($themes) {
+        return response()->json(['groups' => app(ThemeConfiguration::class)->groups(), 'data' => Theme::all()->map(function ($theme) use ($themes) {
             $fields = app(ThemeConfiguration::class)->fields($theme);
             $defaults = app(ThemeConfiguration::class)->defaults($theme);
             $values = $themes->settingsFor($theme)['global'];

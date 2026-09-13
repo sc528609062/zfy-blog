@@ -546,8 +546,10 @@ async function saveQuickSettings() {
                     </el-button>
                 </el-card>
             </div>
-            <ThemeSettings :csrf="payload.csrf" />
+            <el-button class="mt-5" :icon="Brush" @click="goAdmin('theme-settings')">主题设置</el-button>
         </template>
+
+        <ThemeSettings v-else-if="pageKind === 'theme-settings'" :csrf="payload.csrf" />
 
         <template v-else-if="pageKind === 'plugins'">
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">

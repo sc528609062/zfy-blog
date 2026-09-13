@@ -1,4 +1,5 @@
 import './bootstrap';
+import '../css/theme-refinements.css';
 import { mountCartQuote } from './shared/cartQuote';
 import { mountGallery } from './shared/gallery';
 import {
@@ -280,8 +281,11 @@ function initLazyLoad() {
 
 // 返回顶部
 function initBackToTop() {
+    if (document.body.dataset.backToTop === 'false') return;
     const backToTopBtn = document.createElement('button');
     backToTopBtn.className = 'back-to-top';
+    backToTopBtn.setAttribute('aria-label', '返回顶部');
+    backToTopBtn.title = '返回顶部';
     backToTopBtn.innerHTML = '↑';
     backToTopBtn.style.display = 'none';
     document.body.appendChild(backToTopBtn);

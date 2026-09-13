@@ -1,12 +1,11 @@
 @if($cartMode ?? false)
     @include('themes.shared.partials.cart')
 @else
-<section class="a-card-panel">
-    <h1>商品</h1>
-    <a href="/cart">购物车</a>
+<section class="a-card-panel site-shop">
+    <header class="a-section-title"><h1>商品</h1><a href="/cart">购物车</a></header>
     @forelse($products as $product)
-        <article style="border-bottom:1px solid #e5e7eb;padding:20px 0">
-            <h2>{{ $product->title }}</h2><p>¥{{ $product->sale_price ?? $product->price }}</p>
+        <article class="site-product">
+            <h2>{{ $product->title }}</h2><p class="site-product-price">¥{{ $product->sale_price ?? $product->price }}</p>
             @auth<form method="post" action="{{ route('products.buy', $product) }}">@csrf
                 @if($product->variants->where('status', 'active')->isNotEmpty())<label>规格 <select name="variant_id" required>@foreach($product->variants->where('status', 'active') as $variant)<option value="{{ $variant->id }}">{{ $variant->title }} - {{ $variant->price ?? $product->price }}</option>@endforeach</select></label>@endif
                 <label>数量 <input type="number" name="quantity" value="1" min="1" max="100" required></label>

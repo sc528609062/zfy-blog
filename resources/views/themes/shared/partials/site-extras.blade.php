@@ -17,6 +17,3 @@
         </section>
     @endforeach
 @endif
-@if(isset($navigation) && $navigation->has('footer'))
-    <nav class="a-shell site-footer-nav">@include('themes.shared.partials.navigation-items', ['items' => $navigation->get('footer')->items])</nav>
-@endif

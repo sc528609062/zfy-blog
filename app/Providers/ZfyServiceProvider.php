@@ -187,6 +187,7 @@ class ZfyServiceProvider extends ServiceProvider
             ['key' => 'link-redirects', 'label' => '跳转设置', 'description' => '外链访问策略', 'group' => 'links', 'kind' => 'settings', 'permission' => 'manage links', 'status' => 'ready', 'position' => 50],
             ['key' => 'link-checks', 'label' => '链接检测', 'description' => '链接可用性检测记录', 'group' => 'links', 'kind' => 'link-checks', 'permission' => 'manage links', 'status' => 'ready', 'position' => 60],
             ['key' => 'themes', 'label' => '主题', 'description' => '切换和管理主题', 'group' => 'appearance', 'kind' => 'themes', 'permission' => 'manage themes', 'status' => 'ready', 'position' => 10],
+            ['key' => 'theme-settings', 'label' => '主题设置', 'description' => '配置主题外观和页面显示', 'group' => 'appearance', 'kind' => 'theme-settings', 'permission' => 'manage themes', 'status' => 'ready', 'position' => 15],
             ['key' => 'menus', 'label' => '菜单', 'description' => '管理导航菜单和位置', 'group' => 'appearance', 'kind' => 'placeholder', 'permission' => 'manage themes', 'position' => 20],
             ['key' => 'widgets', 'label' => '小工具', 'description' => '管理主题小工具区域', 'group' => 'appearance', 'kind' => 'placeholder', 'permission' => 'manage themes', 'position' => 30],
             ['key' => 'page-builder', 'label' => '页面构建器', 'description' => '管理可视化页面布局', 'group' => 'appearance', 'kind' => 'builder', 'permission' => 'manage themes', 'status' => 'ready', 'position' => 40],
