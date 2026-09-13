@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch, nextTick } from 'vue';
 import { Delete, Edit, Plus, Refresh, Search, ArrowUp, ArrowDown } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElTable } from 'element-plus';
 import { adminRequest } from './adminRequest';
+import AdminPagination from './AdminPagination.vue';
 
 const props = defineProps<{ resource: string; csrf: string; create?: boolean }>();
 const rows = ref<Record<string, any>[]>([]);
+const table = ref<InstanceType<typeof ElTable>>();
 const fields = ref<Record<string, any>[]>([]);
 const schema = ref<Record<string, any>>({});
 const query = ref('');
 const page = ref(1);
+const pageSize = ref(20);
 const total = ref(0);
 const loading = ref(false);
 const saving = ref(false);
@@ -25,18 +28,23 @@ async function load() {
     const current = ++sequence;
     loading.value = true;
     try {
-        const result = await adminRequest(`${endpoint.value}?${new URLSearchParams({ q: query.value, page: String(page.value) })}`, props.csrf);
+        const result = await adminRequest(`${endpoint.value}?${new URLSearchParams({ q: query.value, page: String(page.value), per_page: String(pageSize.value) })}`, props.csrf);
         if (current !== sequence) return;
         rows.value = result.data.data;
         total.value = result.data.total;
+        page.value = result.data.current_page;
         fields.value = result.schema.fields;
         schema.value = result.schema;
+        await nextTick();
+        if (current === sequence) table.value?.setScrollTop(0);
     } catch (error) {
         if (current === sequence) ElMessage.error((error as Error).message);
     } finally {
         if (current === sequence) loading.value = false;
     }
 }
+
+function paginate(nextPage: number, size: number) { page.value = nextPage; pageSize.value = size; void load(); }
 
 function edit(row?: Record<string, any>) {
     editingId.value = row?.id ?? null;
@@ -102,14 +110,14 @@ watch(() => [props.resource, props.create], async () => {
 </script>
 
 <template>
-    <section class="resource-manager" v-loading="loading">
-        <div class="resource-toolbar">
-            <el-input v-model="query" clearable aria-label="搜索记录" @keyup.enter="page = 1; load()" @clear="page = 1; load()"><template #prefix><el-icon><Search /></el-icon></template></el-input>
+    <section class="resource-manager admin-table-workspace" v-loading="loading">
+        <div class="resource-toolbar admin-list-toolbar">
+            <el-input v-model="query" clearable placeholder="搜索记录" maxlength="120" aria-label="搜索记录" @keyup.enter="page = 1; load()" @clear="page = 1; load()"><template #prefix><el-icon><Search /></el-icon></template></el-input>
             <el-button :icon="Search" @click="page = 1; load()">搜索</el-button>
             <el-tooltip content="刷新"><el-button :icon="Refresh" aria-label="刷新" @click="load" /></el-tooltip>
-            <el-button v-if="schema.create !== false" type="primary" :icon="Plus" @click="edit()">新建</el-button>
+            <el-button v-if="schema.create !== false" class="admin-toolbar-primary" type="primary" :icon="Plus" @click="edit()">新建</el-button>
         </div>
-        <el-table :data="rows" empty-text="暂无记录" row-key="id">
+        <div class="admin-table-region"><el-table ref="table" :data="rows" height="100%" empty-text="暂无记录" row-key="id">
             <el-table-column prop="id" label="ID" width="75" />
             <el-table-column v-for="field in columns" :key="field.key" :label="field.label" min-width="140" show-overflow-tooltip>
                 <template #default="{ row }">{{ display(row, field) }}</template>
@@ -127,9 +135,9 @@ watch(() => [props.resource, props.create], async () => {
                     </div>
                 </template>
             </el-table-column>
-        </el-table>
-        <el-pagination v-model:current-page="page" :page-size="20" :total="total" layout="prev, pager, next, total" @current-change="load" />
-        <el-dialog v-model="visible" :title="editingId ? '编辑记录' : '新建记录'" width="min(720px, 94vw)" :close-on-click-modal="!saving">
+        </el-table></div>
+        <AdminPagination :page="page" :page-size="pageSize" :total="total" :disabled="loading" @change="paginate" />
+        <el-dialog v-model="visible" class="admin-record-dialog" :title="editingId ? '编辑记录' : '新建记录'" width="min(720px, 94vw)" :close-on-click-modal="!saving">
             <el-form label-position="top" @submit.prevent="save">
                 <el-form-item v-for="field in fields" :key="field.key" :label="field.label">
                     <el-switch v-if="field.type === 'boolean'" v-model="form[field.key]" />

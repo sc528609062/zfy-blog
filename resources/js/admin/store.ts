@@ -18,8 +18,12 @@ export const useAdminStore = defineStore('admin', {
     }),
     actions: {
         visit(path: string, title: string) {
-            const tab = this.tabs.find(item => item.path === path);
-            if (tab) tab.title = title;
+            const identity = (value: string) => {
+                const url = new URL(value, window.location.origin);
+                return ['/admin/contents', '/admin/pages'].includes(url.pathname) ? url.pathname : value;
+            };
+            const tab = this.tabs.find(item => identity(item.path) === identity(path));
+            if (tab) { tab.title = title; tab.path = path; }
             else this.tabs.push({ path, title });
             if (this.tabs.length > 15) this.tabs.splice(0, this.tabs.length - 15);
         },

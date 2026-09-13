@@ -26,6 +26,7 @@ use App\Services\AdminResourceRegistry;
 use App\Services\PrivateMessageService;
 use App\Services\ShipmentService;
 use App\Services\SiteSettings;
+use App\Support\AdminPagination;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -41,6 +42,7 @@ class AdminResourceController extends Controller
     public function index(Request $request, string $resource)
     {
         $definition = $this->authorizeResource($request, $resource);
+        $request->validate(['q' => ['nullable', 'string', 'max:120']]);
         $query = $definition['model']::query();
         if (isset($definition['types'])) {
             $query->whereIn('type', $definition['types']);
@@ -48,7 +50,7 @@ class AdminResourceController extends Controller
         if ($request->filled('q')) {
             $query->where($definition['search'], 'like', '%'.mb_substr($request->string('q')->toString(), 0, 120).'%');
         }
-        $rows = $query->latest('id')->paginate(20)->through(fn ($row) => $this->serialize($row, $definition));
+        $rows = AdminPagination::paginate($query->latest('id'), $request)->through(fn ($row) => $this->serialize($row, $definition));
 
         return response()->json(['data' => $rows, 'schema' => $this->registry->schema($resource)]);
     }

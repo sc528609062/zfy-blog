@@ -27,15 +27,17 @@ async function save(layout: Record<string, any>) {
 }
 </script>
 <template>
-    <el-tabs v-model="active">
+    <el-tabs v-model="active" class="layout-builder">
         <el-tab-pane v-for="layout in layouts" :key="layout.id" :name="layout.id" :label="layout.title">
             <el-form label-position="top">
-                <el-form-item label="布局名称"><el-input v-model="layout.title" /></el-form-item>
+                <div class="layout-builder-meta"><el-form-item label="布局名称"><el-input v-model="layout.title" /></el-form-item>
                 <el-form-item label="状态"><el-radio-group v-model="layout.status"><el-radio-button value="draft">草稿</el-radio-button><el-radio-button value="published">发布</el-radio-button></el-radio-group></el-form-item>
-                <el-form-item label="启用自定义布局"><el-switch v-model="layout.data.enabled" /></el-form-item>
+                <el-form-item label="启用自定义布局"><el-switch v-model="layout.data.enabled" /></el-form-item></div>
                 <LayoutBlocks v-model="layout.data.blocks" :definitions="blocks || []" />
+                <footer class="configuration-actions">
                 <el-button type="primary" :loading="saving" @click="save(layout)">保存布局</el-button>
                 <el-button :icon="RefreshLeft" :disabled="saving" @click="reset(layout)">恢复默认</el-button>
+                </footer>
             </el-form>
         </el-tab-pane>
     </el-tabs>

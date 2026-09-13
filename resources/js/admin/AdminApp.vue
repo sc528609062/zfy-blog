@@ -86,7 +86,7 @@ async function navigate(target: string, options: NavigateOptions = {}) {
     const nextPath = `${url.pathname}${url.search}`;
     const currentPath = `${window.location.pathname}${window.location.search}`;
 
-    if (!options.force && nextPath === currentPath) {
+    if (!options.force && nextPath === currentPath && nextPath === appliedPath) {
         return;
     }
 
@@ -129,6 +129,8 @@ async function navigate(target: string, options: NavigateOptions = {}) {
             await router.push(nextPath);
         }
         await nextTick();
+        document.querySelector('.zfy-admin-page')?.scrollTo({ top: 0 });
+        document.querySelectorAll('.admin-table-region .el-table__body-wrapper .el-scrollbar__wrap').forEach(element => element.scrollTo({ top: 0 }));
         document.querySelector('.zfy-admin-tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -230,7 +232,7 @@ onBeforeUnmount(() => {
                 </nav>
                 <el-dropdown trigger="click" @command="tabsCommand"><el-button :icon="ArrowDown" class="zfy-art-tab-more" aria-label="页签操作" title="页签操作" /><template #dropdown><el-dropdown-menu><el-dropdown-item command="refresh" :icon="Refresh">刷新当前页</el-dropdown-item><el-dropdown-item command="others">关闭其他页签</el-dropdown-item><el-dropdown-item command="all">关闭全部页签</el-dropdown-item></el-dropdown-menu></template></el-dropdown>
             </div>
-            <el-main v-loading="navigationLoading" class="zfy-admin-main">
+            <el-main v-loading="navigationLoading" class="zfy-admin-main" :data-page-kind="currentPage.kind">
                 <div v-if="currentPage.kind !== 'editor'" class="zfy-art-page-heading"><h1>{{ pageTitle }}</h1><span v-if="activeSection === 'dashboard'">{{ activePayload.today }}</span></div>
                 <AdminPage
                     :key="pageInstanceKey"

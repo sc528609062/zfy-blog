@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+import { Edit, Setting, Delete, Upload, Download, MoreFilled } from '@element-plus/icons-vue';
 
 type TableVariant = 'default' | 'content';
 
@@ -47,6 +48,7 @@ const props = withDefaults(defineProps<{
     rows: AdminTableRow[];
     emptyText?: string;
     variant?: TableVariant;
+    height?: string | number;
 }>(), {
     variant: 'default',
 });
@@ -59,6 +61,17 @@ const emit = defineEmits<{
 }>();
 
 const isContentTable = computed(() => props.variant === 'content');
+const mediaQuery = window.matchMedia('(max-width: 600px)');
+const mobile = ref(mediaQuery.matches);
+function resize() { mobile.value = mediaQuery.matches; }
+onMounted(() => mediaQuery.addEventListener('change', resize));
+onBeforeUnmount(() => mediaQuery.removeEventListener('change', resize));
+function rowAction(command: 'edit' | 'settings' | 'toggleStatus' | 'delete', row: AdminTableRow) {
+    if (command === 'edit') emit('edit', row);
+    else if (command === 'settings') emit('settings', row);
+    else if (command === 'toggleStatus') emit('toggleStatus', row);
+    else emit('delete', row);
+}
 const fallbackCover = '/assets/zfy/placeholders/cover-blue.svg';
 const fallbackAvatar = '/assets/zfy/placeholders/avatar.svg';
 
@@ -66,6 +79,8 @@ const statusLabels: Record<string, string> = {
     published: '已发布',
     draft: '草稿',
     pending: '待审核',
+    scheduled: '定时发布',
+    private: '私密',
     archived: '已归档',
     enabled: '已启用',
     disabled: '已禁用',
@@ -125,14 +140,6 @@ function contentTags(row: AdminTableRow): ContentTag[] {
         .filter((tag) => Boolean(tag.name));
 }
 
-function visibleTags(row: AdminTableRow): ContentTag[] {
-    return contentTags(row).slice(0, 4);
-}
-
-function hiddenTagCount(row: AdminTableRow): number {
-    return Math.max(contentTags(row).length - 4, 0);
-}
-
 function tagKey(tag: ContentTag, index: number): string | number {
     return tag.id || `${tag.name}-${index}`;
 }
@@ -174,11 +181,21 @@ function toggleStatusLabel(row: AdminTableRow): string {
 <template>
     <el-table
         :data="props.rows"
+        :height="height"
+        row-key="id"
         :empty-text="props.emptyText || '暂无数据'"
         :class="['zfy-admin-table', { 'zfy-admin-table--content': isContentTable }]"
     >
         <template v-if="isContentTable">
-            <el-table-column label="文章" min-width="430">
+            <el-table-column type="expand" width="40">
+                <template #default="{ row }"><div class="admin-content-details">
+                    <p>{{ row.excerpt || '暂无摘要' }}</p>
+                    <p>专题：{{ row.topic_name || '未归入专题' }}</p>
+                    <div class="zfy-content-tags"><span>标签：</span><el-tag v-for="(tag, index) in contentTags(row)" :key="tagKey(tag, index)" size="small">{{ tag.name }}</el-tag><span v-if="!contentTags(row).length">暂无标签</span></div>
+                    <template v-if="mobile"><p>发布时间：{{ row.published_at || row.created_at || '-' }}</p><div class="zfy-content-metrics"><span v-for="metric in contentMetrics(row)" :key="metric.key || metric.label">{{ metricLabel(metric.value) }} {{ metric.label }}</span></div></template>
+                </div></template>
+            </el-table-column>
+            <el-table-column label="内容" :min-width="mobile ? 200 : 330">
                 <template #default="{ row }">
                     <div class="zfy-content-cell">
                         <img
@@ -189,10 +206,9 @@ function toggleStatusLabel(row: AdminTableRow): string {
                         >
                         <div class="zfy-content-main">
                             <div class="zfy-content-heading">
-                                <strong class="zfy-content-title">{{ row.title || '未命名文章' }}</strong>
-                                <el-tag effect="plain" size="small">{{ typeLabel(row) }}</el-tag>
+                                <el-tooltip :content="row.title || '未命名文章'" placement="top"><strong class="zfy-content-title">{{ row.title || '未命名文章' }}</strong></el-tooltip>
+                                <el-tag v-if="!mobile" effect="plain" size="small">{{ typeLabel(row) }}</el-tag>
                             </div>
-                            <p class="zfy-content-excerpt">{{ row.excerpt || '暂无摘要' }}</p>
                             <div class="zfy-content-meta">
                                 <span class="zfy-content-author">
                                     <img
@@ -202,38 +218,14 @@ function toggleStatusLabel(row: AdminTableRow): string {
                                     >
                                     {{ row.author_name || '未设置作者' }}
                                 </span>
-                                <span>{{ row.category_name || '未分类' }}</span>
-                                <span>ID {{ row.id }}</span>
+                                <el-tag v-if="mobile" effect="light" size="small" :type="statusTagType(row)">{{ statusLabel(row) }}</el-tag>
+                                <template v-else><span>{{ row.category_name || '未分类' }}</span><span>ID {{ row.id }}</span></template>
                             </div>
                         </div>
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column label="专题" min-width="150">
-                <template #default="{ row }">
-                    <el-tag v-if="row.topic_name && row.topic_name !== '未归入专题'" effect="plain" size="small">
-                        {{ row.topic_name }}
-                    </el-tag>
-                    <span v-else class="zfy-content-empty">未归入专题</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="标签" min-width="190">
-                <template #default="{ row }">
-                    <div v-if="visibleTags(row).length" class="zfy-content-tags">
-                        <el-tag
-                            v-for="(tag, index) in visibleTags(row)"
-                            :key="tagKey(tag, index)"
-                            effect="light"
-                            size="small"
-                        >
-                            {{ tag.name }}
-                        </el-tag>
-                        <el-tag v-if="hiddenTagCount(row)" effect="plain" size="small">+{{ hiddenTagCount(row) }}</el-tag>
-                    </div>
-                    <span v-else class="zfy-content-empty">暂无标签</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="数据" width="240">
+            <el-table-column v-if="!mobile" label="数据" width="170">
                 <template #default="{ row }">
                     <div class="zfy-content-metrics">
                         <span v-for="metric in contentMetrics(row)" :key="metric.key || metric.label">
@@ -242,12 +234,12 @@ function toggleStatusLabel(row: AdminTableRow): string {
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="120">
+            <el-table-column v-if="!mobile" prop="status" label="状态" width="100">
                 <template #default="{ row }">
                     <el-tag effect="light" size="small" :type="statusTagType(row)">{{ statusLabel(row) }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="发布时间" width="170">
+            <el-table-column v-if="!mobile" label="发布时间" width="155">
                 <template #default="{ row }">
                     <span>{{ row.published_at || row.created_at || '-' }}</span>
                 </template>
@@ -266,19 +258,24 @@ function toggleStatusLabel(row: AdminTableRow): string {
             <el-table-column prop="created_at" label="时间" width="170" />
         </template>
 
-        <el-table-column :width="isContentTable ? 240 : 150" label="操作" fixed="right">
+        <el-table-column v-if="isContentTable" :width="mobile ? 60 : 145" label="操作" fixed="right">
             <template #default="{ row }">
                 <template v-if="isContentTable">
-                    <div class="zfy-content-actions">
-                        <el-button link type="primary" @click="emit('edit', row)">编辑</el-button>
-                        <el-button link @click="emit('settings', row)">设置</el-button>
-                        <el-button link type="warning" @click="emit('toggleStatus', row)">{{ toggleStatusLabel(row) }}</el-button>
-                        <el-button link type="danger" @click="emit('delete', row)">删除</el-button>
+                    <el-dropdown v-if="mobile" trigger="click" @command="rowAction($event, row)">
+                        <el-button class="admin-content-more" text :icon="MoreFilled" aria-label="内容操作" title="内容操作" />
+                        <template #dropdown><el-dropdown-menu>
+                            <el-dropdown-item command="edit" :icon="Edit">编辑</el-dropdown-item>
+                            <el-dropdown-item command="settings" :icon="Setting">设置</el-dropdown-item>
+                            <el-dropdown-item command="toggleStatus" :icon="row.status === 'published' ? Download : Upload">{{ toggleStatusLabel(row) }}</el-dropdown-item>
+                            <el-dropdown-item command="delete" :icon="Delete" divided>删除</el-dropdown-item>
+                        </el-dropdown-menu></template>
+                    </el-dropdown>
+                    <div v-else class="zfy-art-row-actions">
+                        <el-tooltip content="编辑"><el-button text :icon="Edit" aria-label="编辑" type="primary" @click="emit('edit', row)" /></el-tooltip>
+                        <el-tooltip content="设置"><el-button text :icon="Setting" aria-label="设置" @click="emit('settings', row)" /></el-tooltip>
+                        <el-tooltip :content="toggleStatusLabel(row)"><el-button text :icon="row.status === 'published' ? Download : Upload" :aria-label="toggleStatusLabel(row)" type="warning" @click="emit('toggleStatus', row)" /></el-tooltip>
+                        <el-tooltip content="删除"><el-button text :icon="Delete" aria-label="删除" type="danger" @click="emit('delete', row)" /></el-tooltip>
                     </div>
-                </template>
-                <template v-else>
-                    <el-button link type="primary" @click="emit('edit', row)">编辑</el-button>
-                    <el-button link>日志</el-button>
                 </template>
             </template>
         </el-table-column>
@@ -288,18 +285,18 @@ function toggleStatusLabel(row: AdminTableRow): string {
 <style scoped>
 .zfy-content-cell {
     display: grid;
-    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-columns: 64px minmax(0, 1fr);
     gap: 12px;
     align-items: center;
     min-width: 0;
-    padding: 6px 0;
+    padding: 2px 0;
 }
 
 .zfy-content-cover {
-    width: 96px;
+    width: 64px;
     aspect-ratio: 16 / 10;
     border: 1px solid var(--zfy-admin-line);
-    border-radius: 8px;
+    border-radius: 4px;
     background: #f2f6fb;
     object-fit: cover;
 }
@@ -347,7 +344,7 @@ function toggleStatusLabel(row: AdminTableRow): string {
 .zfy-content-meta {
     flex-wrap: wrap;
     gap: 6px 12px;
-    color: #7b8798;
+    color: var(--zfy-admin-muted);
     font-size: 12px;
 }
 
@@ -377,8 +374,8 @@ function toggleStatusLabel(row: AdminTableRow): string {
 
 .zfy-content-metrics {
     flex-wrap: wrap;
-    gap: 6px 12px;
-    color: #667085;
+    gap: 2px 10px;
+    color: var(--zfy-admin-muted);
     font-size: 12px;
     line-height: 1.6;
 }
@@ -397,11 +394,13 @@ function toggleStatusLabel(row: AdminTableRow): string {
 
 @media (max-width: 768px) {
     .zfy-content-cell {
-        grid-template-columns: 74px minmax(0, 1fr);
+        grid-template-columns: 50px minmax(0, 1fr);
     }
 
     .zfy-content-cover {
-        width: 74px;
+        width: 50px;
     }
 }
+.admin-content-details { padding: 8px 24px 16px; color: var(--zfy-admin-muted); overflow-wrap: anywhere; }
+.admin-content-more.el-button { width: 30px; height: 30px; padding: 6px; }
 </style>

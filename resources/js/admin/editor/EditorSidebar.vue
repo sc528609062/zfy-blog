@@ -60,11 +60,6 @@ function visitSavedContent(): void {
                     <el-input v-model="form.excerpt" :rows="4" type="textarea" />
                 </el-form-item>
 
-                <div class="zfy-editor-sidebar-actions">
-                    <el-button :loading="previewLoading" @click="emit('preview')">预览</el-button>
-                    <el-button :loading="busy" @click="emit('save')">保存草稿</el-button>
-                    <el-button :loading="busy" type="primary" @click="emit('publish')">发布文章</el-button>
-                </div>
             </el-form>
         </el-card>
 

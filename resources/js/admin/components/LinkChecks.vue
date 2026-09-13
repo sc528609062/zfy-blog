@@ -1,21 +1,34 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { Refresh } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElTable } from 'element-plus';
 import { adminRequest } from './adminRequest';
+import AdminPagination from './AdminPagination.vue';
 const props = defineProps<{ csrf: string }>();
 const links = ref<Record<string, any>[]>([]);
 const rows = ref<Record<string, any>[]>([]);
+const table = ref<InstanceType<typeof ElTable>>();
 const selected = ref<number>();
 const page = ref(1);
+const pageSize = ref(20);
+const loading = ref(false);
+let sequence = 0;
 const total = ref(0);
 const busy = ref(false);
 async function load() {
+    const current = ++sequence;
+    loading.value = true;
     try {
-        const result = await adminRequest(`/admin/link-tools/checks?page=${page.value}`, props.csrf);
+        const result = await adminRequest(`/admin/link-tools/checks?page=${page.value}&per_page=${pageSize.value}`, props.csrf);
+        if (current !== sequence) return;
         links.value = result.links; rows.value = result.data.data; total.value = result.data.total;
-    } catch (error) { ElMessage.error((error as Error).message); }
+        page.value = result.data.current_page;
+        await nextTick();
+        if (current === sequence) table.value?.setScrollTop(0);
+    } catch (error) { if (current === sequence) ElMessage.error((error as Error).message); }
+    finally { if (current === sequence) loading.value = false; }
 }
+function paginate(nextPage: number, size: number) { page.value = nextPage; pageSize.value = size; void load(); }
 async function check() {
     if (!selected.value) return;
     busy.value = true;
@@ -26,9 +39,9 @@ async function check() {
 onMounted(load);
 </script>
 <template>
-    <section>
-        <el-space wrap><el-select v-model="selected" filterable aria-label="选择链接" style="width:280px"><el-option v-for="link in links" :key="link.id" :value="link.id" :label="link.name" /></el-select><el-button :icon="Refresh" :loading="busy" :disabled="!selected" @click="check">检测链接</el-button></el-space>
-        <el-table :data="rows"><el-table-column prop="link.name" label="链接" /><el-table-column prop="http_code" label="HTTP 状态" width="120" /><el-table-column prop="message" label="结果" /><el-table-column prop="checked_at" label="检测时间" /></el-table>
-        <el-pagination v-model:current-page="page" :page-size="20" :total="total" layout="prev, pager, next" @current-change="load" />
+    <section class="admin-table-workspace" v-loading="loading">
+        <div class="admin-list-toolbar"><el-select v-model="selected" filterable aria-label="选择链接" placeholder="选择链接"><el-option v-for="link in links" :key="link.id" :value="link.id" :label="link.name" /></el-select><el-button :icon="Refresh" :loading="busy" :disabled="!selected" @click="check">检测链接</el-button><el-tooltip content="刷新记录"><el-button :icon="Refresh" aria-label="刷新记录" @click="load" /></el-tooltip></div>
+        <div class="admin-table-region"><el-table ref="table" :data="rows" height="100%" row-key="id" empty-text="暂无检测记录"><el-table-column prop="link.name" label="链接" min-width="180" show-overflow-tooltip /><el-table-column prop="http_code" label="HTTP 状态" width="120" /><el-table-column prop="message" label="结果" min-width="200" show-overflow-tooltip /><el-table-column prop="checked_at" label="检测时间" min-width="180" /></el-table></div>
+        <AdminPagination :page="page" :page-size="pageSize" :total="total" :disabled="loading" @change="paginate" />
     </section>
 </template>

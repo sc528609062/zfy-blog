@@ -51,7 +51,7 @@ async function saveSettings() {
 </script>
 
 <template>
-    <el-card shadow="never">
+    <el-card class="admin-settings-workspace" shadow="never">
         <template #header>
             <div class="zfy-card-title">
                 <div>
@@ -85,7 +85,7 @@ async function saveSettings() {
                                 :value="value"
                             />
                         </el-select>
-                        <el-input v-else v-model="values[field.key]" :type="field.type === 'textarea' ? 'textarea' : 'text'" :rows="6" />
+                        <el-input v-else v-model="values[field.key]" :type="field.type === 'textarea' ? 'textarea' : 'text'" :rows="4" />
                     </el-form-item>
                 </el-form>
             </el-tab-pane>

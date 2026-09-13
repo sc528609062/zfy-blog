@@ -8,6 +8,7 @@ use App\Models\Refund;
 use App\Services\CommerceOperations;
 use App\Services\ExternalRefundService;
 use App\Services\OrderCancellation;
+use App\Support\AdminPagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -16,14 +17,32 @@ class AdminCommerceController extends Controller
     public function index(Request $request, string $section)
     {
         abort_unless($request->user()?->can('manage commerce'), 403);
-        $rows = match ($section) {
-            'orders' => Order::with(['items', 'user:id,name'])->latest()->paginate(20),
-            'refunds' => Refund::latest()->paginate(20),
-            'commissions' => DB::table('author_earnings')->latest()->paginate(20),
-            'withdrawals' => DB::table('author_withdrawals')->latest()->paginate(20),
-            'points-exchanges' => DB::table('points_exchange_orders')->latest()->paginate(20),
+        $request->validate(['q' => ['nullable', 'string', 'max:120'], 'status' => ['nullable', 'string', 'max:40']]);
+        $query = match ($section) {
+            'orders' => Order::with(['items', 'user:id,name']),
+            'refunds' => Refund::query(),
+            'commissions' => DB::table('author_earnings'),
+            'withdrawals' => DB::table('author_withdrawals'),
+            'points-exchanges' => DB::table('points_exchange_orders'),
             default => abort(404),
         };
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('q')) {
+            $term = $request->string('q')->trim()->toString();
+            $query->where(function ($query) use ($section, $term) {
+                $query->where('id', ctype_digit($term) ? $term : 0);
+                if ($section === 'orders') {
+                    $query->orWhere('order_no', 'like', '%'.$term.'%')
+                        ->orWhereHas('user', fn ($user) => $user->where('name', 'like', '%'.$term.'%'));
+                }
+                if (ctype_digit($term)) {
+                    $query->orWhere(in_array($section, ['commissions', 'withdrawals'], true) ? 'author_id' : 'user_id', $term);
+                }
+            });
+        }
+        $rows = AdminPagination::paginate($query->latest('id'), $request);
 
         return response()->json(['data' => $rows]);
     }

@@ -12,6 +12,7 @@ use App\Services\SiteSettings;
 use App\Services\Updates\ExtensionUpdater;
 use App\Services\Updates\ReleaseClient;
 use App\Services\Updates\UpdateManager;
+use App\Support\AdminPagination;
 use App\Support\Zfy\FilterBus;
 use App\Support\Zfy\HookBus;
 use Illuminate\Http\Request;
@@ -83,6 +84,7 @@ class AdminMaintenanceController extends Controller
         abort_unless($request->user()?->can('manage system'), 403);
         $migrator = app('migrator');
         $pending = array_values(array_diff(array_keys($migrator->getMigrationFiles(database_path('migrations'))), $migrator->getRepository()->getRan()));
+        $logs = AdminPagination::paginate(DB::table('upgrade_logs')->latest('id'), $request);
 
         return response()->json(['data' => [
             'version' => config('zfy.version'), 'pending' => $pending,
@@ -94,7 +96,8 @@ class AdminMaintenanceController extends Controller
             'update_source' => ['provider' => $this->source()['provider'], 'repository' => $this->source()['repository'], 'configured' => filled(config('updates.public_key'))],
             'themes' => Theme::get(['name', 'version', 'is_active']),
             'plugins' => Plugin::get(['name', 'version', 'enabled']),
-            'logs' => DB::table('upgrade_logs')->latest()->limit(20)->get(),
+            'logs' => $logs->items(),
+            'logs_meta' => ['page' => $logs->currentPage(), 'per_page' => $logs->perPage(), 'total' => $logs->total()],
             'backups' => collect(File::glob(storage_path('app/private/backups/database-*')))->map(fn ($path) => ['name' => basename($path), 'size' => filesize($path)])->values(),
         ]]);
     }

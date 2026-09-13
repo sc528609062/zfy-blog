@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, reactive, shallowRef, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { EditPen, Picture, Brush, Goods, ArrowRight, DocumentChecked, ChatDotRound, RefreshLeft } from '@element-plus/icons-vue';
+import { EditPen, Picture, Brush, Goods, ArrowRight, DocumentChecked, ChatDotRound, RefreshLeft, Plus, Search } from '@element-plus/icons-vue';
+import AdminPagination from './AdminPagination.vue';
 import AdminEditorPage from '../editor/AdminEditorPage.vue';
 import CoverImageField from '../editor/CoverImageField.vue';
 import AdminDataTable from './AdminDataTable.vue';
@@ -31,7 +32,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    navigate: [target: string];
+    navigate: [target: string, options?: { force?: boolean; replace?: boolean }];
 }>();
 
 type AdminRow = Record<string, any>;
@@ -42,10 +43,19 @@ const plugins = computed(() => props.payload.plugins || []);
 const layouts = computed(() => props.payload.layouts || []);
 const pageKind = computed(() => props.currentPage?.kind || 'placeholder');
 const hasMenu = (key: string) => (props.payload.admin_menu || []).some((group: any) => group.items.some((item: any) => item.key === key));
-const contentQuery = reactive({ q: props.payload.content_pagination?.q || '', status: props.payload.content_pagination?.status || '' });
-function searchContents(page = 1) {
-    const query = new URLSearchParams({ q: contentQuery.q, status: contentQuery.status, page: String(page) });
-    emit('navigate', `/admin/${props.section}?${query}`);
+const contentQuery = reactive({ q: '', status: '', type: '', per_page: 20 });
+watch(() => props.payload.content_pagination, value => {
+    Object.assign(contentQuery, { q: value?.q || '', status: value?.status || '', type: value?.type || '', per_page: value?.per_page || 20 });
+}, { immediate: true });
+function searchContents(page = 1, pageSize = contentQuery.per_page, force = false) {
+    const query = new URLSearchParams({ q: contentQuery.q, status: contentQuery.status, type: contentQuery.type, per_page: String(pageSize), page: String(page) });
+    emit('navigate', `/admin/${props.section}?${query}`, { force, replace: force });
+}
+function resetContentSearch() { Object.assign(contentQuery, { q: '', status: '', type: '' }); searchContents(); }
+function refreshContentList(deleted = false) {
+    if (!['contents', 'pages'].includes(props.section)) return;
+    const page = props.payload.content_pagination?.current_page || 1;
+    searchContents(deleted && tableRows.value.length === 0 ? Math.max(1, page - 1) : page, contentQuery.per_page, true);
 }
 const settingsSchema = computed(() => props.payload.settings_schema || []);
 const editorPayload = computed(() => props.payload.editor || {});
@@ -313,6 +323,7 @@ async function toggleContentStatus(row: Record<string, any>) {
             published_at: updatedStatus === 'published' ? formatAdminDate(updatedContent.published_at || new Date().toISOString()) : null,
         });
         ElMessage.success(nextStatus === 'published' ? '文章已发布' : '文章已设为草稿');
+        refreshContentList();
     } catch (error) {
         if (error === 'cancel' || error === 'close') {
             return;
@@ -340,6 +351,7 @@ async function deleteContent(row: Record<string, any>) {
         await requestJson(contentRoute('content_destroy', row), 'DELETE');
         removeContentRow(row.id);
         ElMessage.success('文章已删除');
+        refreshContentList(true);
     } catch (error) {
         if (error === 'cancel' || error === 'close') {
             return;
@@ -402,6 +414,7 @@ async function saveQuickSettings() {
 
         ElMessage.success('快捷设置已保存');
         quickSettingsVisible.value = false;
+        refreshContentList();
     } catch (error) {
         ElMessage.error(error instanceof Error ? error.message : '保存失败');
     } finally {
@@ -411,7 +424,7 @@ async function saveQuickSettings() {
 </script>
 
 <template>
-    <section class="zfy-admin-page">
+    <section class="zfy-admin-page" :data-kind="pageKind">
         <template v-if="pageKind === 'dashboard'">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <BitsMetricCard label="内容总数" :value="stats.contents || 0" trend="全部内容类型" tone="blue" />
@@ -486,18 +499,7 @@ async function saveQuickSettings() {
             <ProfileForm :profile="payload.profile" :csrf="payload.csrf" />
         </template>
         <template v-else-if="pageKind === 'table'">
-            <el-card shadow="never">
-                <template #header>
-                    <div class="zfy-card-title">
-                        <div>
-                            <h2>{{ title }}</h2>
-                            <p>{{ description }}</p>
-                        </div>
-                        <el-space wrap>
-                            <el-button v-if="['contents', 'pages'].includes(section)" type="primary" @click="goAdmin(section === 'pages' ? 'pages-create' : 'editor')">新建</el-button>
-                        </el-space>
-                    </div>
-                </template>
+            <section class="admin-table-workspace content-manager">
                 <AdminDataTable
                     v-if="!['contents', 'pages'].includes(section)"
                     :rows="tableRows"
@@ -508,11 +510,18 @@ async function saveQuickSettings() {
                     @delete="deleteContent"
                 />
                 <template v-else>
-                    <el-space wrap class="mb-4"><el-input v-model="contentQuery.q" aria-label="搜索标题" clearable @keyup.enter="searchContents()" /><el-select v-model="contentQuery.status" clearable aria-label="发布状态" style="width:140px"><el-option label="草稿" value="draft" /><el-option label="待审核" value="pending" /><el-option label="已发布" value="published" /></el-select><el-button @click="searchContents()">搜索</el-button></el-space>
-                    <AdminDataTable :rows="tableRows" variant="content" @edit="editRow" @settings="settingsRow" @toggle-status="toggleContentStatus" @delete="deleteContent" />
-                    <el-pagination :current-page="payload.content_pagination?.current_page || 1" :page-size="20" :total="payload.content_pagination?.total || 0" layout="total, prev, pager, next" @current-change="searchContents" />
+                    <div class="admin-list-toolbar">
+                        <el-input v-model="contentQuery.q" :prefix-icon="Search" aria-label="搜索标题" placeholder="搜索标题" maxlength="120" clearable @keyup.enter="searchContents()" @clear="searchContents()" />
+                        <el-select v-model="contentQuery.status" clearable aria-label="发布状态" placeholder="全部状态" @change="searchContents()"><el-option v-for="(label, key) in { draft: '草稿', pending: '待审核', published: '已发布', scheduled: '定时发布', private: '私密', archived: '已归档' }" :key="key" :label="label" :value="key" /></el-select>
+                        <el-select v-if="section === 'contents'" v-model="contentQuery.type" clearable aria-label="内容类型" placeholder="全部类型" @change="searchContents()"><el-option v-for="item in contentTypes.filter((item: any) => item.value !== 'page')" :key="item.value" :label="item.label" :value="item.value" /></el-select>
+                        <el-button :icon="Search" @click="searchContents()">搜索</el-button>
+                        <el-tooltip content="重置筛选"><el-button :icon="RefreshLeft" aria-label="重置筛选" @click="resetContentSearch" /></el-tooltip>
+                        <el-button class="admin-toolbar-primary" :icon="Plus" type="primary" @click="goAdmin(section === 'pages' ? 'pages-create' : 'editor')">新建</el-button>
+                    </div>
+                    <div class="admin-table-region"><AdminDataTable :rows="tableRows" variant="content" height="100%" @edit="editRow" @settings="settingsRow" @toggle-status="toggleContentStatus" @delete="deleteContent" /></div>
+                    <AdminPagination :page="payload.content_pagination?.current_page || 1" :page-size="contentQuery.per_page" :total="payload.content_pagination?.total || 0" @change="searchContents" />
                 </template>
-            </el-card>
+            </section>
         </template>
 
         <template v-else-if="pageKind === 'editor'">
@@ -582,7 +591,7 @@ async function saveQuickSettings() {
             <el-result icon="error" title="页面不可用"><template #extra><el-button @click="goAdmin('dashboard')">返回仪表盘</el-button></template></el-result>
         </template>
 
-        <el-dialog v-model="quickSettingsVisible" title="快捷设置" width="680px" destroy-on-close :close-on-click-modal="true" :lock-scroll="false">
+        <el-dialog v-model="quickSettingsVisible" class="admin-record-dialog" title="快捷设置" width="min(680px, 94vw)" destroy-on-close :close-on-click-modal="true">
             <el-form label-position="top">
                 <el-form-item label="标题" required>
                     <el-input v-model="quickSettingsForm.title" maxlength="180" show-word-limit />

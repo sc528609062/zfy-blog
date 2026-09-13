@@ -280,6 +280,11 @@ async function requestJson(url: string, method: string, data: Record<string, any
 
 <template>
     <section :class="['zfy-editor-page', { 'is-fullscreen': fullscreen }]">
+        <header class="zfy-editor-page-actions">
+            <el-button :loading="previewLoading" @click="refreshPreview">预览</el-button>
+            <el-button :loading="saving" @click="saveContent('draft')">保存草稿</el-button>
+            <el-button :loading="saving" type="primary" @click="saveContent('published')">发布文章</el-button>
+        </header>
         <div class="zfy-editor-layout">
             <div class="zfy-editor-main">
                 <el-card class="zfy-editor-title-card" shadow="never">

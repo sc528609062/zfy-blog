@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Link;
 use App\Models\LinkCheck;
 use App\Services\LinkChecker;
+use App\Support\AdminPagination;
 use Illuminate\Http\Request;
 
 class AdminLinkController extends Controller
@@ -14,7 +15,7 @@ class AdminLinkController extends Controller
     {
         abort_unless($request->user()?->can('manage links'), 403);
 
-        return response()->json(['links' => Link::orderBy('name')->get(['id', 'name', 'url']), 'data' => LinkCheck::with('link:id,name,url')->latest()->paginate(20)]);
+        return response()->json(['links' => Link::orderBy('name')->get(['id', 'name', 'url']), 'data' => AdminPagination::paginate(LinkCheck::with('link:id,name,url')->latest('id'), $request)]);
     }
 
     public function check(Request $request, Link $link, LinkChecker $checker)

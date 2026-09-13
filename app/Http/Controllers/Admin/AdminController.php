@@ -27,6 +27,7 @@ use App\Services\PageLayoutSchema;
 use App\Services\PluginLifecycleManager;
 use App\Services\SiteSettings;
 use App\Services\ThemeManager;
+use App\Support\AdminPagination;
 use App\Support\Zfy\AdminRegistry;
 use App\Support\Zfy\ExtensionRegistry;
 use App\Support\Zfy\SettingsRegistry;
@@ -36,6 +37,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
@@ -98,13 +100,21 @@ class AdminController extends Controller
             $settingGroup = 'links';
         }
 
-        $contentPagination = in_array($section, ['contents', 'pages'], true)
-            ? Content::with($this->contentListRelations())
+        $contentPagination = null;
+        if (in_array($section, ['contents', 'pages'], true)) {
+            $request->validate([
+                'q' => ['nullable', 'string', 'max:120'],
+                'status' => ['nullable', 'in:draft,pending,published,scheduled,private,archived'],
+                'type' => ['nullable', Rule::in(config('zfy.content_types'))],
+            ]);
+            $query = Content::with($this->contentListRelations())
                 ->when($section === 'pages', fn ($query) => $query->where('type', 'page'), fn ($query) => $query->where('type', '!=', 'page'))
                 ->when($request->filled('q'), fn ($query) => $query->where('title', 'like', '%'.mb_substr($request->string('q'), 0, 120).'%'))
-                ->when(in_array($request->input('status'), ['draft', 'pending', 'published'], true), fn ($query) => $query->where('status', $request->input('status')))
-                ->latest()->paginate(20)
-            : null;
+                ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
+                ->when($request->filled('type'), fn ($query) => $query->where('type', $request->input('type')))
+                ->latest('id');
+            $contentPagination = AdminPagination::paginate($query, $request);
+        }
 
         return [
             'section' => $section,
@@ -127,7 +137,7 @@ class AdminController extends Controller
             'contents' => $request->user()->can('manage contents') ? $this->contentRows(Content::with($this->contentListRelations())->latest()->take(12)->get()) : [],
             'orders' => $request->user()->can('manage commerce') ? Order::latest()->take(12)->get() : [],
             'dataRows' => $contentPagination ? $this->contentRows($contentPagination->getCollection()) : $this->rowsFor($section),
-            'contentPagination' => $contentPagination ? ['current_page' => $contentPagination->currentPage(), 'total' => $contentPagination->total(), 'per_page' => 20, 'q' => $request->input('q', ''), 'status' => $request->input('status', '')] : null,
+            'contentPagination' => $contentPagination ? ['current_page' => $contentPagination->currentPage(), 'total' => $contentPagination->total(), 'per_page' => $contentPagination->perPage(), 'q' => $request->input('q', ''), 'status' => $request->input('status', ''), 'type' => $request->input('type', '')] : null,
             'themes' => Theme::all(),
             'plugins' => Plugin::all(),
             'layouts' => PageLayout::latest()->take(10)->get(),

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { Refresh, Download } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminRequest } from './adminRequest';
+import AdminPagination from './AdminPagination.vue';
 const props = defineProps<{ csrf: string }>();
 const data = ref<Record<string, any>>({ pending: [], backups: [], logs: [] });
 const busy = ref(false);
@@ -10,6 +11,8 @@ const release = ref<Record<string, any> | null>(null);
 const packageFile = ref<File>();
 const manifestFile = ref<File>();
 const signatureFile = ref<File>();
+const logPage = ref(1);
+const logSize = ref(20);
 async function saveSource() {
     try { await adminRequest('/admin/maintenance/source', props.csrf, 'PUT', { provider: data.value.update_source.provider, repository: data.value.update_source.repository }); release.value = null; ElMessage.success('更新源已保存'); }
     catch (error) { ElMessage.error((error as Error).message); }
@@ -33,9 +36,10 @@ async function checkUpdate() {
     finally { busy.value = false; }
 }
 async function load() {
-    try { data.value = (await adminRequest('/admin/maintenance/status', props.csrf)).data; }
+    try { data.value = (await adminRequest(`/admin/maintenance/status?page=${logPage.value}&per_page=${logSize.value}`, props.csrf)).data; logPage.value = data.value.logs_meta.page; }
     catch (error) { ElMessage.error((error as Error).message); }
 }
+function paginateLogs(page: number, size: number) { logPage.value = page; logSize.value = size; void load(); }
 async function run(action: string) {
     if (action === 'migrate' || action === 'install-update') {
         try { await ElMessageBox.confirm('备份当前数据库并执行待应用的更新？', '数据库更新', { type: 'warning' }); }
@@ -51,7 +55,9 @@ async function run(action: string) {
 onMounted(load);
 </script>
 <template>
-    <section>
+    <section class="admin-maintenance">
+        <el-tabs>
+        <el-tab-pane label="版本更新" name="version">
         <h2>系统版本 {{ data.version }}</h2>
         <p v-if="data.update_checks">最近定时检查：{{ data.update_checks.checked_at }}</p>
         <el-button :icon="Refresh" :loading="busy" @click="run('rebuild')">重建搜索索引与模板缓存</el-button>
@@ -69,16 +75,27 @@ onMounted(load);
             <el-form-item label="签名 release.sig"><input type="file" accept=".sig" @change="signatureFile = ($event.target as HTMLInputElement).files?.[0]"></el-form-item>
             <el-button :disabled="!packageFile || !manifestFile || !signatureFile || !data.update_source?.configured" :loading="busy" @click="offline">校验并更新</el-button>
         </el-form></el-collapse-item></el-collapse>
-        <el-table v-if="data.updates?.length" :data="data.updates"><el-table-column prop="version" label="目标版本" /><el-table-column prop="status" label="更新状态" /><el-table-column prop="error" label="详情" /></el-table>
+        <el-table v-if="data.updates?.length" :data="data.updates" max-height="320"><el-table-column prop="version" label="目标版本" /><el-table-column prop="status" label="更新状态" /><el-table-column prop="error" label="详情" /></el-table>
+        </el-tab-pane>
+        <el-tab-pane label="数据库与备份" name="database">
         <el-space wrap><el-button :icon="Refresh" :disabled="busy" @click="load">刷新</el-button><el-button :icon="Download" :loading="busy" @click="run('backup')">备份数据库</el-button><el-button type="primary" :disabled="!data.pending.length" :loading="busy" @click="run('migrate')">应用数据库更新</el-button></el-space>
         <h3>待更新 {{ data.pending.length }}</h3><ul><li v-for="migration in data.pending" :key="migration">{{ migration }}</li></ul>
-        <h3>数据库备份</h3><el-table :data="data.backups"><el-table-column prop="name" label="文件" /><el-table-column prop="size" label="字节" width="130" /><el-table-column label="下载" width="90"><template #default="{ row }"><a :href="`/admin/maintenance/backups/${encodeURIComponent(row.name)}`" aria-label="下载备份"><el-icon><Download /></el-icon></a></template></el-table-column></el-table>
+        <h3>数据库备份</h3><el-table :data="data.backups" max-height="360"><el-table-column prop="name" label="文件" min-width="200" show-overflow-tooltip /><el-table-column prop="size" label="字节" width="110" /><el-table-column label="下载" width="70"><template #default="{ row }"><a :href="`/admin/maintenance/backups/${encodeURIComponent(row.name)}`" aria-label="下载备份"><el-icon><Download /></el-icon></a></template></el-table-column></el-table>
+        </el-tab-pane>
+        <el-tab-pane label="扩展版本" name="extensions">
         <h3>主题与插件版本</h3><el-table :data="[...(data.themes || []), ...(data.plugins || [])]"><el-table-column prop="name" label="名称" /><el-table-column prop="version" label="版本" /></el-table>
-        <h3>更新记录</h3><el-table :data="data.logs"><el-table-column prop="to_version" label="版本" /><el-table-column prop="status" label="状态" /><el-table-column prop="updated_at" label="时间" /></el-table>
         <h3>扩展更新任务</h3><el-table :data="data.extension_updates || []"><el-table-column prop="slug" label="扩展" /><el-table-column prop="version" label="版本" /><el-table-column prop="status" label="状态" /><el-table-column prop="error" label="错误" /></el-table>
+        </el-tab-pane>
+        <el-tab-pane label="更新记录" name="logs" class="admin-maintenance-logs">
+            <div class="admin-table-region"><el-table :data="data.logs" height="100%"><el-table-column prop="to_version" label="版本" min-width="120" /><el-table-column prop="status" label="状态" min-width="120" /><el-table-column prop="updated_at" label="时间" min-width="180" /></el-table></div>
+            <AdminPagination :page="logPage" :page-size="logSize" :total="data.logs_meta?.total || 0" @change="paginateLogs" />
+        </el-tab-pane>
+        <el-tab-pane label="钩子诊断" name="diagnostics">
         <el-collapse><el-collapse-item v-for="kind in ['hooks', 'filters']" :key="kind" :title="kind === 'hooks' ? '动作钩子诊断' : '过滤器诊断'" :name="kind">
             <el-table :data="Object.entries(data[kind]?.hooks || {}).map(([name, listeners]) => ({ name, count: (listeners as any[]).length, calls: data[kind]?.counts?.[name] || 0 }))"><el-table-column prop="name" label="名称" /><el-table-column prop="count" label="监听数" width="90" /><el-table-column prop="calls" label="本次调用" width="100" /></el-table>
             <el-table v-if="data[kind]?.failures?.length" :data="data[kind].failures"><el-table-column prop="hook" label="失败钩子" /><el-table-column prop="exception" label="异常" /></el-table>
         </el-collapse-item></el-collapse>
+        </el-tab-pane>
+        </el-tabs>
     </section>
 </template>

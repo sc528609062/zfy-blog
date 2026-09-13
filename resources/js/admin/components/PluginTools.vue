@@ -61,7 +61,7 @@ onMounted(async () => {
 </script>
 <template>
     <section v-if="installer"><input ref="picker" type="file" accept=".zip" hidden @change="upload"><el-button type="primary" :icon="Upload" :loading="busy" @click="picker?.click()">安装 / 升级插件</el-button></section>
-    <el-tabs v-else>
+    <el-tabs v-else class="admin-plugin-settings">
         <el-tab-pane v-for="plugin in plugins" :key="plugin.id" :label="plugin.name">
             <ExtensionUpdate v-if="plugin.installed" type="plugin" :slug="plugin.slug" :csrf="csrf" :active="plugin.enabled" />
             <el-button v-if="plugin.installed" :icon="Delete" type="danger" :disabled="plugin.enabled || busy" @click="uninstall(plugin)">卸载</el-button>
@@ -73,7 +73,7 @@ onMounted(async () => {
                     <el-select v-else-if="field.type === 'select'" v-model="field.value"><el-option v-for="(label, value) in field.options" :key="value" :label="String(label)" :value="value" /></el-select>
                     <el-input v-else v-model="field.value" :type="field.type === 'password' ? 'password' : 'text'" :show-password="field.type === 'password'" />
                 </el-form-item>
-                <el-button type="primary" :loading="busy" @click="save(plugin)">保存设置</el-button>
+                <footer class="admin-form-actions"><el-button type="primary" :loading="busy" @click="save(plugin)">保存设置</el-button></footer>
             </el-form>
         </el-tab-pane>
     </el-tabs>

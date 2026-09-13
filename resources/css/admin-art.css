@@ -224,3 +224,119 @@ html.dark {
     .zfy-art-pending>button { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .zfy-admin-sidebar, .zfy-admin-workspace { transition: none; } }
+
+/* The shell owns the viewport; individual work areas own scrolling. */
+.zfy-admin-body { height: 100dvh; overflow: hidden; }
+.zfy-admin-shell { height: 100dvh; min-height: 0; overflow: hidden; }
+.zfy-admin-workspace { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
+.zfy-admin-topbar, .zfy-art-tabs-bar { flex: none; }
+.zfy-admin-main { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; padding: 6px 22px 14px; }
+.zfy-art-page-heading { flex: none; margin-bottom: 12px; }
+.zfy-admin-page { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 16px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.zfy-admin-page > * { flex-shrink: 0; }
+.zfy-admin-page:has(> .admin-table-workspace), .zfy-admin-page:has(> .admin-settings-workspace), .zfy-admin-page:has(> .layout-builder), .zfy-admin-page:has(> .theme-settings) { overflow: hidden; }
+.zfy-admin-page > .admin-table-workspace { flex: 1; }
+.zfy-admin-shell .admin-table-workspace { display: flex; flex-direction: column; min-height: 0; min-width: 0; gap: 0; height: 100%; padding: 14px 16px 0; background: var(--zfy-admin-surface); }
+.zfy-admin-shell .admin-list-toolbar { display: flex; align-items: center; flex-wrap: wrap; flex: none; gap: 8px; padding: 0 0 12px; margin: 0; border-bottom: 0; }
+.zfy-admin-shell .admin-list-toolbar > .el-input { width: 240px; max-width: 100%; }
+.zfy-admin-shell .admin-list-toolbar > .el-select { width: 130px; }
+.zfy-admin-shell .admin-list-toolbar > .el-button { margin: 0; }
+.zfy-admin-shell .admin-list-toolbar > .admin-toolbar-primary { margin-left: auto; }
+.admin-table-region { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
+.admin-table-region .el-table { width: 100%; }
+.admin-table-region .el-table { display: flex; overflow: hidden; }
+.admin-table-region .el-table__inner-wrapper { min-width: 0; width: 100%; }
+.admin-table-region .el-table__body-wrapper, .admin-table-region .el-table__header-wrapper { overflow: hidden; }
+.commerce-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.zfy-admin-shell .commerce-row-actions .el-button { margin: 0; white-space: normal; }
+.zfy-admin-shell .el-table td.el-table__cell { padding: 9px 0; }
+.zfy-admin-shell .el-table th.el-table__cell { padding: 9px 0; }
+.zfy-admin-shell .el-table .cell { padding: 0 10px; }
+.zfy-admin-shell.is-compact .el-table .el-table__cell { padding: 5px 0; }
+.zfy-admin-shell .el-table .el-table__expanded-cell { padding: 0; }
+.admin-pagination { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; padding: 10px 0; border-top: 1px solid var(--zfy-admin-line); }
+.admin-pagination-total, .admin-pagination-position { flex: none; color: var(--zfy-admin-muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.admin-pagination .el-pagination { margin: 0; overflow: visible; min-width: 0; }
+.zfy-admin-body .admin-record-dialog { display: flex; flex-direction: column; max-height: calc(100dvh - 40px); margin: 20px auto; }
+.admin-record-dialog > .el-dialog__header, .admin-record-dialog > .el-dialog__footer { flex: none; }
+.admin-record-dialog > .el-dialog__body { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding-right: 8px; }
+.admin-record-dialog > .el-dialog__footer { border-top: 1px solid var(--zfy-admin-line); margin-top: 12px; padding-top: 12px; }
+.zfy-admin-page > .admin-settings-workspace { display: flex; flex-direction: column; flex: 1; min-height: 0; border: 0; border-radius: 0; }
+.admin-settings-workspace > .el-card__header { flex: none; }
+.admin-settings-workspace > .el-card__body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.admin-settings-workspace .el-tabs, .layout-builder { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.admin-settings-workspace .el-tabs__header, .layout-builder > .el-tabs__header { flex: none; }
+.admin-settings-workspace .el-tabs__content, .layout-builder > .el-tabs__content { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.admin-settings-workspace .zfy-settings-form { max-width: 1100px; }
+.zfy-admin-page > .layout-builder { flex: 1; padding: 0 16px; background: var(--zfy-admin-surface); overflow: hidden; }
+.layout-builder .el-tab-pane, .layout-builder .el-tab-pane > .el-form { min-height: 100%; }
+.layout-builder .el-tab-pane > .el-form { display: flex; flex-direction: column; }
+.layout-builder-meta { display: grid; grid-template-columns: minmax(160px, 1fr) auto auto; gap: 24px; }
+.layout-builder .configuration-actions { position: sticky; bottom: 0; z-index: 10; margin-top: auto; padding: 12px 0; display: flex; gap: 8px; background: var(--zfy-admin-surface); border-top: 1px solid var(--zfy-admin-line); }
+.layout-builder .configuration-actions .el-button { margin: 0; }
+.zfy-admin-page > .theme-settings { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.zfy-admin-page .theme-settings-toolbar { flex: none; padding: 0 0 12px; }
+.zfy-admin-page .theme-settings-workspace { flex: 1; min-height: 0; align-items: stretch; overflow: hidden; gap: 24px; }
+.zfy-admin-page .theme-settings-nav { position: static; align-content: start; padding-top: 12px; overflow: auto; }
+.zfy-admin-page .theme-settings-form { min-height: 0; overflow: auto; padding: 12px 12px 20px 0; overscroll-behavior: contain; }
+.zfy-admin-page .theme-setting-row { padding: 12px 0; }
+.zfy-admin-page .theme-settings > .configuration-actions { flex: none; position: static; padding: 10px 12px; }
+.zfy-admin-page .theme-settings-maintenance { flex: none; padding-top: 8px; flex-wrap: wrap; }
+.zfy-admin-page[data-kind="editor"] { overflow: auto; }
+.zfy-admin-page .zfy-markdown-editor:not(.is-fullscreen) { --zfy-editor-content-height: max(240px, calc(100dvh - 454px)); }
+.zfy-editor-page-actions { position: sticky; top: 0; z-index: 15; display: flex; flex: none; justify-content: flex-end; gap: 8px; padding: 8px 0 12px; background: var(--zfy-admin-bg); }
+.zfy-editor-page-actions .el-button { margin: 0; }
+.zfy-admin-page .zfy-rich-body { min-height: 240px; height: max(260px, calc(100dvh - 440px)); overflow: auto; }
+.zfy-admin-page .zfy-rich-content .tiptap { min-height: 200px; }
+.admin-profile-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+.admin-form-wide, .admin-form-actions { grid-column: 1 / -1; }
+.admin-form-actions { position: sticky; bottom: 0; z-index: 10; padding: 12px 0; background: var(--zfy-admin-bg); }
+.zfy-admin-page > .admin-plugin-settings { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.admin-plugin-settings > .el-tabs__content { overflow: auto; }
+.admin-plugin-settings .el-form { margin-top: 16px; }
+.zfy-admin-page > .admin-maintenance { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--zfy-admin-surface); padding: 0 16px; }
+.admin-maintenance > .el-tabs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.admin-maintenance .el-tabs__content { flex: 1; min-height: 0; overflow: auto; }
+.admin-maintenance .admin-maintenance-logs { display: flex; flex-direction: column; height: 100%; }
+.admin-maintenance h2 { font-size: 18px; margin: 8px 0 16px; }
+.admin-maintenance h3 { font-size: 15px; margin: 18px 0 10px; }
+.admin-maintenance .el-form, .admin-maintenance .el-alert, .admin-maintenance .el-space, .admin-maintenance .el-collapse { margin-top: 16px; }
+.zfy-admin-page[data-kind="dashboard"] .bits-metric-card { min-height: 112px; padding: 14px 18px; }
+.zfy-admin-page[data-kind="dashboard"] .el-card__header { padding: 10px 16px; }
+.zfy-admin-page[data-kind="dashboard"] .el-card__body { padding: 10px 16px; }
+.zfy-admin-page[data-kind="dashboard"] .zfy-art-pending, .zfy-admin-page[data-kind="dashboard"] .zfy-art-shortcuts { margin-top: 8px; }
+@media (min-width: 1200px) {
+    .zfy-admin-page[data-kind="editor"] > .zfy-editor-page:not(.is-fullscreen) { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .zfy-admin-page .zfy-editor-page:not(.is-fullscreen) > .zfy-editor-layout { flex: 1; min-height: 0; align-items: stretch; }
+    .zfy-admin-page .zfy-editor-page:not(.is-fullscreen) .zfy-editor-main, .zfy-admin-page .zfy-editor-page:not(.is-fullscreen) .zfy-editor-sidebar { min-height: 0; overflow: auto; align-content: start; overscroll-behavior: contain; }
+}
+@media (max-width: 900px) {
+    .zfy-admin-main { padding: 4px 12px 10px; }
+    .zfy-admin-shell .admin-table-workspace { padding: 12px 12px 0; }
+    .zfy-art-page-heading > span { display: none; }
+}
+@media (max-width: 760px) {
+    .zfy-admin-page .theme-settings-workspace { display: flex; flex-direction: column; gap: 0; }
+    .zfy-admin-page .theme-settings-nav { flex: none; padding: 8px 0; }
+    .zfy-admin-page .theme-settings-form { flex: 1; }
+    .zfy-admin-page .theme-settings-nav button { min-height: 36px; padding: 6px 10px; }
+    .layout-builder-meta { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+    .layout-builder-meta > :first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+    .admin-profile-form { grid-template-columns: minmax(0, 1fr); }
+    .zfy-admin-main { padding: 2px 8px 8px; }
+    .zfy-art-page-heading { margin-bottom: 8px; }
+    .zfy-admin-shell .admin-table-workspace { padding: 10px 8px 0; }
+    .zfy-admin-shell .admin-list-toolbar { gap: 6px; padding-bottom: 10px; }
+    .zfy-admin-shell .admin-list-toolbar > .el-input { width: 100%; }
+    .zfy-admin-shell .admin-list-toolbar > .el-select { width: 114px; }
+    .zfy-admin-shell .admin-list-toolbar > .admin-toolbar-primary { margin-left: 0; }
+    .admin-pagination { min-height: 50px; gap: 6px; padding: 8px 0; }
+    .admin-pagination .el-pagination__sizes { margin-right: 0; }
+    .admin-pagination .el-select { width: 96px; }
+    .zfy-admin-body .admin-record-dialog { max-height: calc(100dvh - 20px); margin: 10px auto; }
+    .zfy-admin-page .theme-settings > .configuration-actions { gap: 6px; padding: 8px; }
+    .zfy-admin-page .theme-settings > .configuration-actions > span { flex-basis: 100%; }
+    .zfy-admin-page .theme-settings-maintenance { gap: 6px; }
+}
