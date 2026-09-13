@@ -51,7 +51,11 @@ const codeTheme = defineModel<string>('codeTheme', { default: 'atom-one-dark' })
 const editorRootRef = useTemplateRef<HTMLElement>('editorRoot');
 const importInputRef = useTemplateRef<HTMLInputElement>('importInput');
 const syncScroll = shallowRef(true);
-const outlineVisible = shallowRef(!window.matchMedia('(max-width: 900px)').matches);
+const mobileQuery = window.matchMedia('(max-width: 900px)');
+const outlineVisible = shallowRef(!mobileQuery.matches);
+function closeMobileOutline() {
+    if (mobileQuery.matches) outlineVisible.value = false;
+}
 const promptVisible = shallowRef(false);
 const imageVisible = shallowRef(false);
 const symbolVisible = shallowRef(false);
@@ -98,11 +102,13 @@ let removeEditorScroll: (() => void) | undefined;
 let removePreviewScroll: (() => void) | undefined;
 
 onMounted(() => {
+    mobileQuery.addEventListener('change', closeMobileOutline);
     removeEditorScroll = onScroll(handleEditorScroll);
     void bindPreviewScroll();
 });
 
 onBeforeUnmount(() => {
+    mobileQuery.removeEventListener('change', closeMobileOutline);
     removeEditorScroll?.();
     removePreviewScroll?.();
 });
@@ -306,6 +312,7 @@ function handleEditorScroll(ratio: number): void {
 }
 
 function handleOutlineSelect(item: EditorOutlineItem): void {
+    closeMobileOutline();
     scrollToLine(item.line);
     const headings = previewPane()?.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6');
     headings?.[item.index]?.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -377,7 +384,7 @@ function escapeMarkdownText(value: string): string {
         >
             <div v-show="editorVisible" ref="editorHost" class="zfy-markdown-editor-host" />
             <slot name="preview" />
-            <EditorOutline v-if="outlineVisible" :items="outline" @select="handleOutlineSelect" />
+            <EditorOutline v-if="outlineVisible" :items="outline" @select="handleOutlineSelect" @close="outlineVisible = false" />
         </div>
 
         <footer class="zfy-editor-statusbar">
@@ -408,3 +415,15 @@ function escapeMarkdownText(value: string): string {
         />
     </section>
 </template>
+
+<style scoped>
+.zfy-editor-controlbar { flex-wrap: wrap; overflow: visible; }
+.zfy-editor-controlbar > * { flex-shrink: 0; }
+.zfy-editor-controlbar__themes { flex: 1 1 310px; min-width: 0; }
+.zfy-editor-controlbar__themes .el-select { flex: 1; min-width: 0; }
+.zfy-markdown-editor-body.is-mode-preview:not(.has-outline) { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.zfy-markdown-editor-body :deep(.zfy-editor-outline__head) { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; }
+@media (max-width: 640px) {
+    .zfy-editor-controlbar__themes { order: 1; flex-basis: 100%; }
+}
+</style>

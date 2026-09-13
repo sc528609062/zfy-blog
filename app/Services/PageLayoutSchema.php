@@ -9,9 +9,21 @@ use Illuminate\Validation\ValidationException;
 
 class PageLayoutSchema
 {
+    public function defaults(string $scope): array
+    {
+        return [
+            'version' => 1,
+            'enabled' => false,
+            'blocks' => $scope === 'home' ? [
+                ['type' => 'hero', 'title' => config('app.name', 'zfy-blog'), 'subtitle' => '内容、资源与商城一体化平台'],
+                ['type' => 'content-feed', 'title' => '最新内容'],
+            ] : [],
+        ];
+    }
+
     public function validate(mixed $schema): array
     {
-        Validator::make(['schema' => $schema], ['schema' => ['required', 'array'], 'schema.blocks' => ['present', 'array', 'max:100']])->validate();
+        Validator::make(['schema' => $schema], ['schema' => ['required', 'array'], 'schema.enabled' => ['sometimes', 'boolean'], 'schema.blocks' => ['present', 'array', 'max:100']])->validate();
         $count = 0;
         $visit = function (array $blocks, int $depth) use (&$visit, &$count): void {
             foreach ($blocks as $block) {

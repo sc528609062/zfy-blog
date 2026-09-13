@@ -9,6 +9,15 @@ use Illuminate\Validation\ValidationException;
 
 class ThemeConfiguration
 {
+    public function defaults(Theme $theme): array
+    {
+        $defaults = app(ThemeManager::class)->defaultSettings($theme->slug)['global'] ?? [];
+
+        return collect($this->fields($theme))->mapWithKeys(fn ($field) => [
+            $field['key'] => $defaults[$field['key']] ?? $field['default'] ?? null,
+        ])->all();
+    }
+
     public function fields(Theme $theme): array
     {
         $fields = array_key_exists($theme->slug, config('zfy.themes', [])) ? [

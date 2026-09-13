@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { EditorOutlineItem } from './useEditorOutline';
+import { Close } from '@element-plus/icons-vue';
 
 defineProps<{
     items: EditorOutlineItem[];
@@ -7,12 +8,16 @@ defineProps<{
 
 const emit = defineEmits<{
     select: [item: EditorOutlineItem];
+    close: [];
 }>();
 </script>
 
 <template>
     <aside class="zfy-editor-outline" aria-label="文章目录">
-        <div class="zfy-editor-outline__head">文章目录</div>
+        <div class="zfy-editor-outline__head">
+            <span>文章目录</span>
+            <el-button :icon="Close" aria-label="关闭文章目录" title="关闭文章目录" text circle size="small" @click="emit('close')" />
+        </div>
         <nav v-if="items.length" class="zfy-editor-outline__list">
             <button
                 v-for="item in items"

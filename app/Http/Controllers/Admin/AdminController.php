@@ -189,6 +189,7 @@ class AdminController extends Controller
                 'title' => $layout->title,
                 'status' => $layout->status,
                 'schema' => json_encode($layout->schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+                'default_schema' => app(PageLayoutSchema::class)->defaults($layout->scope),
                 'save_url' => route('admin.page-builder.save', $layout, false),
             ])->values(),
             'editor' => $data['editor'] ?? [],
@@ -286,7 +287,7 @@ class AdminController extends Controller
             'schema' => ['required', 'json'],
         ]);
         $schema = app(PageLayoutSchema::class)->validate(json_decode($data['schema'], true));
-        $schema['enabled'] = true;
+        $schema['enabled'] = (bool) ($schema['enabled'] ?? true);
 
         $layout->update([
             'title' => $data['title'],

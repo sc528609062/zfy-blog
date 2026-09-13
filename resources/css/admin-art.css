@@ -131,6 +131,7 @@ html.dark {
 .zfy-art-page-heading h1 { font-size: 20px; font-weight: 600; line-height: 28px; margin: 0; color: var(--zfy-admin-text); }
 .zfy-art-page-heading>span { color: var(--zfy-admin-muted); font-size: 13px; }
 .zfy-admin-page { min-width: 0; }
+.zfy-admin-page > * { min-width: 0; }
 .zfy-admin-shell h1, .zfy-admin-shell h2 { letter-spacing: 0; }
 .zfy-admin-shell .el-card { border-radius: 8px; border-color: var(--zfy-admin-line); background: var(--zfy-admin-surface); box-shadow: none; }
 .zfy-admin-shell .el-card__header { padding: 18px 20px; color: var(--zfy-admin-text); font-size: 15px; font-weight: 500; }

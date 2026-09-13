@@ -3,9 +3,19 @@ import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminRequest } from './adminRequest';
 import ExtensionUpdate from './ExtensionUpdate.vue';
+import { RefreshLeft } from '@element-plus/icons-vue';
 const props = defineProps<{ csrf: string }>();
 const themes = ref<Record<string, any>[]>([]);
 const saving = ref(false);
+async function reset(theme: Record<string, any>) {
+    try {
+        await ElMessageBox.confirm(`将“${theme.name}”当前表单恢复为默认配置，保存后生效。`, '恢复默认配置', {
+            type: 'warning', confirmButtonText: '恢复默认', cancelButtonText: '取消',
+        });
+        theme.values = JSON.parse(JSON.stringify(theme.defaults));
+        ElMessage.success('已恢复默认值，请保存配置');
+    } catch (error) { if (error instanceof Error) ElMessage.error(error.message); }
+}
 onMounted(async () => {
     try { themes.value = (await adminRequest('/admin/themes/configuration', props.csrf)).data; }
     catch (error) { ElMessage.error((error as Error).message); }
@@ -43,7 +53,7 @@ async function purge(theme: Record<string, any>) {
 }
 </script>
 <template>
-    <el-tabs class="mt-5">
+    <el-tabs class="mt-5 theme-settings">
         <el-tab-pane v-for="theme in themes" :key="theme.id" :label="theme.name">
             <ExtensionUpdate v-if="theme.installed" type="theme" :slug="theme.slug" :csrf="csrf" :active="theme.is_active" />
             <el-form label-position="top" style="max-width:680px">
@@ -54,11 +64,21 @@ async function purge(theme: Record<string, any>) {
                     <el-select v-else-if="field.type === 'select'" v-model="theme.values[field.key]"><el-option v-for="(label, key) in field.options" :key="key" :label="String(label)" :value="key" /></el-select>
                     <el-input v-else v-model="theme.values[field.key]" :type="field.type === 'textarea' ? 'textarea' : 'text'" maxlength="4000" />
                 </el-form-item>
-                <el-button type="primary" :loading="saving" :disabled="!theme.installed" @click="save(theme)">保存配置</el-button>
-                <el-button :disabled="!theme.installed" @click="preview(theme)">预览</el-button>
-                <el-button v-if="theme.installed && !theme.is_active" type="danger" plain @click="uninstall(theme)">卸载主题</el-button>
-                <el-button v-if="!theme.installed" type="danger" plain @click="purge(theme)">清理配置</el-button>
+                <div class="configuration-actions">
+                    <el-button type="primary" :loading="saving" :disabled="!theme.installed" @click="save(theme)">保存配置</el-button>
+                    <el-button :disabled="!theme.installed || saving" @click="preview(theme)">预览</el-button>
+                    <el-button :icon="RefreshLeft" :disabled="!theme.installed || saving" @click="reset(theme)">恢复默认</el-button>
+                    <el-button v-if="theme.installed && !theme.is_active" type="danger" plain @click="uninstall(theme)">卸载主题</el-button>
+                    <el-button v-if="!theme.installed" type="danger" plain @click="purge(theme)">清理配置</el-button>
+                </div>
             </el-form>
         </el-tab-pane>
     </el-tabs>
 </template>
+
+<style scoped>
+.theme-settings { min-width: 0; width: 100%; max-width: 100%; }
+.theme-settings :deep(.el-form) { width: 100%; min-width: 0; }
+.configuration-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.configuration-actions .el-button { margin: 0; }
+</style>

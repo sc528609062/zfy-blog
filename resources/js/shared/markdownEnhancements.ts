@@ -19,32 +19,11 @@ import sql from 'highlight.js/lib/languages/sql';
 import typescript from 'highlight.js/lib/languages/typescript';
 import xml from 'highlight.js/lib/languages/xml';
 import yaml from 'highlight.js/lib/languages/yaml';
-import atomOneDark from 'highlight.js/styles/atom-one-dark.css?inline';
-import atomOneLight from 'highlight.js/styles/atom-one-light.css?inline';
-import github from 'highlight.js/styles/github.css?inline';
-import githubDark from 'highlight.js/styles/github-dark.css?inline';
-import monokai from 'highlight.js/styles/monokai.css?inline';
-import tokyoNight from 'highlight.js/styles/tokyo-night-dark.css?inline';
-import stackoverflowLight from 'highlight.js/styles/stackoverflow-light.css?inline';
-import androidstudio from 'highlight.js/styles/androidstudio.css?inline';
-import tomorrowNight from 'highlight.js/styles/base16/tomorrow-night.css?inline';
 import renderMathInElement from 'katex/contrib/auto-render';
 import 'katex/dist/katex.min.css';
 import mediumZoom from 'medium-zoom';
 import { nameToEmoji } from 'gemoji';
-import { markdownThemeStyle, normalizeMarkdownTheme } from './markdownThemes';
-
-const codeStyles: Record<string, string> = {
-    'atom-one-dark': atomOneDark,
-    'atom-one-light': atomOneLight,
-    github,
-    'github-dark': githubDark,
-    monokai,
-    'tokyo-night-dark': tokyoNight,
-    'stackoverflow-light': stackoverflowLight,
-    androidstudio,
-    'base16/tomorrow-night': tomorrowNight,
-};
+import { applyMarkdownPresentation, type MarkdownPresentationOptions } from './markdownPresentation';
 
 Object.entries({
     bash,
@@ -80,26 +59,24 @@ const languageAliases: Record<string, string> = {
     yml: 'yaml',
 };
 
-export interface MarkdownEnhancementOptions {
-    markdownTheme?: string;
-    codeTheme?: string;
+export interface MarkdownEnhancementOptions extends MarkdownPresentationOptions {
+    presentation?: boolean;
+    signal?: AbortSignal;
 }
 
 export async function enhanceMarkdownContent(
     root: HTMLElement,
     options: MarkdownEnhancementOptions = {},
 ): Promise<() => void> {
-    const markdownTheme = normalizeMarkdownTheme(options.markdownTheme || root.dataset.markdownTheme || 'juejin');
-    const codeTheme = normalizeCodeTheme(options.codeTheme || root.dataset.codeTheme || 'atom-one-dark');
-
-    root.classList.add('markdown-body');
-    root.dataset.markdownTheme = markdownTheme;
-    root.dataset.codeTheme = codeTheme;
-    installStyle(`zfy-markdown-theme-${markdownTheme}`, markdownThemeStyle(markdownTheme));
-    installStyle('zfy-code-theme', codeStyles[codeTheme]);
+    if (options.signal?.aborted) return () => {};
+    const releasePresentation = options.presentation === false ? () => {} : applyMarkdownPresentation(root, options);
     replaceGemoji(root);
     renderMath(root);
-    await renderMermaid(root);
+    await renderMermaid(root, options.signal);
+    if (options.signal?.aborted) {
+        releasePresentation();
+        return () => {};
+    }
     highlightCodeBlocks(root);
 
     const zoom = mediumZoom(root.querySelectorAll<HTMLImageElement>('img:not([data-no-zoom])'), {
@@ -110,28 +87,8 @@ export async function enhanceMarkdownContent(
 
     return () => {
         zoom.detach();
+        releasePresentation();
     };
-}
-
-function installStyle(id: string, css: string): void {
-    if (!css) {
-        return;
-    }
-
-    let style = document.getElementById(id) as HTMLStyleElement | null;
-    if (!style) {
-        style = document.createElement('style');
-        style.id = id;
-        document.head.appendChild(style);
-    }
-
-    if (style.textContent !== css) {
-        style.textContent = css;
-    }
-}
-
-function normalizeCodeTheme(value: string): string {
-    return codeStyles[value] ? value : 'atom-one-dark';
 }
 
 function replaceGemoji(root: HTMLElement): void {
@@ -174,7 +131,7 @@ function renderMath(root: HTMLElement): void {
     }
 }
 
-async function renderMermaid(root: HTMLElement): Promise<void> {
+async function renderMermaid(root: HTMLElement, signal?: AbortSignal): Promise<void> {
     const blocks = [...root.querySelectorAll<HTMLElement>('.enlighter-origin[data-enlighter-language="mermaid"], pre > code.language-mermaid')];
     if (blocks.length === 0) {
         return;
@@ -194,6 +151,7 @@ async function renderMermaid(root: HTMLElement): Promise<void> {
 
     try {
         const { default: mermaid } = await import('mermaid');
+        if (signal?.aborted) return;
         mermaid.initialize({
             startOnLoad: false,
             securityLevel: 'strict',
@@ -201,9 +159,11 @@ async function renderMermaid(root: HTMLElement): Promise<void> {
             fontFamily: 'Inter, Microsoft YaHei, sans-serif',
         });
         for (const [index, diagram] of diagrams.entries()) {
+            if (signal?.aborted) return;
             try {
                 const id = `zfy-mermaid-svg-${Date.now()}-${index}`;
                 const { svg, bindFunctions } = await mermaid.render(id, diagram.source);
+                if (signal?.aborted) return;
                 diagram.host.innerHTML = svg;
                 bindFunctions?.(diagram.host);
             } catch {

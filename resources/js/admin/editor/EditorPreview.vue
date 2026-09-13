@@ -11,6 +11,7 @@ import {
 import { mountJoeNeteasePlayers } from '../../shared/joeNeteasePlayer';
 import { mountZfyTimes } from '../../shared/zfyTime';
 import { copyTextToClipboard } from '../../shared/clipboard';
+import { applyMarkdownPresentation } from '../../shared/markdownPresentation';
 
 const props = defineProps<{
     html: string;
@@ -23,12 +24,26 @@ const props = defineProps<{
 const previewArticleRef = useTemplateRef<HTMLElement>('previewArticle');
 
 watch(
-    () => [props.html, props.markdownTheme, props.codeTheme, props.visible],
+    () => [previewArticleRef.value, props.markdownTheme, props.codeTheme],
+    (_value, _previousValue, onCleanup) => {
+        if (previewArticleRef.value) {
+            onCleanup(applyMarkdownPresentation(previewArticleRef.value, {
+                markdownTheme: props.markdownTheme,
+                codeTheme: props.codeTheme,
+            }));
+        }
+    },
+    { flush: 'post' },
+);
+
+watch(
+    () => [props.html, previewArticleRef.value],
     (_value, _previousValue, onCleanup) => {
         let cleanupTimes: (() => void) | undefined;
         let cleanupNetease: (() => void) | undefined;
         let cleanupEnhancements: (() => void) | undefined;
         let disposed = false;
+        const controller = new AbortController();
 
         void nextTick(async () => {
             if (disposed) {
@@ -36,14 +51,16 @@ watch(
             }
 
             const preview = previewArticleRef.value;
-            cleanupTimes = mountZfyTimes(preview || document);
-            cleanupNetease = mountJoeNeteasePlayers(preview || document);
+            if (!preview) return;
+            cleanupTimes = mountZfyTimes(preview);
+            cleanupNetease = mountJoeNeteasePlayers(preview);
 
             if (preview) {
                 const { enhanceMarkdownContent } = await import('../../shared/markdownEnhancements');
+                if (disposed) return;
                 const cleanup = await enhanceMarkdownContent(preview, {
-                    markdownTheme: props.markdownTheme,
-                    codeTheme: props.codeTheme,
+                    presentation: false,
+                    signal: controller.signal,
                 });
 
                 if (disposed) {
@@ -70,12 +87,13 @@ watch(
 
         onCleanup(() => {
             disposed = true;
+            controller.abort();
             cleanupTimes?.();
             cleanupNetease?.();
             cleanupEnhancements?.();
         });
     },
-    { immediate: true },
+    { flush: 'post' },
 );
 
 async function copyText(text: string): Promise<boolean> {
@@ -179,8 +197,6 @@ async function handlePreviewClick(event: MouseEvent): Promise<void> {
             ref="previewArticle"
             v-else
             class="zfy-editor-preview markdown-body"
-            :data-code-theme="codeTheme"
-            :data-markdown-theme="markdownTheme"
             v-html="html || '<p>暂无预览内容</p>'"
         />
     </aside>

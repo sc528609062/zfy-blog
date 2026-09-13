@@ -291,11 +291,6 @@
     white-space: pre-wrap;
 }
 
-.zfy-editor-preview.markdown-body :is(h1, h2, h3, h4, h5, h6)::before,
-.zfy-editor-preview.markdown-body :is(h1, h2, h3, h4, h5, h6)::after {
-    content: none;
-}
-
 .zfy-editor-preview .footnotes {
     margin-top: 36px;
     color: #667085;

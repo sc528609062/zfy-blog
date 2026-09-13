@@ -9,6 +9,7 @@ use App\Models\Theme;
 use App\Models\User;
 use App\Models\VipLevel;
 use App\Models\Wallet;
+use App\Services\PageLayoutSchema;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
@@ -111,12 +112,7 @@ class CoreInstallSeeder extends Seeder
 
         PageLayout::firstOrCreate(['scope' => 'home'], [
             'title' => '首页布局',
-            'schema' => [
-                'blocks' => [
-                    ['type' => 'hero', 'title' => config('app.name', 'zfy-blog'), 'subtitle' => '内容、资源与商城一体化平台'],
-                    ['type' => 'content-feed', 'title' => '最新内容'],
-                ],
-            ],
+            'schema' => app(PageLayoutSchema::class)->defaults('home'),
             'status' => 'published',
         ]);
     }

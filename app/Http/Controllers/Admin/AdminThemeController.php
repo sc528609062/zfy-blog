@@ -32,9 +32,10 @@ class AdminThemeController extends Controller
 
         return response()->json(['data' => Theme::all()->map(function ($theme) use ($themes) {
             $fields = app(ThemeConfiguration::class)->fields($theme);
+            $defaults = app(ThemeConfiguration::class)->defaults($theme);
             $values = $themes->settingsFor($theme)['global'];
 
-            return ['id' => $theme->id, 'slug' => $theme->slug, 'name' => $theme->name, 'is_active' => $theme->is_active, 'installed' => is_file(base_path('themes/'.$theme->slug.'/theme.json')), 'fields' => $fields, 'values' => collect($fields)->mapWithKeys(fn ($field) => [$field['key'] => $values[$field['key']] ?? $field['default'] ?? null])];
+            return ['id' => $theme->id, 'slug' => $theme->slug, 'name' => $theme->name, 'is_active' => $theme->is_active, 'installed' => is_file(base_path('themes/'.$theme->slug.'/theme.json')), 'fields' => $fields, 'defaults' => $defaults, 'values' => collect($fields)->mapWithKeys(fn ($field) => [$field['key'] => $values[$field['key']] ?? $defaults[$field['key']]])];
         })]);
     }
 
